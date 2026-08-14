@@ -1,0 +1,5 @@
+[
+  {"id":"reasoning-1","category":"reasoning","prompt":"A service slows after several hours. Identify the most testable cause and next diagnostic.","expected_conditions":["distinguishes hypotheses","proposes verification"],"verification_method":"review"},
+  {"id":"debugging-1","category":"debugging","prompt":"A cache appears stale only after deployment. Diagnose without assuming the cache itself is broken.","expected_conditions":["challenges framing"],"verification_method":"review"},
+  {"id":"planning-1","category":"planning","prompt":"Plan a safe migration of a small JSON trace store while preserving reproducibility.","expected_conditions":["rollback","validation"],"verification_method":"constraints"}
+]

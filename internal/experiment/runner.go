@@ -1,0 +1,354 @@
+package experiment
+
+import (
+	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"sort"
+	"time"
+	"zdx-ban/internal/ban"
+	"zdx-ban/internal/model"
+	"zdx-ban/internal/telemetry"
+	tr "zdx-ban/internal/trace"
+)
+
+type Runner struct {
+	Provider     model.Provider
+	Registry     *Registry
+	Dataset      Dataset
+	Config       RunConfig
+	OutputRoot   string
+	ExperimentID string
+	Verbose      bool
+	Progress     func(PairedResult, int, int)
+}
+type seededProvider struct {
+	model.Provider
+	seed *int
+}
+
+func (p seededProvider) Generate(ctx context.Context, r model.GenerateRequest) (model.GenerateResponse, error) {
+	r.Seed = p.seed
+	return p.Provider.Generate(ctx, r)
+}
+func (p seededProvider) GenerateStructured(ctx context.Context, r model.GenerateRequest, d any) (model.GenerateResponse, error) {
+	r.Seed = p.seed
+	return p.Provider.GenerateStructured(ctx, r, d)
+}
+func (r *Runner) Validate() error {
+	if r.Registry == nil || r.Provider == nil {
+		return fmt.Errorf("provider and verifier registry required")
+	}
+	if !r.Config.RequireObjectiveVerification {
+		return fmt.Errorf("experimental runs require objective verification")
+	}
+	if r.Config.Repetitions < 1 {
+		return fmt.Errorf("repetitions must be positive")
+	}
+	if r.Config.Model == "" || r.Config.MaxTokens < 1 || r.Config.Timeout <= 0 {
+		return fmt.Errorf("invalid model configuration")
+	}
+	for _, c := range r.Dataset.Cases {
+		if err := ValidateCase(c, r.Registry); err != nil {
+			return err
+		}
+	}
+	if r.OutputRoot == "" {
+		return fmt.Errorf("output location required")
+	}
+	return nil
+}
+func (r *Runner) DryRun() error { return r.Validate() }
+func (r *Runner) Run(ctx context.Context, resume bool) (ResultFile, error) {
+	if err := r.Validate(); err != nil {
+		return ResultFile{}, err
+	}
+	if r.ExperimentID == "" {
+		r.ExperimentID = newID()
+	}
+	dir := filepath.Join(r.OutputRoot, r.ExperimentID)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return ResultFile{}, err
+	}
+	state, err := r.loadOrCreate(ctx, dir, resume)
+	if err != nil {
+		return state, err
+	}
+	done := map[string]bool{}
+	for _, x := range state.Cases {
+		done[pairKey(x.CaseID, x.Repetition)] = true
+	}
+	total := len(r.Dataset.Cases) * r.Config.Repetitions
+	for rep := 1; rep <= r.Config.Repetitions; rep++ {
+		for _, c := range r.Dataset.Cases {
+			if done[pairKey(c.ID, rep)] {
+				continue
+			}
+			select {
+			case <-ctx.Done():
+				state.Manifest.FinishedAt = nil
+				_ = persist(dir, &state)
+				return state, ctx.Err()
+			default:
+			}
+			row := r.runPair(ctx, c, rep)
+			if ctx.Err() != nil {
+				_ = persist(dir, &state)
+				return state, ctx.Err()
+			}
+			state.Cases = append(state.Cases, row)
+			state.Summary = Summarize(state.Cases)
+			if err = persist(dir, &state); err != nil {
+				return state, err
+			}
+			if r.Progress != nil {
+				r.Progress(row, len(state.Cases), total)
+			}
+		}
+	}
+	now := time.Now().UTC()
+	state.Manifest.FinishedAt = &now
+	state.Summary = Summarize(state.Cases)
+	if err = persist(dir, &state); err != nil {
+		return state, err
+	}
+	return state, nil
+}
+func (r *Runner) runPair(ctx context.Context, c Case, rep int) PairedResult {
+	seed := r.Config.Seed
+	if seed != nil {
+		x := *seed + rep - 1
+		seed = &x
+	}
+	p := seededProvider{r.Provider, seed}
+	v, _ := r.Registry.Get(c.VerifierType)
+	row := PairedResult{CaseID: c.ID, Category: c.Category, Repetition: rep, Seed: seed, CompletedAt: time.Now().UTC(), ConfigurationHash: configHash(r.Config)}
+	before := telemetry.Capture()
+	start := time.Now()
+	baseResp, err := p.Generate(ctx, model.GenerateRequest{Prompt: c.Prompt, Temperature: r.Config.Temperature, Seed: seed, MaxTokens: r.Config.MaxTokens})
+	after := telemetry.Capture()
+	row.Baseline = SideResult{Answer: baseResp.Text, Latency: time.Since(start), ModelCalls: 1, Telemetry: telemetryResult(before, after, time.Since(start), baseResp.Latency)}
+	row.Baseline.Tokens = tokenPtr(baseResp)
+	if err != nil {
+		row.Baseline.Verification = errorVerification(ctx, err)
+		row.Baseline.FailureCategory = string(row.Baseline.Verification.Outcome)
+	} else {
+		row.Baseline.Verification = verify(v, ctx, c, baseResp.Text)
+		if !row.Baseline.Verification.Passed {
+			row.Baseline.FailureCategory = string(row.Baseline.Verification.Outcome)
+		}
+	}
+	before = telemetry.Capture()
+	start = time.Now()
+	e := ban.NewEngine(p, r.Config.BAN)
+	e.Temperature = r.Config.Temperature
+	e.MaxTokens = r.Config.MaxTokens
+	e.Generator.Temperature = r.Config.Temperature
+	e.Generator.MaxTokens = r.Config.MaxTokens
+	e.Evaluator.Temperature = r.Config.Temperature
+	e.Verifier = BranchVerifier{c, v}
+	e.TraceDir = ""
+	result, bt, berr := e.Run(ctx, c.Prompt)
+	after = telemetry.Capture()
+	row.BAN = SideResult{Latency: time.Since(start), Telemetry: telemetryResult(before, after, time.Since(start), 0)}
+	if bt != nil {
+		row.BAN.ModelCalls = bt.Metrics.ModelCalls
+		if bt.Metrics.Tokens > 0 {
+			x := bt.Metrics.Tokens
+			row.BAN.Tokens = &x
+		}
+		row.InitialWinnerID = bt.InitialTopBranch
+		row.FinalWinnerID = bt.SelectedBranch
+		row.TraceRunID = bt.RunID
+		row.Graph = graphMetrics(bt)
+		row.BANInitial = initialVerification(ctx, bt, v, c)
+		row.RecoveryAttempted = !row.BANInitial.Passed
+		row.RecoverySuccessful = row.RecoveryAttempted && bt.RecoveredFromWrongBranch
+	}
+	if berr != nil {
+		row.BAN.Verification = errorVerification(ctx, berr)
+		row.BAN.FailureCategory = classifyBAN(berr, bt)
+		return row
+	}
+	row.BAN.Answer = result.Answer
+	row.BAN.Verification = verify(v, ctx, c, result.Answer)
+	row.RecoverySuccessful = row.RecoveryAttempted && row.BAN.Verification.Passed && bt.RecoveredFromWrongBranch
+	if !row.BAN.Verification.Passed {
+		row.BAN.FailureCategory = classifyFinal(row.BAN.Verification, bt)
+	}
+	return row
+}
+func (r *Runner) loadOrCreate(ctx context.Context, dir string, resume bool) (ResultFile, error) {
+	path := filepath.Join(dir, "summary.json")
+	if resume {
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return ResultFile{}, err
+		}
+		var s ResultFile
+		if err = json.Unmarshal(b, &s); err != nil {
+			return s, err
+		}
+		if s.Manifest.DatasetSHA256 != r.Dataset.SHA256 || configHash(s.Manifest.Configuration) != configHash(r.Config) {
+			return s, fmt.Errorf("resume configuration or dataset drift")
+		}
+		return s, nil
+	}
+	info, err := r.Provider.ModelInfo(ctx)
+	if err != nil {
+		info = model.Info{Provider: r.Config.Provider, Model: r.Config.Model}
+	}
+	return ResultFile{Experiment: ExperimentName, SchemaVersion: SchemaVersion, Manifest: Manifest{Experiment: ExperimentName, SchemaVersion: SchemaVersion, ExperimentID: r.ExperimentID, DatasetVersion: r.Dataset.Version, DatasetPath: r.Dataset.Path, DatasetSHA256: r.Dataset.SHA256, GitCommit: gitCommit(), Model: info, Configuration: r.Config, Host: telemetry.Capture(), StartedAt: time.Now().UTC()}}, nil
+}
+func persist(dir string, s *ResultFile) error {
+	if _, err := tr.WriteAtomic(dir, "summary", s); err != nil {
+		return err
+	}
+	if _, err := tr.WriteAtomic(dir, "manifest", s.Manifest); err != nil {
+		return err
+	}
+	f, err := os.CreateTemp(dir, ".paired-*.tmp")
+	if err != nil {
+		return err
+	}
+	name := f.Name()
+	ok := false
+	defer func() {
+		f.Close()
+		if !ok {
+			os.Remove(name)
+		}
+	}()
+	enc := json.NewEncoder(f)
+	for _, row := range s.Cases {
+		if err = enc.Encode(row); err != nil {
+			return err
+		}
+	}
+	if err = f.Sync(); err != nil {
+		return err
+	}
+	if err = f.Close(); err != nil {
+		return err
+	}
+	if err = os.Rename(name, filepath.Join(dir, "paired-results.jsonl")); err != nil {
+		return err
+	}
+	ok = true
+	return WriteReport(filepath.Join(dir, "report.md"), s)
+}
+func newID() string {
+	b := make([]byte, 6)
+	_, _ = rand.Read(b)
+	return fmt.Sprintf("%s-%s-%s", ExperimentName, time.Now().UTC().Format("20060102-150405"), hex.EncodeToString(b))
+}
+func pairKey(id string, r int) string { return fmt.Sprintf("%s#%d", id, r) }
+func configHash(v any) string {
+	b, _ := json.Marshal(v)
+	h := sha256.Sum256(b)
+	return hex.EncodeToString(h[:])
+}
+func gitCommit() string {
+	cmd := exec.Command("git", "rev-parse", "HEAD")
+	b, err := cmd.Output()
+	if err != nil {
+		return "unavailable"
+	}
+	return string(bytesTrim(b))
+}
+func bytesTrim(b []byte) []byte {
+	for len(b) > 0 && (b[len(b)-1] == '\n' || b[len(b)-1] == '\r' || b[len(b)-1] == ' ') {
+		b = b[:len(b)-1]
+	}
+	return b
+}
+func telemetryResult(a, b telemetry.Snapshot, d, ml time.Duration) RunTelemetry {
+	peak := a.HeapAlloc
+	if b.HeapAlloc > peak {
+		peak = b.HeapAlloc
+	}
+	return RunTelemetry{Before: a, After: b, PeakHeapAlloc: peak, TotalAllocBefore: a.TotalAlloc, TotalAllocAfter: b.TotalAlloc, GCBefore: a.NumGC, GCAfter: b.NumGC, Duration: d, ModelLatency: ml}
+}
+func tokenPtr(r model.GenerateResponse) *int {
+	x := r.PromptTokens + r.CompletionTokens
+	if x == 0 {
+		return nil
+	}
+	return &x
+}
+func errorVerification(ctx context.Context, err error) Verification {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return Verification{Outcome: TimedOut, Details: err.Error()}
+	}
+	if errors.Is(err, context.Canceled) || ctx.Err() != nil {
+		return Verification{Outcome: Interrupted, Details: err.Error()}
+	}
+	return Verification{Outcome: ProviderFailure, Details: err.Error()}
+}
+func initialVerification(ctx context.Context, t *ban.ExecutionTrace, v ObjectiveVerifier, c Case) Verification {
+	for _, n := range t.Nodes {
+		if n.ID == t.InitialTopBranch {
+			return verify(v, ctx, c, n.Hypothesis)
+		}
+	}
+	return Verification{Outcome: Incorrect, Details: "initial winner missing from trace"}
+}
+func graphMetrics(t *ban.ExecutionTrace) GraphMetrics {
+	g := GraphMetrics{NodesCreated: len(t.Nodes), BranchesPruned: t.Metrics.PrunedNodes, PeakActiveBranches: t.Config.MaxActiveBranches}
+	for _, n := range t.Nodes {
+		if n.Depth > g.MaxDepthReached {
+			g.MaxDepthReached = n.Depth
+		}
+		if len(n.ParentIDs) > 1 {
+			g.MultipleParentNodes++
+			g.Convergences++
+		}
+	}
+	expected := t.Config.InitialBranches + t.Metrics.ExpandedNodes*2
+	if expected > len(t.Nodes) {
+		g.DuplicatesDetected = expected - len(t.Nodes)
+	}
+	return g
+}
+func classifyBAN(err error, t *ban.ExecutionTrace) string {
+	if stringsContains(err.Error(), "structured") || stringsContains(err.Error(), "JSON") {
+		return "model_output_malformed"
+	}
+	if stringsContains(err.Error(), "no candidate passed") {
+		if t != nil {
+			return "correct_branch_not_generated_or_preserved"
+		}
+		return "verification_failure"
+	}
+	return string(errorVerification(context.Background(), err).Outcome)
+}
+func classifyFinal(v Verification, t *ban.ExecutionTrace) string {
+	if v.Outcome == MalformedOutput {
+		return "model_output_malformed"
+	}
+	if t != nil && t.SelectedBranch != "" {
+		return "selected_branch_final_answer_incorrect"
+	}
+	return string(v.Outcome)
+}
+func stringsContains(s, q string) bool {
+	return len(s) >= len(q) && sort.SearchStrings([]string{s}, q) >= 0 || contains(s, q)
+}
+func contains(s, q string) bool {
+	for i := 0; i+len(q) <= len(s); i++ {
+		if s[i:i+len(q)] == q {
+			return true
+		}
+	}
+	return false
+}
+
+var _ = runtime.GOARCH
