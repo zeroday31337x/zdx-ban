@@ -4,11 +4,12 @@ import (
 	"time"
 	"zdx-ban/internal/ban"
 	"zdx-ban/internal/measurement"
+	"zdx-ban/internal/memory"
 	"zdx-ban/internal/model"
 	"zdx-ban/internal/telemetry"
 )
 
-const SchemaVersion = "0.2"
+const SchemaVersion = "0.3"
 const ExperimentName = "BAN-EXPERIMENT-001"
 
 type Constraint struct {
@@ -41,15 +42,20 @@ type RunConfig struct {
 	Repetitions                  int
 	BAN                          ban.Config
 	RequireObjectiveVerification bool
+	MemoryEnabled                bool
+	MemoryRetrieval              memory.RetrievalConfig
+	MemoryConsolidation          memory.ConsolidationConfig
+	MemoryWritePolicy            string
 }
 type Manifest struct {
-	Experiment, SchemaVersion, ExperimentID, DatasetVersion, DatasetPath, DatasetSHA256, GitCommit, GitRemote string
-	GitDirty                                                                                                  bool
-	Model                                                                                                     model.Info
-	Configuration                                                                                             RunConfig
-	Host                                                                                                      telemetry.Snapshot
-	StartedAt                                                                                                 time.Time
-	FinishedAt                                                                                                *time.Time `json:"finishedAt,omitempty"`
+	Experiment, SchemaVersion, ExperimentID, DatasetVersion, DatasetPath, DatasetSHA256, GitCommit, GitRemote            string
+	GitDirty                                                                                                             bool
+	TraceSchemaVersion, MemorySchemaVersion, MemoryDatasetVersion, MemoryDatasetHash, InitialMemoryHash, FinalMemoryHash string
+	Model                                                                                                                model.Info
+	Configuration                                                                                                        RunConfig
+	Host                                                                                                                 telemetry.Snapshot
+	StartedAt                                                                                                            time.Time
+	FinishedAt                                                                                                           *time.Time `json:"finishedAt,omitempty"`
 }
 type Outcome string
 
@@ -102,6 +108,7 @@ type PairedResult struct {
 	RecoveryAttempted, RecoverySuccessful    bool
 	Graph                                    GraphMetrics
 	TraceRunID                               string
+	Memory                                   ban.MemoryInteraction
 	CompletedAt                              time.Time
 	ConfigurationHash                        string
 }

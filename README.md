@@ -30,6 +30,10 @@ Run BAN, the same-model single-generation baseline, or the initial benchmark:
 
 Complete traces are stored in `traces/<run-id>.json`. They contain configuration, model information, runtime telemetry, every node and edge, component scores, verification results, initial/final winners, recovery fields, call/token counts, latency, and result. A temporary trace is renamed only after a complete synchronized write.
 
+## Memory-grounded intelligence
+
+See [MEMORY.md](MEMORY.md) for Pass 4 tiered memory, deterministic retrieval, leakage controls, experimental ablations, and the rule that current measurement overrides memory.
+
 ## What BAN Means by Correctness
 
 See [MEASUREMENT.md](MEASUREMENT.md) for measurement-relative correctness, evidence authority and independence, the measurement hierarchy, candidate-vs-final semantics, and V0 local verification cost.

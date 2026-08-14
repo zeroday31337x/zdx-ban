@@ -9,6 +9,19 @@ The paired experiment compares one normal generation with the unchanged BAN-0 se
 
 Both are generated from inspectable deterministic definitions in `cmd/datasetgen/main.go`, use independent dataset versions, and are SHA-256 hashed when loaded. Categories are arithmetic/constraints, logic/deduction, structured transformation, coding/debugging, and forced recovery.
 
+## Memory ablation commands
+
+```sh
+./bin/ban experiment memory-smoke --dry-run
+./bin/ban experiment memory-smoke --repetitions 1
+./bin/ban experiment memory-run --repetitions 3
+./bin/ban memory inspect
+./bin/ban memory stats
+./bin/ban memory reset --confirm
+```
+
+See [MEMORY.md](MEMORY.md) for intervention semantics and leakage controls.
+
 ## Commands
 
 ```sh
@@ -25,7 +38,7 @@ Each result directory contains `manifest.json`, `paired-results.jsonl`, `summary
 
 ## Verification and interpretation
 
-Pass 3 emits experiment schema 0.2 and BAN trace schema 0.2. Pass 2 schema 0.1 files remain ordinary JSON and are not reinterpreted. Current objective verifiers are normalized exact output, numeric output with tolerance, explicit safe numeric constraints, and structured JSON field invariants. There is no permissive fallback in experimental mode. Outcomes distinguish incorrect answers, malformed output, unsupported/misconfigured verification, provider errors, timeouts, and interruption.
+Pass 3 emits experiment schema 0.3 and BAN trace schema 0.3; memory schema is 0.1. Pass 2 schema 0.1 files remain ordinary JSON and are not reinterpreted. Current objective verifiers are normalized exact output, numeric output with tolerance, explicit safe numeric constraints, and structured JSON field invariants. There is no permissive fallback in experimental mode. Outcomes distinguish incorrect answers, malformed output, unsupported/misconfigured verification, provider errors, timeouts, and interruption.
 
 “Recovery rate” is successful BAN final verification among cases where BAN’s initial top branch fails the objective verifier. Baseline has no structurally comparable initial branch, so the report does not fabricate a conditional baseline recovery probability. McNemar’s test compares final paired binary correctness only.
 

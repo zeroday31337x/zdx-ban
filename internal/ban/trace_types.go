@@ -7,8 +7,17 @@ import (
 	"zdx-ban/internal/telemetry"
 )
 
-const TraceSchemaVersion = "0.2"
+const TraceSchemaVersion = "0.3"
 
+type MemoryInteraction struct {
+	Enabled             bool
+	InitialSnapshotHash string
+	RetrievedMemoryIDs  []string
+	RetrievalReasons    map[string]any
+	WorkingMemoryChars  int
+	GuidanceHash        string
+	Events              []map[string]any
+}
 type Metrics struct {
 	TotalNodes, ExpandedNodes, PrunedNodes, ModelCalls, Tokens, PeakActiveBranches int
 	Latency                                                                        time.Duration
@@ -29,5 +38,6 @@ type ExecutionTrace struct {
 	RecoveryDepth                    int
 	ReasonForSwitch                  string
 	Metrics                          Metrics
+	Memory                           MemoryInteraction
 	Result                           Result
 }

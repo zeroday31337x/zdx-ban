@@ -1,0 +1,1559 @@
+Core model features:
+
+3 sets of Weights;
+
+Core Module (Static Weights):
+
+Role: Store and enforce your system’s fundamental rulesets, policies, ethics, and personality.
+
+Implementation: Use parameter freezing. Once trained, these weights should remain unchanged. They act as a “gatekeeper” ensuring that all outputs adhere to your core principles.
+
+
+
+Adaptive Module (Weekly Updates):
+
+Role: Integrate lessons learned over longer periods. This module should capture broader patterns and insights, refining the model’s understanding in a controlled manner.
+
+Implementation:
+Schedule periodic training sessions (e.g., weekly) using curated datasets that reflect accumulated knowledge.
+Use a moderate learning rate to ensure that changes are significant yet not disruptive to the core module.
+Consider mechanisms such as ensemble methods or gating layers that allow this module to influence decisions without overriding the static core.
+
+Dynamic Module (Daily Updates):
+
+Role: Quickly incorporate the latest domain-specific data (e.g., new coding practices, emerging technologies).
+Implementation:
+Set up an online or near-real-time learning process to update these weights more frequently.
+Use higher learning rates or specialized online learning algorithms to capture rapid changes.
+Ensure that this module’s outputs are filtered or adjusted before interfacing with the core module, possibly via attention mechanisms or learned gating functions, to prevent conflict with the foundational guidelines.
+
+
+Integration and Conflict Resolution:
+
+Inter-Module Communication:
+Ensure that the outputs from the adaptive and dynamic modules are combined in a manner that respects the static module’s constraints. For example, you might use a weighted sum or attention mechanism that prioritizes core values when conflicts arise.
+
+ 
+
+Meta-Learning Strategies:
+Consider incorporating meta-learning or self-supervised techniques to allow the model to adjust the influence of each module dynamically based on the context or task at hand.
+Summary
+
+An open weight model with three distinct sets of weights allows you to balance stability with rapid adaptation. The static core provides a safeguard for ethical and policy integrity; the weekly updated module enables gradual learning and refinement; and the daily updated module ensures that your model remains current with domain-specific trends. By carefully designing the integration and update mechanisms between these modules, you can create a robust system that leverages the strengths of each component without compromising overall consistency.
+
+This modular approach not only enhances the model’s flexibility and scalability but also simplifies maintenance and risk management, making it well-suited for complex, evolving applications.
+
+Feel free to ask if you need further details or specific implementation strategies!
+
+
+Regularly evaluate the performance of each module and the overall system. This helps ensure that frequent updates in the dynamic module do not inadvertently cause deviations from your core policies.
+Meta-Learning Strategies:
+Consider incorporating meta-learning or self-supervised techniques to allow the model to adjust the influence of each module dynamically based on the context or task at hand.
+
+
+
+carefully designnyhe integration and update mechanisms between these modules, you can create a robust system that leverages the strengths of each component without compromising overall consistency
+
+
+ Core Difference #2;
+
+
+Memory as a foundation of intelligence not an after thought, tool, Or 'extra' (short term / kv cache has 1-20 scoring system and context tagging that needs to be implemented) Long Term memoriss need to be always accessible by the model And the model needs tools for cross referencing and quickly scanning context And tagging and names of memory.
+ 
+
+
+Response flow for BAN model: userPrompt 
+> Model thinking + scan memories / cross reference memories for context, patterns, same type of ideas, core understandings that connect to userPrompt, that connect to context of userPrompt, could help solve any issues user has, then model create up to 10 branches of possible answers and each is assigned scores for probability (possibly using gravity wells that continuously evolve and decay) highest scoring / most gravity branch is selected for the response.
+
+The model needs an internal schedule for updating its second set of weights, and it's third. It will prompt the user each week to approve weight retraining and can also be set on auto governing teianging and meta training. We can include specific web sites for each set and update the training cycle urls as needed to avoid copyright infringement.  Even have blogs monitored and other sites that innovate tech and build software. 
+   
+
+
+
+
+
+
+
+
+
+
+_________________
+I need to plan out a custom AI model build. It's part transformer model as base. But it's entirely a BAN (branch Attractor network) model, the key difference is memory (short term /kv cache has 1-20 scoring system and context tagging) and long term memory stored on same device as the model and in the database for redundant memory preservation and  access. The model access it's memories or scans it for reference or context or patterns every turn and generates 10 branches as it's thougt processs. A voting flow is used to determine the most likely and best branch the highest % of votes collapsed the branch. This way answers are more consistent and more accurate. The memory access and referencing /scanning for connections and patterns or context wav prompt allows for longer continuity and understanding and lesson learning withour core weights updRing. There is also multiple sets of weights. The core set that doesn't change is the base weights, general, there locked never update or change
+
+ Peserves rules and personality and ethics. There's a second set of smaller weoghts that update only when a core lesson is learned, a pattern matched etc. like nueral pathways creation In human brains when they solve complex problems, once a week these weights are adjusted with My lessons or patterns or understandings learned. There's a third set of weights that is constantly updated, these weights contain coding techniques and new frameworks or technology. Things that change daily, domain specific knowledge etc.. 
+
+
+
+
+
+____________________
+
+ZDX-BAN Development Record
+Pass 1 — BAN-0: Preexecution Reasoning Possibility Space
+Purpose
+Pass 1 established the fundamental BAN architecture:
+Do not commit immediately to one autoregressive reasoning path. Preserve multiple genuinely different possibilities, evaluate them independently, allow convergence and recovery, and choose among them only after constrained evaluation.
+The frozen transformer remained unchanged. BAN was implemented as an external reasoning/orchestration system rather than a modification to transformer weights, attention, KV caches, or model internals. The repository's initial README explicitly describes BAN-0 that way.
+
+
+
+# ZERO DRIVEX BAN — PASS 1
+# BAN-0 v0.1
+# BOUNDED MULTI-PATH REASONING ARCHITECTURE
+
+Build the first experimental ZeroDriveX BAN runtime.
+
+BAN is based on a simple principle:
+
+    A model should not assume that the first plausible
+    reasoning path is the only useful path.
+
+Instead:
+
+    input
+      ↓
+    generate multiple genuinely different hypotheses
+      ↓
+    preserve them as reasoning states
+      ↓
+    evaluate them separately
+      ↓
+    retain strong and credible minority possibilities
+      ↓
+    expand / challenge / verify
+      ↓
+    recover or backtrack after failure
+      ↓
+    select the strongest valid final state
+
+The purpose of Pass 1 is architecture, not proving superiority.
+
+============================================================
+1. MODEL BOUNDARY
+============================================================
+
+Use a frozen existing transformer.
+
+Initial provider:
+
+    Ollama
+
+Initial model configuration:
+
+    qwen2.5:1.5b
+
+BAN must be external orchestration.
+
+Do NOT:
+
+- train the model
+- fine-tune weights
+- modify attention
+- modify transformer layers
+- manipulate KV caches
+- build a custom inference engine
+- implement PPS
+- add embeddings
+- add persistent long-term memory
+
+The model proposes possibilities.
+
+BAN controls their lifecycle.
+
+============================================================
+2. IMPLEMENT IN GO
+============================================================
+
+Use native Go for the orchestration/control plane.
+
+The system must compile and run natively on ARM64.
+
+Use clean internal packages with explicit interfaces.
+
+Likely boundaries include:
+
+    model
+    ban
+    memory / bounded working-state abstraction
+    trace
+    benchmark
+    telemetry
+
+Keep provider interfaces replaceable.
+
+============================================================
+3. DIRECTED REASONING GRAPH
+============================================================
+
+Do not model BAN as only a tree.
+
+Implement a bounded directed graph.
+
+A state must be capable of having:
+
+- one parent
+- multiple parents after legitimate convergence
+- children
+- depth
+- stable ID
+- normalized semantic fingerprint
+- scores
+- verification state
+- recovery metadata
+
+Graph requirements:
+
+- configured maximum depth
+- configured maximum nodes
+- cycle rejection
+- duplicate/convergence detection
+- deterministic fingerprints
+- multiple-parent convergence
+- no unbounded expansion
+
+Important:
+
+    convergence is not automatically independent evidence.
+
+Two paths reaching the same state do not become two votes
+merely because the graph has two parents.
+
+============================================================
+4. BRANCH GENERATION
+============================================================
+
+Generate multiple meaningfully different proposals.
+
+Do not merely ask for cosmetic paraphrases.
+
+Encourage differences such as:
+
+- competing hypotheses
+- alternate causal explanations
+- different algorithms
+- different solution approaches
+- alternate debugging theories
+- counterfactual possibilities
+
+Strictly decode structured model responses.
+
+Generated text is untrusted input.
+
+Never execute model-generated shell commands.
+
+============================================================
+5. SCORING
+============================================================
+
+Keep scoring dimensions separately visible.
+
+Do not hide all reasoning quality inside one opaque score.
+
+Potential dimensions may include:
+
+- relevance
+- consistency
+- constraint satisfaction
+- explanatory power
+- utility
+
+Hard constraints must be capable of rejecting a branch
+regardless of utility.
+
+Avoid pretending heuristic score means factual truth.
+
+============================================================
+6. RETENTION
+============================================================
+
+Retain:
+
+- leading branches
+- credible minority branches
+
+Do not automatically collapse onto the current top score.
+
+Preserve enough diversity to allow recovery from early
+mistakes.
+
+============================================================
+7. SKEPTIC / COUNTERFACTUAL PASSES
+============================================================
+
+Provide bounded mechanisms that can challenge leading
+hypotheses.
+
+Examples:
+
+- What assumption could make this wrong?
+- What alternative explanation remains viable?
+- What counterexample defeats this?
+- What happens if this premise is false?
+
+These are search operations, not truth oracles.
+
+============================================================
+8. VERIFIER ABSTRACTION
+============================================================
+
+Create an explicit verifier interface.
+
+Pass 1 may use deterministic domain verifiers where
+available.
+
+If no objective verifier exists, the runtime must not pretend
+that heuristic reasoning established universal correctness.
+
+Keep verification replaceable for later passes.
+
+============================================================
+9. RECOVERY
+============================================================
+
+BAN must be capable of recovering when its preferred branch
+fails.
+
+Flow:
+
+    preferred state
+       ↓
+    verifier failure / hard constraint
+       ↓
+    mark failure
+       ↓
+    revisit retained alternatives
+       ↓
+    continue from another viable branch
+
+Record:
+
+- initial winner
+- failed winner
+- recovery path
+- final winner
+
+============================================================
+10. WORKING MEMORY
+============================================================
+
+Implement only bounded current-run working state.
+
+No persistent learning yet.
+
+Working state must be:
+
+- bounded
+- explicit
+- deterministic where possible
+
+Do not implement Pass 4-style persistent memory.
+
+============================================================
+11. OLLAMA TRANSPORT
+============================================================
+
+Use context-aware bounded streaming.
+
+Requirements:
+
+- timeouts
+- cancellation
+- strict decoding
+- response-size limits
+- proper stream termination
+- transport errors
+- token accounting when Ollama supplies it
+
+No unlimited reads or generation.
+
+============================================================
+12. CONCURRENCY
+============================================================
+
+Evaluation concurrency must be explicitly bounded.
+
+Default conservatively.
+
+Deterministic behavior is more important than maximum
+parallelism in Pass 1.
+
+============================================================
+13. TRACE
+============================================================
+
+Write a complete machine-readable trace.
+
+Schema version:
+
+    0.1
+
+Trace:
+
+- run ID
+- configuration
+- provider/model information
+- graph nodes
+- graph edges
+- parents
+- scores
+- verifier results
+- recovery
+- initial winner
+- final winner
+- model calls
+- token counts when available
+- latency
+- runtime telemetry
+- final result
+
+Write atomically.
+
+An incomplete run must not masquerade as a complete trace.
+
+============================================================
+14. TELEMETRY
+============================================================
+
+Record lightweight local runtime information.
+
+At minimum:
+
+- elapsed time
+- model calls
+- generation counts
+- token counts where available
+- Go heap/runtime information
+
+Avoid measurement that materially changes the experiment.
+
+============================================================
+15. BASELINE
+============================================================
+
+Provide a normal single-generation path using the same model.
+
+Example conceptual commands:
+
+    ban "<problem>"
+    ban baseline "<problem>"
+
+The baseline must not secretly receive advantages unavailable
+to BAN or vice versa.
+
+============================================================
+16. TESTING
+============================================================
+
+Tests must not require live Ollama.
+
+Use mocks and httptest where appropriate.
+
+Test at least:
+
+- graph bounds
+- convergence
+- cycle rejection
+- duplicate fingerprints
+- branch retention
+- verifier rejection
+- recovery
+- structured decoding
+- cancellation
+- timeout
+- trace completion
+- atomic trace behavior
+
+Important:
+
+If a test reveals that the graph legitimately converges and
+therefore contains fewer unique nodes than a naive tree
+calculation predicts, correct the test rather than breaking
+convergence semantics.
+
+============================================================
+17. QUALITY GATES
+============================================================
+
+Run:
+
+    go test ./...
+    go vet ./...
+    go build ./...
+
+Attempt race testing where supported.
+
+Report environmental limitations separately from application
+failures.
+
+============================================================
+18. PASS 1 SCIENTIFIC DISCIPLINE
+============================================================
+
+Do NOT claim BAN improves model intelligence or accuracy from
+Pass 1.
+
+Pass 1 proves only that the architecture can:
+
+- preserve multiple alternatives
+- converge equivalent states
+- challenge hypotheses
+- apply verification
+- backtrack
+- recover
+- select a final state
+- produce an auditable trace
+
+The next pass will establish controlled experiments.
+
+============================================================
+19. PROHIBITED SCOPE
+============================================================
+
+Do not add:
+
+- persistent memory
+- embeddings
+- learned verifier
+- vector database
+- model training
+- transformer modifications
+- KV manipulation
+- PPS
+- GUI
+- remote database
+- paid inference evaluator
+
+============================================================
+20. FINAL REPORT
+============================================================
+
+Report:
+
+- architecture
+- packages/files
+- graph semantics
+- convergence
+- cycle prevention
+- branch scoring
+- branch retention
+- skeptic/counterfactual behavior
+- verification
+- recovery
+- working memory
+- Ollama transport
+- concurrency
+- telemetry
+- tracing
+- tests
+- build/vet
+- known limitations
+- exact recommended Pass 2
+
+Stop after Pass 1.
+
+
+
+
+Pass 2 implementation record
+Pass 2 established the paired comparison:
+same frozen Qwen model
+        │
+        ├── ordinary generation
+        │
+        └── BAN-0
+                ↓
+        deterministic verifier
+                ↓
+           paired result
+The official experiment documentation records 20 smoke cases and 100 primary cases, evenly spanning arithmetic/constraints, logic/deduction, structured transformation, coding/debugging, and forced recovery.
+The Pass 2 dataset identities recorded during development were:
+Smoke
+version:
+ban-exp-001-smoke-v1
+
+SHA-256:
+e8dbd24a4fc9e25aaae40c96a4faca6674dffcbb16829448642dc6d78d7ea7c1
+
+
+Primary
+version:
+ban-exp-001-v1
+
+SHA-256:
+f5ec8123e8fb75f431b409ce95e3476302254f3a4d2274ef7fd085d6ab5de7fb
+Expected answers were excluded from model-visible prompts.
+The experiment provided:
+dry-run validation
+atomic checkpoints
+resume
+configuration-drift rejection
+Ctrl-C cancellation
+manifest
+paired JSONL
+summary JSON
+Markdown report
+The repository documents those mechanics directly.
+Major Pass 2 correctness fixes
+Four discoveries were particularly important.
+1. Candidate versus final verification
+An early design risk allowed BAN's successful internal candidate verification to become confused with final correctness.
+This was corrected to:
+BAN candidate
+    ↓
+objective candidate verification
+    ↓
+selection/recovery
+    ↓
+final answer realization
+    ↓
+independent final-answer verification
+Final accuracy is based on the delivered answer, not merely on an internal correct thought.
+2. Incomplete Ollama streams
+A stream ending without the required completion indication could previously appear clean.
+Pass 2 changed that to an explicit transport failure.
+3. Timeout harness hang
+A mock timeout server exposed a harness hang. The harness was corrected instead of weakening real timeout semantics.
+4. Dataset duplicate detection
+The first repetitive 100-case draft was rejected by the duplicate detector.
+The detector was not weakened.
+The dataset generator was corrected instead.
+That is a useful example of the development philosophy already becoming embedded in BAN.
+Verification
+Experimental verification supported:
+normalized exact values
+numeric tolerance
+safe numeric constraints
+structured JSON invariants
+The experimental path had no permissive fallback.
+Analysis
+Pass 2 added McNemar paired analysis and defined recovery as BAN success after the initial top branch failed objective verification. It explicitly refused to fabricate an equivalent baseline recovery probability because baseline does not possess the same internal branch structure.
+Quality gates
+Recorded Pass 2 state:
+go test -timeout 90s ./...
+PASS
+
+go vet ./...
+PASS
+
+ARM64 build
+PASS
+The live Ollama endpoint was unavailable, so no superiority claim was made and no experimental result was fabricated.
+That principle is also explicitly stated in the repository documentation: no claim of improvement is valid until live paired results support it.
+
+
+
+Pass 3 — Measurement-Grounded Correctness
+Purpose
+Pass 3 corrected a deeper epistemic prob
+
+
+Pass 3 — Measurement-Grounded Correctness
+Purpose
+Pass 3 corrected a deeper epistemic problem:
+A verifier returning true is not the same thing as establishing universal truth.
+Correctness became explicitly measurement-relative.
+The core interpretation became:
+claim
+  ↓
+measurement contract
+  ↓
+observable
+  ↓
+method
+  ↓
+observation
+  ↓
+criterion / tolerance
+  ↓
+evidence
+  ↓
+SUPPORTED
+CONTRADICTED
+INCONCLUSIVE
+ERROR
+The repository's MEASUREMENT.md now states that a correctness statement means a claim was supported under a recorded measurement contract, with method, criterion, authority, independence, repeatability, provenance, uncertainty, and scope made visible.
+Canonical reconstructed Pass 3 prompt
+# ZERO DRIVEX BAN — PASS 3
+# MEASUREMENT-GROUNDED CORRECTNESS
+
+Pass 1 established bounded multi-path reasoning.
+
+Pass 2 established controlled paired experimental validation.
+
+Pass 3 must correct the meaning of "correctness."
+
+A verifier returning true does NOT imply universal truth.
+
+The correct interpretation is:
+
+    Under measurement procedure M,
+    observation O satisfied criterion C
+    within measurement contract K.
+
+BAN must move from boolean verification to explicit
+measurement-grounded epistemics.
+
+============================================================
+0. REPOSITORY AUDIT
+============================================================
+
+Before changing code record:
+
+    git status --short
+    git branch --show-current
+    git remote -v
+    git rev-parse HEAD
+    git diff --check
+
+Record initial dirty state.
+
+Do not discard existing work.
+
+============================================================
+1. PRESERVE BAN-0
+============================================================
+
+Do NOT rewrite the reasoning/search architecture.
+
+Preserve:
+
+    branch generation
+    directed graph
+    convergence
+    retention
+    skeptic / counterfactual search
+    recovery
+    selection
+    final realization
+
+Pass 3 modifies:
+
+- correctness semantics
+- measurement
+- evidence
+- traces
+- experiment accounting
+- datasets
+- reports
+- compatibility adapters
+
+============================================================
+2. MEASUREMENT CONTRACT
+============================================================
+
+Create a first-class measurement package.
+
+Suggested location:
+
+    internal/measurement
+
+Represent a measurement Contract containing concepts such as:
+
+- Claim
+- Observable
+- Method
+- Expected relationship
+- Tolerance
+- Authority
+- Independence
+- Repeatability
+- Provenance
+- Scope metadata
+
+Do not confuse a claim with its measurement procedure.
+
+============================================================
+3. MEASUREMENT RESULT
+============================================================
+
+Represent measurement output explicitly.
+
+Include where applicable:
+
+- contract ID
+- claim
+- outcome
+- verification class
+- observation
+- expected value/relationship
+- tolerance
+- uncertainty
+- evidence
+- method
+- authority
+- independence
+- repeatability
+- provenance
+- timestamps
+- measurement cost
+- error information
+
+============================================================
+4. OUTCOMES
+============================================================
+
+Implement distinct outcomes:
+
+    SUPPORTED
+    CONTRADICTED
+    INCONCLUSIVE
+    ERROR
+    UNSUPPORTED
+    NOT_MEASURED
+
+Semantics:
+
+SUPPORTED
+    Measurement supports the claim under the recorded
+    contract.
+
+CONTRADICTED
+    Measurement provides sufficient contrary evidence under
+    the recorded contract.
+
+INCONCLUSIVE
+    Measurement occurred but cannot discriminate adequately.
+
+ERROR
+    Measurement system failed.
+
+UNSUPPORTED
+    Current measurement implementation cannot evaluate the
+    requested contract.
+
+NOT_MEASURED
+    No measurement was performed.
+
+Only SUPPORTED may derive legacy:
+
+    passed=true
+
+Unknown is not success.
+
+Unknown is also not automatically false.
+
+============================================================
+5. UNKNOWN ≠ FALSE
+============================================================
+
+This is a hard invariant.
+
+Absence of measurement must not automatically kill a branch.
+
+INCONCLUSIVE, ERROR, UNSUPPORTED, and NOT_MEASURED do not
+become factual success.
+
+But they also must not automatically become contradiction.
+
+Core rule:
+
+    Absence of evidence prevents promotion to fact.
+    It does not automatically remove a possibility from
+    consideration.
+
+Only actual sufficient contradiction should fail a factual
+branch.
+
+============================================================
+6. VERIFICATION CLASSES
+============================================================
+
+Implement:
+
+    BENCHMARK_VERIFIED
+    FORMALLY_VERIFIED
+    EXECUTION_VERIFIED
+    MEASUREMENT_SUPPORTED
+    CAUSALLY_SUPPORTED
+    UNVERIFIED
+
+Definitions must remain explicit.
+
+BENCHMARK_VERIFIED means agreement with a benchmark
+specification, NOT universal truth.
+
+FORMALLY_VERIFIED covers deterministic formal relationships.
+
+EXECUTION_VERIFIED covers controlled execution such as
+compilation/tests/parsing/invariants.
+
+MEASUREMENT_SUPPORTED covers instrumented/external
+observation.
+
+CAUSALLY_SUPPORTED requires appropriate controlled
+intervention evidence.
+
+UNVERIFIED means no sufficient measurement.
+
+============================================================
+7. MEASUREMENT AUTHORITY
+============================================================
+
+Implement:
+
+    FORMAL
+    DETERMINISTIC_RUNTIME
+    INSTRUMENTED
+    EXPERIMENTAL
+    OBSERVATIONAL
+    MODEL_ESTIMATE
+    UNKNOWN
+
+Authority describes the basis of the observation.
+
+Do not treat all authorities as interchangeable.
+
+An authoritative formal or deterministic-runtime
+contradiction must be capable of overriding branch utility.
+
+Required test:
+
+    Branch A:
+        utility = 0.99
+        FORMAL measurement = CONTRADICTED
+
+    Branch B:
+        utility = 0.55
+        FORMAL measurement = SUPPORTED
+
+Branch A must not remain factually selectable merely because
+its utility score is higher.
+
+============================================================
+8. INDEPENDENCE
+============================================================
+
+Implement:
+
+    INDEPENDENT
+    PARTIALLY_INDEPENDENT
+    MODEL_DERIVED
+    UNKNOWN
+
+A model estimate cannot claim to be independent measurement.
+
+Reject invalid contracts/results where provenance and claimed
+independence conflict.
+
+============================================================
+9. EVIDENCE
+============================================================
+
+Create explicit evidence objects.
+
+Include:
+
+- source
+- observation
+- relationship:
+    SUPPORTS
+    CONTRADICTS
+    NEUTRAL
+- measurement ID
+- provenance
+- timestamp
+- independence
+- correlation group
+
+Convergent paths in the same correlation group must not become
+multiple independent votes.
+
+============================================================
+10. CONSERVATIVE AGGREGATION
+============================================================
+
+Do not invent arbitrary numerical confidence.
+
+Aggregate evidence conservatively.
+
+Examples:
+
+    FORMAL contradiction
+    + OBSERVATIONAL support
+    → contradiction remains authoritative
+
+    INCONCLUSIVE
+    + ERROR
+    → do not invent support
+
+    no observations
+    → NOT_MEASURED
+
+Correlated evidence must not be counted repeatedly.
+
+============================================================
+11. MIGRATE PASS 2 VERIFIERS
+============================================================
+
+Migrate the existing deterministic verifier framework to
+produce Measurement Results.
+
+Support existing:
+
+- exact comparison
+- numeric comparison with tolerance
+- safe numeric constraints
+- structured JSON invariants
+
+Legacy boolean fields may remain only as compatibility
+adapters derived from measurement outcome.
+
+Legacy `Passed()` must never become canonical Pass 3 logic.
+
+============================================================
+12. CANDIDATE VS FINAL MEASUREMENT
+============================================================
+
+Preserve Pass 2's candidate/final separation.
+
+Both histories must be append-only.
+
+Flow:
+
+    candidate hypothesis
+       ↓
+    candidate measurement
+       ↓
+    recovery / selection
+       ↓
+    final answer generation
+       ↓
+    independent final-answer measurement
+       ↓
+    reported correctness
+
+Required test:
+
+    candidate SUPPORTED
+    final answer CONTRADICTED
+
+Expected:
+
+    reported BAN correctness = failure
+
+    internal candidate discovery = retained in trace
+
+Report this separately as reasoning-to-realization failure.
+
+============================================================
+13. MEASUREMENT ERRORS
+============================================================
+
+A measurement failure is not automatically a reasoning
+failure.
+
+Required:
+
+    measurement ERROR
+        → measurement unscored
+        → branch not automatically failed
+
+Likewise:
+
+    INCONCLUSIVE
+        → preserve branch as unresolved
+
+============================================================
+14. MEASUREMENT COST
+============================================================
+
+Record measurement cost separately.
+
+At minimum:
+
+- latency
+- heap before
+- heap after
+- local measurement calls
+- external API calls
+- paid inference calls
+- optional CPU time boundary
+
+For deterministic local measurement:
+
+    localMeasurementCalls = 1
+    paidInferenceCalls = 0
+
+No hidden remote correctness judge.
+
+============================================================
+15. MEASUREMENT HIERARCHY
+============================================================
+
+Document evidence classes approximately as:
+
+Level 0:
+    Formal measurement
+
+Level 1:
+    Deterministic execution
+
+Level 2:
+    Instrumented observation
+
+Level 3:
+    Controlled causal experiment
+
+Level 4:
+    Probabilistic / observational evidence
+
+Do not describe this as a universal quality ranking.
+
+The classes answer different kinds of questions.
+
+============================================================
+16. DATASET SCHEMA
+============================================================
+
+Upgrade experimental cases so each declares its measurement
+basis.
+
+Each case should include:
+
+- measurement class
+- claim
+- observable
+- method
+- expected relationship
+- authority
+- independence
+- repeatability
+- scope
+- tolerance when appropriate
+
+Generate deterministically.
+
+Validate.
+
+Hash datasets.
+
+Expected answers remain hidden from model-visible prompts.
+
+============================================================
+17. SCHEMA VERSIONING
+============================================================
+
+Pass 3 changes semantics.
+
+Bump:
+
+    experiment schema → 0.2
+    BAN trace schema → 0.2
+
+Create new dataset versions.
+
+Do not silently reinterpret schema 0.1 artifacts as schema
+0.2.
+
+============================================================
+18. TRACE
+============================================================
+
+Candidate and final measurement histories must survive:
+
+- serialization
+- trace writing
+- experiment checkpointing
+- resume
+
+Preserve measurement provenance.
+
+============================================================
+19. REPORTING
+============================================================
+
+Reports must distinguish:
+
+- benchmark-supported correctness
+- formal verification
+- unsupported
+- not measured
+- inconclusive
+- measurement error
+- contradiction
+- candidate/final divergence
+- reasoning-to-realization failure
+- measurement cost
+
+Do not write "truth" when only benchmark agreement was
+measured.
+
+============================================================
+20. REQUIRED TESTS
+============================================================
+
+Add tests for at least:
+
+- every outcome remains distinct
+- verification classes serialize
+- independence cannot be invented
+- conservative aggregation
+- correlated convergence is not independent voting
+- missing measurement
+- INCONCLUSIVE preserves branch
+- ERROR preserves branch
+- high utility cannot defeat authoritative contradiction
+- candidate support cannot substitute for final support
+- candidate SUPPORTED/final CONTRADICTED fails final accuracy
+- measurement error remains unscored
+- provenance survives serialization
+- provenance survives trace/resume
+- local deterministic measurement records zero paid inference
+- authoritative selection behavior occurs through real branch
+  selection paths where possible
+
+============================================================
+21. LIVE MODEL
+============================================================
+
+Use configured:
+
+    Ollama
+    qwen2.5:1.5b
+
+Check:
+
+    curl http://127.0.0.1:11434
+
+Do not:
+
+- download another model
+- substitute another model
+- call OpenAI
+- fabricate experimental results
+
+If Ollama is unavailable:
+
+- finish code
+- finish tests
+- validate datasets
+- run dry-run
+- report exact blocker
+
+============================================================
+22. DOCUMENTATION
+============================================================
+
+Create:
+
+    MEASUREMENT.md
+
+Explain:
+
+- what BAN means by correctness
+- measurement-relative support
+- verification classes
+- authority
+- independence
+- measurement hierarchy
+- evidence aggregation
+- candidate versus delivered answer
+- tolerance
+- uncertainty
+- repeatability
+- measurement cost
+- why benchmark agreement is not universal truth
+
+Update:
+
+    README.md
+    EXPERIMENTS.md
+
+============================================================
+23. PROHIBITED SCOPE
+============================================================
+
+Do not add:
+
+- persistent memory
+- learned verifier
+- embeddings
+- vector database
+- model fine-tuning
+- model weight modification
+- KV manipulation
+- PPS
+- remote correctness evaluator
+
+Memory comes in Pass 4.
+
+============================================================
+24. QUALITY GATES
+============================================================
+
+Run:
+
+    go test -timeout 90s ./...
+    go vet ./...
+    go build -o ./bin/ban ./cmd/ban
+    git diff --check
+
+Do not weaken semantics to obtain green tests.
+
+============================================================
+25. FINAL REPORT
+============================================================
+
+Report:
+
+- repository state
+- architecture audit
+- measurement model
+- outcomes
+- verification classes
+- authority
+- independence
+- evidence
+- verifier migration
+- candidate/final correctness
+- measurement cost
+- schemas
+- dataset versions/hashes
+- tests
+- vet/build
+- Ollama availability
+- documentation
+- limitations
+- exact recommended Pass 4
+
+Do not claim universal truth.
+
+Core Pass 3 rule:
+
+    Reasoning proposes possibilities.
+    Measurement constrains those possibilities against
+    something outside the reasoning process.
+Pass 3 implementation record
+Repository boundary
+Pass 3 began from:
+3aa2d6f45d243c17552ef8a5620b8aca04158cde
+and was committed as:
+09b47d80635b16c2af378197fccad94511b3c83e
+with commit message:
+pass 3 completed. milestone reached.
+pass 4 will add base of intelligence, memory.
+GitHub confirms 09b47d8 directly descends from 3aa2d6f.
+Measurement model
+Pass 3 added first-class:
+Contract
+Result
+Evidence
+Tolerance
+Uncertainty
+Provenance
+Cost
+MeasurementError
+Conservative aggregation
+A contract identifies:
+Claim
+Observable
+Method
+Expected relationship
+Tolerance
+Authority
+Independence
+Repeatability
+Provenance
+Scope
+Outcomes
+Implemented:
+SUPPORTED
+CONTRADICTED
+INCONCLUSIVE
+ERROR
+UNSUPPORTED
+NOT_MEASURED
+Only SUPPORTED derives legacy passed=true.
+The repository documentation explicitly states that unknown, inconclusive, or measurement failure does not become success, while measurement subsystem error is unscored rather than being counted as a reasoning failure.
+This established one of BAN's most important rules:
+Unknown ≠ false.
+An unverified novel possibility can remain available for future discrimination instead of being destroyed merely because the system does not already know how to measure it.
+Verification classes
+Implemented:
+BENCHMARK_VERIFIED
+FORMALLY_VERIFIED
+EXECUTION_VERIFIED
+MEASUREMENT_SUPPORTED
+CAUSALLY_SUPPORTED
+UNVERIFIED
+Their definitions and limitations are now part of MEASUREMENT.md.
+Authority
+Implemented:
+FORMAL
+DETERMINISTIC_RUNTIME
+INSTRUMENTED
+EXPERIMENTAL
+OBSERVATIONAL
+MODEL_ESTIMATE
+UNKNOWN
+A sufficiently authoritative formal or deterministic contradiction prevents factual selection regardless of how attractive the branch's utility score is.
+Independence
+Implemented:
+INDEPENDENT
+PARTIALLY_INDEPENDENT
+MODEL_DERIVED
+UNKNOWN
+A model estimate cannot claim independent-measurement status.
+Correlation
+Evidence gained correlation groups.
+Therefore:
+path A ─┐
+        ├── same model-derived state
+path B ─┘
+
+≠
+
+two independent observations
+The repository explicitly documents that convergent graph paths do not automatically become independent votes.
+Candidate vs delivered answer
+Pass 3 retained append-only candidate and final measurement histories:
+candidate
+   ↓
+SUPPORTED
+   ↓
+selected
+   ↓
+final answer generated
+   ↓
+CONTRADICTED
+That run is a final failure, while the correct internal discovery remains recorded for diagnosis. The repository uses essentially this exact example.
+Measurement cost
+Each measurement records:
+latency
+heap before/after
+local measurement calls
+external API calls
+paid inference calls
+optional CPU-time boundary
+Local deterministic correctness measurement records zero paid inference calls.
+Schemas
+Experiment schema:
+0.2
+
+BAN trace schema:
+0.2
+
+Smoke dataset:
+ban-exp-001-smoke-v2
+
+Primary dataset:
+ban-exp-001-v2
+
+Pass 3 did not silently reinterpret the earlier 0.1 semantics.
+Pass 3 datasets
+Smoke
+Cases: 20
+
+SHA-256:
+6ee2c82da1c8e4a62e2a527e1054cab0263114fa894b61653eb4e20193d313b7
+
+
+Primary
+Cases: 100
+
+SHA-256:
+9812f5be22579938ec00b55c824e78616560e956da7a600fc4487f14483095ce
+Each case now describes its own measurement basis rather than just carrying an expected answer.
+Pass 3 tests
+Recorded completion:
+go test -timeout 90s ./...
+PASS
+
+26 top-level tests
+0 failures
+
+go vet ./...
+PASS
+
+go build -o ./bin/ban ./cmd/ban
+PASS
+
+git diff --check
+PASS
+New tests included:
+distinct outcomes
+verification-class serialization
+independence validation
+conservative aggregation
+correlated convergence
+missing measurement
+INCONCLUSIVE preservation
+ERROR preservation
+utility vs authoritative contradiction
+candidate-supported/final-contradicted
+measurement errors unscored
+provenance retention
+zero paid correctness calls
+Live experiment state
+Ollama remained unavailable at:
+http://127.0.0.1:11434
+with configured model:
+qwen2.5:1.5b
+So Pass 3 correctly stopped short of fabricating benchmark results.
+The first three passes as one architecture
+This is the documentation-level progression I would preserve:
+PASS 1
+POSSIBILITY
+────────────────────────────────
+Don't assume one reasoning path.
+
+Input
+  ↓
+multiple possibilities
+  ↓
+directed graph
+  ↓
+challenge / retain / recover
+  ↓
+candidate
+
+
+PASS 2
+EXPERIMENT
+────────────────────────────────
+Does the architecture actually help?
+
+Frozen model
+  ↓
+Baseline vs BAN
+  ↓
+same task/configuration
+  ↓
+objective paired verification
+  ↓
+measured comparative outcome
+
+
+PASS 3
+REALITY
+────────────────────────────────
+What does "correct" actually mean?
+
+Claim
+  ↓
+measurement contract
+  ↓
+observation/evidence
+  ↓
+SUPPORTED / CONTRADICTED /
+INCONCLUSIVE / ERROR
+  ↓
+measurement-grounded correctness
+Which leads directly into the Pass 4 we already started:
+PASS 4
+MEMORY
+────────────────────────────────
+Can prior experience improve the possibility
+space without becoming self-created truth?
+
+Memory
+  ↓
+guides possibility generation
+  ↓
+BAN search
+  ↓
+current measurement
+  ↓
+reinforce / revise / supersede memory
+That gives the first four passes a very clean conceptual progression:
+Possibility → Experiment → Reality → Memory

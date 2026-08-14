@@ -24,10 +24,11 @@ type Engine struct {
 	Temperature float64
 	MaxTokens   int
 	Logf        func(string, ...any)
+	Memory      MemoryInteraction
 }
 
 func NewEngine(p model.Provider, c Config) *Engine {
-	return &Engine{Provider: p, Generator: Generator{p, .2, 1024}, Evaluator: Evaluator{p, .1, 768}, Verifier: AcceptVerifier{}, Config: c, TraceDir: "traces", Temperature: .2, MaxTokens: 1024, Logf: func(string, ...any) {}}
+	return &Engine{Provider: p, Generator: Generator{Provider: p, Temperature: .2, MaxTokens: 1024}, Evaluator: Evaluator{p, .1, 768}, Verifier: AcceptVerifier{}, Config: c, TraceDir: "traces", Temperature: .2, MaxTokens: 1024, Logf: func(string, ...any) {}}
 }
 func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace, error) {
 	if goal == "" {
@@ -37,7 +38,7 @@ func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace,
 	sum := sha256.Sum256([]byte(fmt.Sprintf("%s|%d", goal, start.UnixNano())))
 	runID := hex.EncodeToString(sum[:8])
 	g := NewGraph(e.Config.MaxDepth, e.Config.MaxNodes)
-	t := &ExecutionTrace{TraceSchemaVersion: TraceSchemaVersion, RunID: runID, Problem: goal, Config: e.Config, StartedAt: start, RuntimeStart: telemetry.Capture()}
+	t := &ExecutionTrace{TraceSchemaVersion: TraceSchemaVersion, RunID: runID, Problem: goal, Config: e.Config, StartedAt: start, RuntimeStart: telemetry.Capture(), Memory: e.Memory}
 	if info, err := e.Provider.ModelInfo(ctx); err == nil {
 		t.Model = info
 	}

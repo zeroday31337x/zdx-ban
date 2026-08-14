@@ -20,6 +20,9 @@ func Command(args []string, p model.Provider, modelName string) error {
 	}
 	action := args[0]
 	args = args[1:]
+	if action == "memory-smoke" || action == "memory-run" {
+		return MemoryCommand(action, args, p, modelName)
+	}
 	if action == "report" {
 		if len(args) != 1 {
 			return fmt.Errorf("report requires result file")

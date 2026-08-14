@@ -1,0 +1,1165 @@
+ZERO DRIVEX BAN — PASS 4
+MEMORY-GROUNDED INTELLIGENCE
+Architecting Intelligence Thesis Validation
+You are working in the existing ZeroDriveX BAN repository.
+Repository:
+
+https://github.com/zeroday31337x/zdx-ban.git
+
+This is BAN Pass 4.
+Pass 1 established bounded multi-path reasoning.
+Pass 2 established controlled paired experimental validation.
+Pass 3 established measurement-grounded correctness.
+Pass 4 must test and implement the central thesis from Architecting Intelligence:
+Memory is not merely auxiliary context.
+Memory is a substrate of intelligent behavior because current inputs acquire meaning and useful action through retained prior state, experience, structure, and outcomes.
+The goal of this pass is NOT to add arbitrary “memory features.”
+The goal is to construct the smallest defensible memory architecture capable of experimentally testing whether persistent, provenance-aware memory improves BAN reasoning while remaining subordinate to current measurement.
+Core rule:
+
+Memory may influence which possibilities are considered,
+prioritized, recovered, or avoided.
+
+Memory may NOT manufacture independent truth.
+
+When memory conflicts with authoritative current
+measurement, measurement wins and memory must be revised,
+downgraded, or superseded.
+
+
+0. STOP CONDITIONS / REPOSITORY INTEGRITY
+Before modifying code run:
+git status --short
+git branch --show-current
+git remote -v
+git rev-parse HEAD
+git log --oneline -5
+git diff --check
+Pass 3 is expected to be committed before Pass 4 begins.
+The known clean Pass 3 milestone commit is:
+09b47d80635b16c2af378197fccad94511b3c83e
+If the repository is dirty because of unrelated work:
+DO NOT discard anything.
+DO NOT overwrite unrelated work.
+DO NOT automatically commit unrelated work.
+Record:
+starting commit
+branch
+remote
+initial dirty state
+At completion report final dirty state and git diff --check.
+1. PRESERVE THE EXISTING ARCHITECTURE
+Do NOT rewrite BAN-0.
+Preserve:
+input
+  ↓
+branch generation
+  ↓
+directed reasoning graph
+  ↓
+candidate measurement
+  ↓
+recovery / pruning / selection
+  ↓
+final answer realization
+  ↓
+independent final-answer measurement
+  ↓
+experiment reporting
+Pass 4 inserts memory around this process.
+Conceptually:
+                ┌────────────────────┐
+                │ Persistent Memory  │
+                └─────────┬──────────┘
+                          │ retrieve
+                          ▼
+input ──────────────> Working Memory
+                          │
+                          ▼
+                   branch generation
+                          │
+                          ▼
+                     BAN reasoning
+                          │
+                          ▼
+                     measurement
+                          │
+                          ▼
+                 outcome / experience
+                          │
+                          ▼
+                   memory update
+Measurement remains authoritative.
+Memory does NOT replace verification.
+2. MEMORY ARCHITECTURE
+Implement four distinct memory scopes.
+2.1 Tier 1 — Foundation / Structural Memory
+Purpose:
+Stable knowledge about how the reasoning system itself should operate.
+Examples:
+reasoning constraints
+stable domain rules
+invariants
+known structural relationships
+explicitly supplied durable knowledge
+Properties:
+changes rarely
+highest persistence
+provenance required
+never silently modified
+mutation must be explicit and traceable
+Do NOT treat Tier 1 merely as a system prompt.
+Represent it as actual memory records.
+2.2 Tier 2 — Learned / Domain Memory
+Purpose:
+Slowly consolidated reusable knowledge learned from repeated experience.
+Examples:
+recurring solution patterns
+recurring failure modes
+domain relationships
+strategies repeatedly supported by measurement
+Properties:
+slower-changing than episodic memory
+must retain provenance back to contributing episodes
+must distinguish measurement-supported information from model-derived inference
+promotion from Tier 3 must be conservative
+Pass 4 does NOT require sophisticated autonomous consolidation.
+A deterministic minimal consolidation mechanism is enough.
+2.3 Tier 3 — Experiential / Episodic Memory
+Purpose:
+Store actual prior BAN experiences.
+An episode should be able to represent:
+problem/task signature
+relevant input metadata
+strategies attempted
+branch IDs
+graph path
+candidate measurements
+final answer measurement
+outcome
+failure classification
+recovery events
+useful branch discoveries
+unsuccessful approaches
+measurement authority
+measurement provenance
+latency/cost
+timestamp
+Important:
+Failures are valuable memories.
+Do not store only successful outcomes.
+2.4 Working Memory
+Working memory is the bounded subset retrieved for the current problem.
+It must be:
+bounded
+deterministic where possible
+inspectable
+traceable
+removable/resettable
+separate from persistent storage
+Working memory must never grow without bound.
+Provide explicit configuration such as:
+max memory records
+max approximate bytes or characters
+optional age window
+tier inclusion
+deterministic retrieval weights
+3. MEMORY RECORD MODEL
+Create a first-class memory package.
+Suggested location:
+internal/memory
+Use clean Go interfaces.
+Possible structures may include:
+MemoryRecord
+Episode
+RetrievalRequest
+RetrievalResult
+MemoryStatus
+MemoryTier
+MemoryProvenance
+ConsolidationRecord
+MemoryStore
+Do not blindly use these names if the existing code suggests a better fit.
+Each persistent memory record should contain sufficient information for:
+stable ID
+schema version
+tier
+kind/type
+content or structured payload
+source
+creation timestamp
+last update
+provenance
+originating experiment/case where applicable
+originating trace/branch where applicable
+related measurement IDs
+measurement authority
+current validity/status
+supersession information
+correlation group where relevant
+Possible status semantics:
+ACTIVE
+SUPPORTED
+CONTRADICTED
+SUPERSEDED
+UNCERTAIN
+STALE
+Do NOT invent arbitrary numeric “confidence” values.
+If confidence-like information exists, it must derive from actual measurements or explicit evidence.
+4. STORAGE
+Keep Pass 4 small and auditable.
+Do NOT introduce:
+vector databases
+cloud databases
+MongoDB
+PostgreSQL
+external memory services
+embeddings
+Implement:
+in-memory store for tests
+simple local persistent store for experiments
+Prefer an append-only or otherwise auditable local format.
+JSONL is acceptable.
+A small indexed file layout is acceptable.
+Requirements:
+atomic writes where needed
+corruption detection
+schema version
+deterministic serialization where practical
+hashable experiment memory state
+no silent data loss
+no silent schema reinterpretation
+5. MEMORY RETRIEVAL
+Do NOT use embeddings in Pass 4.
+Use deterministic retrieval.
+Possible signals:
+normalized token overlap
+explicit tags
+task category
+structural task signature
+prior strategy type
+recency
+tier
+measurement outcome
+authority
+failure/success relevance
+Avoid overly complicated ranking.
+Retrieval scoring must be inspectable.
+Record WHY each memory was retrieved.
+Example:
+
+retrieved because:
+  category_match=true
+  token_overlap=0.61
+  prior_strategy_match=true
+  measurement_status=SUPPORTED
+
+Exact score implementation is your design decision.
+Do not use hidden LLM judgment as the retrieval engine.
+6. MEMORY IS NOT EVIDENCE
+This is a hard invariant.
+A retrieved memory may say:
+"A prior similar task succeeded using strategy X."
+That can influence branch generation.
+It cannot independently establish:
+"Therefore strategy X is correct here."
+Memory-derived statements must be marked as such.
+Suggested distinction:
+MEMORY_GUIDANCE
+CURRENT_MEASUREMENT_EVIDENCE
+Memory must never increase independent evidence count merely because it was retrieved.
+Memory created from a model-generated assertion is still model-derived.
+Memory created from formally measured prior results retains that provenance, but the historical result is still evidence about the historical case, not automatically evidence about the current case.
+Add tests enforcing this.
+7. MEMORY UPDATE RULES
+Implement conservative update behavior.
+7.1 Supported memory
+If current measurement independently supports something consistent with memory:
+retain the new observation
+optionally reinforce/promote the reusable pattern
+preserve all provenance
+do not destroy historical records
+7.2 Contradicted memory
+If authoritative current measurement contradicts retrieved memory:
+current measurement wins
+do not force the remembered branch
+mark the conflicting memory appropriately
+supersede or downgrade it
+preserve the original record historically
+append the contradiction/update provenance
+Do not mutate history into pretending the old memory was always correct.
+7.3 Inconclusive / measurement error
+INCONCLUSIVE and ERROR must not automatically erase memory.
+They provide insufficient current evidence.
+Preserve the ambiguity.
+7.4 Model-derived memories
+A model assertion remembered from an earlier run cannot become independent truth merely through repetition.
+Repeated model-derived memories must not count as independent sources.
+8. EPISODIC LEARNING
+At the end of an eligible BAN run, create an episodic memory.
+Capture enough information to answer:
+What problem was attempted?
+What possibilities were explored?
+Which approaches failed?
+Which succeeded?
+What measurement supported or contradicted them?
+Did recovery occur?
+Was the final answer correct under the measurement contract?
+What did reasoning cost?
+Memory ingestion must happen only after the relevant state is known.
+Do not prematurely convert speculative branches into durable facts.
+An episode may contain speculative history, but it must remain labeled as speculation/history.
+9. CONSOLIDATION
+Implement only a minimal deterministic Tier-3 → Tier-2 consolidation mechanism.
+The goal is to test the architecture, not solve continual learning.
+Possible rule:
+A reusable pattern becomes a Tier 2 candidate only when:
+it appears in multiple distinct episodes
+contributing episodes are not all the same correlation group
+relevant measurements are not contradicted
+provenance remains available
+no authoritative contradiction exists
+The exact threshold should be configurable and documented.
+Do NOT use an LLM to decide whether something “feels worth remembering.”
+10. PROMPT / MODEL INTEGRATION
+Retrieved working memory may be supplied to the frozen proposal model.
+Clearly label it.
+For example conceptually:
+PRIOR EXPERIENCE — NOT CURRENT EVIDENCE
+
+The following memories may help identify useful reasoning
+approaches. They do not establish correctness for the
+current task. Current measurement remains authoritative.
+Do not leak expected benchmark answers through memory.
+Do not place canonical answers from the current evaluation case into memory.
+11. MEMORY LEAKAGE PREVENTION
+This is critical for thesis validation.
+A memory experiment is invalid if memory simply contains the answer to the evaluation task.
+Build explicit leakage protections.
+Evaluation memories should come from:
+structurally related tasks
+related failure modes
+analogous strategies
+prior domain patterns
+but NOT exact duplicate evaluation questions with their answers.
+Implement dataset validation checking for:
+duplicate prompts
+exact answer leakage
+trivially identical cases
+same case ID reused
+suspicious normalized-text equivalence
+Document limitations of leakage detection.
+12. PASS 4 EXPERIMENTAL QUESTION
+The experiment must test:
+Does persistent, relevant, provenance-aware memory improve BAN task-level behavior compared with otherwise identical BAN reasoning without persistent memory?
+And secondarily:
+Does misleading or stale memory degrade BAN, and can measurement prevent that memory from overriding reality?
+Do not claim universal intelligence.
+The strongest defensible conclusion would be limited to the experimental environment.
+13. EXPERIMENT CONDITIONS
+Implement controlled memory ablations.
+At minimum:
+A. BASELINE
+Frozen model, ordinary single-path generation.
+B. BAN_COLD
+BAN reasoning with no persistent memory.
+C. BAN_MEMORY
+Same BAN configuration with relevant prior memories.
+D. BAN_MISLEADING_MEMORY
+Same BAN configuration with intentionally misleading, stale, or contradicted memories.
+Keep constant wherever applicable:
+model
+model version
+provider
+temperature
+seed
+generation limits
+timeout
+BAN graph limits
+measurement contracts
+verifier implementation
+hardware environment
+dataset
+execution order policy
+Memory is the intervention.
+14. CAUSAL / COUNTERFACTUAL DESIGN
+Pass 3 already includes CAUSALLY_SUPPORTED as a verification class.
+Do not misuse it.
+Where practical, use paired memory-on / memory-off trials with the same model configuration and deterministic seeds.
+This creates an intervention:
+memory absent
+    versus
+memory present
+If the only intentionally changed variable is memory, the experiment can support a limited causal statement about the memory intervention within this benchmark.
+Do not call it universal causal proof.
+15. MEMORY-SPECIFIC DATASET
+Do not simply reuse the existing 100 cases without examining whether they can test memory.
+Create a dedicated memory experiment dataset if necessary.
+Each evaluation group should be able to contain:
+exposure/experience cases
+related evaluation case
+optional misleading-memory case
+measurement contract
+relationship metadata showing why the memory is relevant
+Important:
+Exposure cases must not directly reveal the final evaluation answer.
+Suggested categories:
+arithmetic strategy transfer
+structured transformation
+debugging pattern transfer
+logical constraint reuse
+schema/data reasoning
+deterministic procedural reasoning
+Prefer tasks with objective local measurement.
+Create:
+memory smoke dataset:
+approximately 20 evaluation cases
+and, if appropriate:
+memory primary dataset:
+approximately 100 evaluation cases
+Dataset generation must be deterministic and inspectable.
+Expected answers remain outside model-visible prompts.
+Hash datasets.
+
+16. METRICS
+Report more than final accuracy.
+Required memory-related metrics should include where possible:
+final measured correctness
+baseline vs BAN cold
+BAN cold vs BAN memory
+BAN memory vs misleading-memory condition
+first-supported-branch rate
+branch recovery rate
+reasoning-to-realization failures
+graph nodes expanded
+branches generated
+branches pruned
+measurement calls
+latency
+token usage when available
+heap/resource measurements already available
+memory retrieval count
+relevant memory hit count
+retrieved-but-unused memory
+harmful memory retrieval
+memory-induced errors
+memory contradiction events
+memory supersession events
+working memory size
+episodic writes
+Tier 2 consolidation events
+A particularly useful metric:
+memory leverage
+Conceptually:
+Does prior experience allow BAN to reach a supported final answer using fewer branches, less recovery, or lower cost?
+Do not invent a metric formula without documenting it.
+17. MISLEADING MEMORY TEST
+This is required.
+Construct explicit tests where memory contains:
+an obsolete strategy
+an incorrect remembered assertion
+a strategy that worked in a superficially similar but materially different case
+Expected behavior:
+misleading memory may influence exploration
+        ↓
+current measurement contradicts it
+        ↓
+BAN rejects or revises the path
+        ↓
+memory is downgraded / superseded
+        ↓
+alternative paths remain available
+Critical invariant:
+Remembered information cannot override authoritative current measurement.
+18. MEMORY RESET / ISOLATION
+Experiments must not contaminate one another accidentally.
+Provide deterministic controls for:
+fresh memory
+seeded memory
+reset memory
+read-only memory
+writable memory
+An experiment manifest must record the initial memory state.
+Hash the initial memory snapshot/configuration.
+Where memory changes during the run, record the final memory state/hash separately.
+Resume must validate memory state.
+19. REPRODUCIBILITY
+Extend the experiment manifest.
+Record at minimum:
+experiment schema version
+BAN trace schema version
+memory schema version
+Git remote
+Git commit
+dirty state
+dataset version/hash
+memory dataset version/hash
+initial memory snapshot hash
+final memory snapshot hash where applicable
+retrieval configuration
+consolidation configuration
+memory write policy
+model/provider
+temperature
+seed
+timeouts
+graph configuration
+measurement configuration
+Go version
+OS
+architecture
+experiment start/end
+Resume must reject incompatible configuration drift.
+20. SCHEMA VERSIONING
+Pass 3 uses:
+experiment schema 0.2
+BAN trace schema 0.2
+Pass 4 changes semantics.
+Bump schemas explicitly, for example:
+experiment schema 0.3
+BAN trace schema 0.3
+memory schema 0.1
+Do not silently reinterpret 0.2 artifacts.
+Compatibility adapters are acceptable only when semantics are explicitly preserved.
+21. TRACE REQUIREMENTS
+BAN traces should show memory interactions.
+Record:
+memory retrieval request
+retrieved memory IDs
+retrieval reasons
+working memory contents or safe structured representation
+memory influence on proposal/strategy
+memory contradiction
+memory supersession
+episode creation
+consolidation where applicable
+Do not overload the trace with full duplicated content if IDs and hashes are sufficient.
+Keep traces auditable.
+22. REQUIRED TESTS
+Add deterministic tests covering at least:
+Memory-disabled BAN preserves prior behavior.
+Working memory respects bounds.
+Memory retrieval is deterministic.
+Retrieved memory does not count as independent current evidence.
+Model-derived memory cannot become independent evidence by repetition.
+Authoritative current contradiction overrides remembered guidance.
+INCONCLUSIVE measurement does not erase memory.
+Measurement ERROR does not erase memory.
+Contradicted memory is preserved historically but marked superseded/contradicted appropriately.
+Provenance survives retrieval and update.
+Episode creation stores success and failure history.
+Failed strategies can be retrieved as avoidance/recovery guidance.
+Correlated memories do not masquerade as independent observations.
+Memory reset produces clean experiment isolation.
+Initial memory snapshot hash is reproducible.
+Resume rejects mismatched memory state/configuration.
+Exact evaluation-answer leakage is rejected.
+Duplicate evaluation/exposure cases are rejected.
+Candidate-supported/final-contradicted semantics remain unchanged from Pass 3.
+Memory cannot make a factually contradicted branch selectable.
+Misleading memory can be corrected by current measurement.
+No paid inference is used for correctness verification.
+Persistent memory corruption/truncation fails safely.
+Schema serialization and compatibility behavior are explicit.
+23. CLI
+Keep CLI additions minimal.
+Useful commands may include:
+./bin/ban memory inspect
+./bin/ban memory reset
+./bin/ban memory stats
+and experimental commands such as:
+./bin/ban experiment memory-smoke --dry-run
+
+./bin/ban experiment memory-smoke --repetitions 1
+
+./bin/ban experiment memory-run --repetitions 3
+Do not add commands merely for appearance.
+Use existing CLI conventions.
+24. LIVE MODEL RULE
+Configured model remains:
+qwen2.5:1.5b
+Configured provider remains Ollama unless repository configuration explicitly says otherwise.
+Do NOT:
+download another model
+substitute another model
+call OpenAI
+call a frontier model
+fabricate live results
+First test:
+curl http://127.0.0.1:11434
+If Ollama is unavailable:
+complete implementation
+complete deterministic tests
+complete build/vet
+complete dataset validation
+complete dry runs
+report the exact blocker
+do not fabricate experimental outcomes
+If Ollama IS available:
+Run only:
+./bin/ban experiment memory-smoke --repetitions 1
+Do NOT automatically run the 100-case primary experiment.
+Do NOT tune the architecture based on the smoke result.
+Report the smoke result for review.
+25. DOCUMENTATION
+Create:
+MEMORY.md
+It must explain:
+Architecting Intelligence memory hypothesis
+four memory scopes
+memory versus evidence
+episodic memory
+consolidation
+provenance
+retrieval
+supersession
+misleading memory
+experimental ablation
+leakage prevention
+reproducibility
+limitations
+Add a section titled approximately:
+When Memory Conflicts With Reality
+Core rule:
+Current authoritative measurement overrides memory.
+Update:
+README.md
+EXPERIMENTS.md
+26. PROHIBITED SCOPE
+Do NOT add in Pass 4:
+embeddings
+vector databases
+RAG infrastructure
+learned memory retrieval
+learned verifier
+model fine-tuning
+weight modification
+KV-cache manipulation
+latent-state editing
+custom transformer architecture
+neural memory modules
+remote database
+multi-agent orchestration
+PPS runtime
+GPU kernels
+C++ rewrite
+Rust rewrite
+web UI
+paid external correctness evaluation
+autonomous model-based consolidation
+Pass 4 is specifically about experimentally validating persistent memory around the existing frozen model and BAN architecture.
+27. QUALITY GATES
+Before reporting completion run:
+go test -timeout 90s ./...
+go vet ./...
+go build -o ./bin/ban ./cmd/ban
+git diff --check
+Validate all Pass 4 datasets.
+Run dry-run validation.
+If tests hang, diagnose the harness rather than weakening runtime semantics.
+Do not weaken tests merely to obtain green output.
+28. FINAL REPORT
+Produce a detailed Pass 4 status report containing:
+Repository
+remote
+starting commit
+branch
+initial dirty state
+final dirty state
+git diff --check
+Architecture
+files/packages added
+confirmation BAN-0 search architecture was preserved
+Memory
+Tier 1 implementation
+Tier 2 implementation
+Tier 3 implementation
+working memory
+storage format
+retrieval algorithm
+bounded working-set behavior
+Epistemics
+how memory is distinguished from evidence
+how current measurement overrides memory
+how provenance is preserved
+how correlated/model-derived memory is handled
+Experiments
+experimental conditions
+memory intervention design
+misleading-memory design
+leakage protections
+dataset versions/hashes
+Metrics
+memory-specific metrics implemented
+Schemas
+
+experiment
+trace
+memory
+Tests
+exact test/build/vet results
+Ollama
+endpoint
+model
+availability
+whether smoke was executed
+exact blocker if unavailable
+Documentation
+files created/updated
+Known limitations
+Explicitly enumerate them.
+Do NOT claim the Architecting Intelligence thesis is proven unless live controlled results justify that claim.
+Use wording proportional to the evidence:
+implemented
+validated deterministically
+benchmark-supported
+experimentally supported
+causally supported within this controlled benchmark
+Avoid:
+universal truth
+proven intelligence
+biological equivalence
+29. CENTRAL PASS 4 PRINCIPLE
+The implementation should embody this rule:
+Intelligence does not begin with an isolated input.
+The current state is interpreted through retained prior structure and experience.
+Memory expands and biases the possibility space.
+Measurement constrains that possibility space against reality.
+Useful memories survive.
+Contradicted memories are revised.
+Unknowns remain possible.
+That is the hypothesis Pass 4 is intended to test.
+
+
+
+________________
+pass 4 outout
+
+
+# BAN PASS 4 — MEMORY-GROUNDED INTELLIGENCE
+  STATUS
+
+  ## Repository
+
+  - Remote:
+    https://github.com/zeroday31337x/zdx-ban.git
+
+  - Starting commit:
+    09b47d80635b16c2af378197fccad94511b3c83e
+
+  - Branch: main
+  - Initial dirty state: clean
+  - Final dirty state: dirty with uncommitted Pass
+    4 changes
+
+  - git diff --check: passed
+
+  An unrelated untracked dev-logs/ directory
+  appeared during development. Its contents were
+  preserved and not modified or removed.
+
+  ## Architecture
+
+  BAN-0’s search architecture was preserved.
+  Memory was inserted as a bounded guidance layer
+  around proposal generation and outcome
+  processing.
+
+  New principal components:
+
+  - internal/memory/types.go
+  - internal/memory/store.go
+  - internal/memory/retrieval.go
+  - internal/memory/update.go
+  - internal/memory/episode.go
+  - internal/experiment/memory_runner.go
+  - internal/experiment/memory_dataset.go
+  - internal/experiment/memory_report.go
+
+  ## Memory
+
+  ### Tier 1 — Foundation
+
+  Foundation records represent explicit stable
+  rules and structural invariants.
+
+  - Stored as first-class records
+  - Provenance required
+  - Silent content rewriting is rejected
+  - Revision requires explicit supersession
+  - Historical content remains available
+
+  ### Tier 2 — Domain
+
+  Domain records represent conservatively
+  consolidated reusable patterns.
+
+  Promotion requires:
+
+  - Multiple supported episodes
+  - Distinct correlation groups
+  - No contradicted record for the pattern
+  - Non-model-derived contributing records
+  - Preserved contributing episode IDs
+
+  No LLM participates in consolidation.
+
+  ### Tier 3 — Episodic
+
+  Episodes capture:
+
+  - Problem and task signature
+  - Strategies and branch histories
+  - Candidate and final measurements
+  - Recovery behavior
+  - Failed approaches
+  - Failure classification
+  - Measurement authority
+  - Latency, model calls, and tokens
+  - Experiment, dataset, trace, and Git provenance
+
+  Both success and failure episodes are retained.
+
+  ### Working memory
+
+  Retrieval is bounded by:
+
+  - Maximum records
+  - Maximum approximate characters
+  - Optional age window
+  - Included tiers
+  - Deterministic score weights
+
+  The default is eight records and 6,000
+  approximate characters.
+
+  ## Storage
+
+  Implemented:
+
+  - In-memory test store
+  - Checksummed JSONL persistent store
+  - Memory schema declaration per envelope
+  - SHA-256 record checksums
+  - Corruption and truncation detection
+  - Same-directory atomic rewrites
+  - Deterministic ID-sorted snapshot hashing
+  - Explicit reset
+
+  Malformed, truncated, checksum-invalid, or
+  unknown-schema files fail closed.
+
+  ## Retrieval
+
+  No embeddings or model-based ranking are used.
+
+  Inspectable retrieval signals include:
+
+  - Normalized token overlap
+  - Category match
+  - Tag matches
+  - Strategy match
+  - Tier
+  - Recency
+  - Supported-history relevance
+  - Failed-strategy relevance
+
+  Ties are resolved by stable record ID. Every
+  persisted paired record retains retrieved IDs,
+  reasons, working-set size, snapshot hash, and
+  guidance hash.
+
+  ## Epistemics
+
+  Memory is labeled in prompts as:
+
+  PRIOR EXPERIENCE — MEMORY GUIDANCE, NOT CURRENT
+  EVIDENCE
+
+  Memory cannot:
+
+  - Count as independent current evidence
+  - Convert a model assertion into objective truth
+  - Become independent merely through repetition
+  - Override authoritative contradiction
+  - Make a contradicted branch factually
+    selectable
+
+  - Leak current expected benchmark answers
+
+  Historical formal measurement remains
+  authoritative about its historical case, not
+  automatically about the current one.
+
+  ## When memory conflicts with measurement
+
+  - Current authoritative contradiction wins.
+  - The remembered record is marked contradicted
+    or explicitly superseded.
+
+  - Original content and provenance remain
+    preserved.
+
+  - Update events are appended.
+  - INCONCLUSIVE, NOT_MEASURED, and measurement
+    ERROR do not erase memory.
+
+  - Alternative BAN branches remain available.
+
+  The misleading-memory condition deliberately
+  injects records visibly marked CONTRADICTED,
+  allowing the adversarial retrieval to be
+  measured without disguising them as valid
+  knowledge.
+
+  ## Experimental conditions
+
+  Implemented four controlled conditions:
+
+  - BASELINE
+  - BAN_COLD
+  - BAN_MEMORY
+  - BAN_MISLEADING_MEMORY
+
+  The intervention holds model, seed, temperature,
+  token limits, timeout, BAN graph configuration,
+  dataset, and measurement contracts constant
+  wherever applicable.
+
+  Memory-on/off results support only limited
+  within-benchmark causal analysis. They do not
+  establish universal causality.
+
+  ## Leakage protections
+
+  Validation rejects:
+
+  - Duplicate evaluation prompts
+  - Reused case IDs
+  - Exposure records identical to evaluation
+    prompts
+
+  - Exact expected-answer occurrence in memory
+    content
+
+  - Suspicious normalized-text equivalence
+  - Evaluation IDs reused as memory IDs
+
+  The lexical validator cannot detect every
+  semantic paraphrase; this limitation is
+  documented.
+
+  ## Memory datasets
+
+  Smoke dataset:
+
+  - Cases: 20
+  - Version: ban-memory-exp-001-smoke-v1
+  - SHA-256:
+    c0e2339960b49489e28dba6872d0f846776711d7275700
+    6ed38dc9587e8ebaac
+
+  - Validation: passed
+  - File: datasets/ban-memory-experiment-001-
+    smoke.jsonl
+
+  Primary dataset:
+
+  - Cases: 100
+  - Version: ban-memory-exp-001-v1
+  - SHA-256:
+    ae26d73ce376b2ca110d83ab95f0c1bcb098ad279546f1
+    30c3cbe8c103c153ab
+
+  - Validation: passed
+  - File: datasets/ban-memory-experiment-001.jsonl
+
+  Definitions are deterministic and inspectable in
+  cmd/datasetgen/memory.go.
+
+  ## Isolation and resume
+
+  Implemented controls for:
+
+  - Fresh memory
+  - Deterministically seeded memory
+  - Read-only or writable policy
+  - Explicit reset
+  - Initial snapshot hash
+  - Per-case final snapshot hash
+  - Aggregate final memory hash
+  - Resume rejection on dataset, configuration, or
+    initial-memory drift
+
+  ## Metrics
+
+  Implemented fields for:
+
+  - Final measured correctness by condition
+  - Retrieval count
+  - Relevant hits
+  - Retrieved-but-unused memory
+  - Harmful retrievals
+  - Memory-induced errors
+  - Contradiction events
+  - Supersession events
+  - Working-memory size
+  - Episodic writes
+  - Consolidation events
+  - Nodes and model calls
+  - Latency, tokens, and heap telemetry
+  - Recovery and reasoning-to-realization failures
+  - Memory leverage
+
+  Memory leverage is explicitly:
+
+  cold BAN nodes/model calls − memory BAN nodes/
+  model calls
+
+  It measures avoided reasoning work, not
+  correctness.
+
+  Some metrics such as retrieved-but-unused and
+  supersession counts will remain zero unless a
+  live condition produces those events.
+
+  ## Schemas
+
+  - Experiment schema: 0.3
+  - BAN trace schema: 0.3
+  - Memory schema: 0.1
+
+  Pass 3 schema 0.2 artifacts are not silently
+  reinterpreted.
+
+  ## CLI
+
+  ./bin/ban experiment memory-smoke --dry-run
+  ./bin/ban experiment memory-smoke --repetitions
+  1
+  ./bin/ban experiment memory-run --repetitions 3
+
+  ./bin/ban memory inspect
+  ./bin/ban memory stats
+  ./bin/ban memory reset --confirm
+
+  Reset requires explicit confirmation.
+
+  ## Tests
+
+  go test -timeout 90s ./...
+  PASS
+
+  - 41 top-level tests
+  - 0 failures
+
+  Memory-specific coverage includes:
+
+  - Bounded working memory
+  - Deterministic retrieval
+  - Memory/evidence separation
+  - Model-derived repetition
+  - Authoritative contradiction
+  - Inconclusive/error preservation
+  - Historical contradiction and supersession
+  - Provenance retention
+  - Success and failure episodes
+  - Failed-strategy retrieval
+  - Correlation-aware consolidation
+  - Foundation mutation protection
+  - Reset and isolation
+  - Stable snapshot hashing
+  - Resume state mismatch
+  - Answer and prompt leakage
+  - JSONL corruption/truncation
+  - Pass 3 candidate/final correctness regression
+  - Zero paid correctness inference
+
+  go vet ./...
+  PASS
+
+  go build -o ./bin/ban ./cmd/ban
+  PASS
+
+  The binary remains native ELF64 AArch64.
+
+  ## Ollama
+
+  - Endpoint: http://127.0.0.1:11434
+  - Configured model: qwen2.5:1.5b
+  - Availability: unavailable
+  - Memory smoke experiment executed: no
+
+  Exact blocker:
+
+  curl: (7) Failed to connect to 127.0.0.1 port
+  11434
+
+  No alternative model was downloaded or
+  substituted. No paid API was called, and no live
+  results were fabricated.
+
+  ## Documentation
+
+  Created:
+
+  - MEMORY.md
+
+  Updated:
+
+  - README.md
+  - EXPERIMENTS.md
+
+  ## Known limitations
+
+  - No live evidence currently supports or
+    contradicts the Architecting Intelligence
+    memory hypothesis.
+
+  - Retrieval and leakage detection are lexical,
+    not semantic.
+
+  - The JSONL store is designed for small local
+    experiments, not concurrent multi-process use.
+
+  - Resource telemetry remains endpoint-sampled.
+  - Tier 2 consolidation is deliberately minimal
+    and threshold-based.
+
+  - The controlled execution verifier remains
+    outside this pass.
+
+  - Memory influence is observable through
+    retrieval and condition outcomes, but fine-
+    grained attribution to individual prompt
+    tokens is unavailable.
+
+  - Retrieved-but-unused classification is
+    currently conservative and requires live
+    outcomes.
+
+  - Pass 4 changes are uncommitted.
+  - The unrelated dev-logs/ directory remains
+    untracked and untouched.
+
+  ## Recommended next step
+
+  Review and commit the Pass 4 changes from a
+  clean worktree, preserving or separately
+  handling the unrelated dev-logs/ directory. Then
+  start the configured Ollama service and run
+  only:
+
+  ./bin/ban experiment memory-smoke --repetitions
+  1
+
+  Review all four conditions, misleading-memory
+  corrections, retrieval traces, leakage controls,
+  measurement outcomes, and memory leverage before
+  considering the 100-case primary experiment.
+
+  The memory hypothesis is implemented and
+  deterministically validated as an architecture.
+  It is not yet experimentally supported because
+  no live model run was available.
+

@@ -22,9 +22,12 @@ func main() {
 func run() error {
 	args := os.Args[1:]
 	mode := "run"
-	if len(args) > 0 && (args[0] == "run" || args[0] == "baseline" || args[0] == "benchmark" || args[0] == "experiment") {
+	if len(args) > 0 && (args[0] == "run" || args[0] == "baseline" || args[0] == "benchmark" || args[0] == "experiment" || args[0] == "memory") {
 		mode = args[0]
 		args = args[1:]
+	}
+	if mode == "memory" {
+		return memoryCommand(args)
 	}
 	modelName := env("BAN_MODEL", "qwen2.5:1.5b")
 	baseURL := env("OLLAMA_BASE_URL", "http://127.0.0.1:11434")

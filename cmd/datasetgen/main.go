@@ -9,6 +9,12 @@ import (
 )
 
 func main() {
+	if err := writeMemory("datasets/ban-memory-experiment-001-smoke.jsonl", "ban-memory-exp-001-smoke-v1", 4); err != nil {
+		panic(err)
+	}
+	if err := writeMemory("datasets/ban-memory-experiment-001.jsonl", "ban-memory-exp-001-v1", 20); err != nil {
+		panic(err)
+	}
 	if err := write("datasets/ban-experiment-001-smoke.jsonl", "ban-exp-001-smoke-v2", 4); err != nil {
 		panic(err)
 	}

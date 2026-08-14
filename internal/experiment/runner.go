@@ -16,20 +16,23 @@ import (
 	"time"
 	"zdx-ban/internal/ban"
 	"zdx-ban/internal/measurement"
+	"zdx-ban/internal/memory"
 	"zdx-ban/internal/model"
 	"zdx-ban/internal/telemetry"
 	tr "zdx-ban/internal/trace"
 )
 
 type Runner struct {
-	Provider     model.Provider
-	Registry     *Registry
-	Dataset      Dataset
-	Config       RunConfig
-	OutputRoot   string
-	ExperimentID string
-	Verbose      bool
-	Progress     func(PairedResult, int, int)
+	Provider        model.Provider
+	Registry        *Registry
+	Dataset         Dataset
+	Config          RunConfig
+	OutputRoot      string
+	ExperimentID    string
+	Verbose         bool
+	Progress        func(PairedResult, int, int)
+	MemoryRetrieval *memory.RetrievalResult
+	SkipBaseline    bool
 }
 type seededProvider struct {
 	model.Provider
@@ -136,22 +139,26 @@ func (r *Runner) runPair(ctx context.Context, c Case, rep int) PairedResult {
 	v, _ := r.Registry.Get(c.VerifierType)
 	row := PairedResult{CaseID: c.ID, Category: c.Category, Repetition: rep, Seed: seed, CompletedAt: time.Now().UTC(), ConfigurationHash: configHash(r.Config)}
 	before := telemetry.Capture()
-	start := time.Now()
-	baseResp, err := p.Generate(ctx, model.GenerateRequest{Prompt: c.Prompt, Temperature: r.Config.Temperature, Seed: seed, MaxTokens: r.Config.MaxTokens})
-	after := telemetry.Capture()
-	row.Baseline = SideResult{Answer: baseResp.Text, Latency: time.Since(start), ModelCalls: 1, Telemetry: telemetryResult(before, after, time.Since(start), baseResp.Latency)}
-	row.Baseline.Tokens = tokenPtr(baseResp)
-	if err != nil {
-		row.Baseline.Verification = errorVerification(ctx, err)
-		row.Baseline.FailureCategory = string(row.Baseline.Verification.Outcome)
-	} else {
-		row.Baseline.Verification = verify(v, ctx, c, baseResp.Text)
-		if !row.Baseline.Verification.Passed {
+	var start time.Time
+	var after telemetry.Snapshot
+	if !r.SkipBaseline {
+		start = time.Now()
+		baseResp, err := p.Generate(ctx, model.GenerateRequest{Prompt: c.Prompt, Temperature: r.Config.Temperature, Seed: seed, MaxTokens: r.Config.MaxTokens})
+		after = telemetry.Capture()
+		row.Baseline = SideResult{Answer: baseResp.Text, Latency: time.Since(start), ModelCalls: 1, Telemetry: telemetryResult(before, after, time.Since(start), baseResp.Latency)}
+		row.Baseline.Tokens = tokenPtr(baseResp)
+		if err != nil {
+			row.Baseline.Verification = errorVerification(ctx, err)
 			row.Baseline.FailureCategory = string(row.Baseline.Verification.Outcome)
+		} else {
+			row.Baseline.Verification = verify(v, ctx, c, baseResp.Text)
+			if !row.Baseline.Verification.Passed {
+				row.Baseline.FailureCategory = string(row.Baseline.Verification.Outcome)
+			}
 		}
-	}
-	if row.Baseline.Verification.Measurement.ID != "" {
-		row.Baseline.Measurements = append(row.Baseline.Measurements, row.Baseline.Verification.Measurement)
+		if row.Baseline.Verification.Measurement.ID != "" {
+			row.Baseline.Measurements = append(row.Baseline.Measurements, row.Baseline.Verification.Measurement)
+		}
 	}
 	before = telemetry.Capture()
 	start = time.Now()
@@ -163,6 +170,17 @@ func (r *Runner) runPair(ctx context.Context, c Case, rep int) PairedResult {
 	e.Evaluator.Temperature = r.Config.Temperature
 	e.Verifier = BranchVerifier{c, v}
 	e.TraceDir = ""
+	if r.MemoryRetrieval != nil {
+		guide := memory.Guidance(*r.MemoryRetrieval)
+		e.Generator.MemoryGuide = guide
+		ids := []string{}
+		reasons := map[string]any{}
+		for _, x := range r.MemoryRetrieval.Records {
+			ids = append(ids, x.Record.ID)
+			reasons[x.Record.ID] = x.Reason
+		}
+		e.Memory = ban.MemoryInteraction{Enabled: true, InitialSnapshotHash: r.MemoryRetrieval.SnapshotHash, RetrievedMemoryIDs: ids, RetrievalReasons: reasons, WorkingMemoryChars: r.MemoryRetrieval.ApproxChars, GuidanceHash: configHash(guide)}
+	}
 	result, bt, berr := e.Run(ctx, c.Prompt)
 	after = telemetry.Capture()
 	row.BAN = SideResult{Latency: time.Since(start), Telemetry: telemetryResult(before, after, time.Since(start), 0)}
@@ -175,6 +193,7 @@ func (r *Runner) runPair(ctx context.Context, c Case, rep int) PairedResult {
 		row.InitialWinnerID = bt.InitialTopBranch
 		row.FinalWinnerID = bt.SelectedBranch
 		row.TraceRunID = bt.RunID
+		row.Memory = bt.Memory
 		row.Graph = graphMetrics(bt)
 		row.BANInitial = initialVerification(ctx, bt, v, c)
 		if row.BANInitial.Measurement.ID != "" {
@@ -221,7 +240,7 @@ func (r *Runner) loadOrCreate(ctx context.Context, dir string, resume bool) (Res
 	if err != nil {
 		info = model.Info{Provider: r.Config.Provider, Model: r.Config.Model}
 	}
-	return ResultFile{Experiment: ExperimentName, SchemaVersion: SchemaVersion, Manifest: Manifest{Experiment: ExperimentName, SchemaVersion: SchemaVersion, ExperimentID: r.ExperimentID, DatasetVersion: r.Dataset.Version, DatasetPath: r.Dataset.Path, DatasetSHA256: r.Dataset.SHA256, GitCommit: gitCommit(), GitRemote: gitRemote(), GitDirty: gitDirty(), Model: info, Configuration: r.Config, Host: telemetry.Capture(), StartedAt: time.Now().UTC()}}, nil
+	return ResultFile{Experiment: ExperimentName, SchemaVersion: SchemaVersion, Manifest: Manifest{Experiment: ExperimentName, SchemaVersion: SchemaVersion, ExperimentID: r.ExperimentID, DatasetVersion: r.Dataset.Version, DatasetPath: r.Dataset.Path, DatasetSHA256: r.Dataset.SHA256, GitCommit: gitCommit(), GitRemote: gitRemote(), GitDirty: gitDirty(), TraceSchemaVersion: ban.TraceSchemaVersion, MemorySchemaVersion: memory.SchemaVersion, Model: info, Configuration: r.Config, Host: telemetry.Capture(), StartedAt: time.Now().UTC()}}, nil
 }
 func persist(dir string, s *ResultFile) error {
 	if _, err := tr.WriteAtomic(dir, "summary", s); err != nil {
