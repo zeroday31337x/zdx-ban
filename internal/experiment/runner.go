@@ -15,6 +15,7 @@ import (
 	"sort"
 	"time"
 	"zdx-ban/internal/ban"
+	"zdx-ban/internal/measurement"
 	"zdx-ban/internal/model"
 	"zdx-ban/internal/telemetry"
 	tr "zdx-ban/internal/trace"
@@ -123,6 +124,9 @@ func (r *Runner) Run(ctx context.Context, resume bool) (ResultFile, error) {
 	return state, nil
 }
 func (r *Runner) runPair(ctx context.Context, c Case, rep int) PairedResult {
+	c.Measurement.Contract.Provenance.GitCommit = gitCommit()
+	c.Measurement.Contract.Provenance.GitRemote = gitRemote()
+	c.Measurement.Contract.Provenance.GitDirty = gitDirty()
 	seed := r.Config.Seed
 	if seed != nil {
 		x := *seed + rep - 1
@@ -145,6 +149,9 @@ func (r *Runner) runPair(ctx context.Context, c Case, rep int) PairedResult {
 		if !row.Baseline.Verification.Passed {
 			row.Baseline.FailureCategory = string(row.Baseline.Verification.Outcome)
 		}
+	}
+	if row.Baseline.Verification.Measurement.ID != "" {
+		row.Baseline.Measurements = append(row.Baseline.Measurements, row.Baseline.Verification.Measurement)
 	}
 	before = telemetry.Capture()
 	start = time.Now()
@@ -170,7 +177,13 @@ func (r *Runner) runPair(ctx context.Context, c Case, rep int) PairedResult {
 		row.TraceRunID = bt.RunID
 		row.Graph = graphMetrics(bt)
 		row.BANInitial = initialVerification(ctx, bt, v, c)
-		row.RecoveryAttempted = !row.BANInitial.Passed
+		if row.BANInitial.Measurement.ID != "" {
+			row.CandidateMeasurements = append(row.CandidateMeasurements, row.BANInitial.Measurement)
+		}
+		for _, n := range bt.Nodes {
+			row.CandidateMeasurements = append(row.CandidateMeasurements, n.Measurements...)
+		}
+		row.RecoveryAttempted = row.BANInitial.Measurement.Outcome == measurement.Contradicted
 		row.RecoverySuccessful = row.RecoveryAttempted && bt.RecoveredFromWrongBranch
 	}
 	if berr != nil {
@@ -180,6 +193,8 @@ func (r *Runner) runPair(ctx context.Context, c Case, rep int) PairedResult {
 	}
 	row.BAN.Answer = result.Answer
 	row.BAN.Verification = verify(v, ctx, c, result.Answer)
+	row.FinalMeasurements = append(row.FinalMeasurements, row.BAN.Verification.Measurement)
+	row.BAN.Measurements = append(row.BAN.Measurements, row.BAN.Verification.Measurement)
 	row.RecoverySuccessful = row.RecoveryAttempted && row.BAN.Verification.Passed && bt.RecoveredFromWrongBranch
 	if !row.BAN.Verification.Passed {
 		row.BAN.FailureCategory = classifyFinal(row.BAN.Verification, bt)
@@ -206,7 +221,7 @@ func (r *Runner) loadOrCreate(ctx context.Context, dir string, resume bool) (Res
 	if err != nil {
 		info = model.Info{Provider: r.Config.Provider, Model: r.Config.Model}
 	}
-	return ResultFile{Experiment: ExperimentName, SchemaVersion: SchemaVersion, Manifest: Manifest{Experiment: ExperimentName, SchemaVersion: SchemaVersion, ExperimentID: r.ExperimentID, DatasetVersion: r.Dataset.Version, DatasetPath: r.Dataset.Path, DatasetSHA256: r.Dataset.SHA256, GitCommit: gitCommit(), Model: info, Configuration: r.Config, Host: telemetry.Capture(), StartedAt: time.Now().UTC()}}, nil
+	return ResultFile{Experiment: ExperimentName, SchemaVersion: SchemaVersion, Manifest: Manifest{Experiment: ExperimentName, SchemaVersion: SchemaVersion, ExperimentID: r.ExperimentID, DatasetVersion: r.Dataset.Version, DatasetPath: r.Dataset.Path, DatasetSHA256: r.Dataset.SHA256, GitCommit: gitCommit(), GitRemote: gitRemote(), GitDirty: gitDirty(), Model: info, Configuration: r.Config, Host: telemetry.Capture(), StartedAt: time.Now().UTC()}}, nil
 }
 func persist(dir string, s *ResultFile) error {
 	if _, err := tr.WriteAtomic(dir, "summary", s); err != nil {
@@ -256,6 +271,19 @@ func configHash(v any) string {
 	h := sha256.Sum256(b)
 	return hex.EncodeToString(h[:])
 }
+func gitRemote() string {
+	cmd := exec.Command("git", "remote", "get-url", "origin")
+	b, err := cmd.Output()
+	if err != nil {
+		return "unavailable"
+	}
+	return string(bytesTrim(b))
+}
+func gitDirty() bool {
+	cmd := exec.Command("git", "status", "--porcelain")
+	b, err := cmd.Output()
+	return err != nil || len(bytesTrim(b)) > 0
+}
 func gitCommit() string {
 	cmd := exec.Command("git", "rev-parse", "HEAD")
 	b, err := cmd.Output()
@@ -285,13 +313,14 @@ func tokenPtr(r model.GenerateResponse) *int {
 	return &x
 }
 func errorVerification(ctx context.Context, err error) Verification {
+	m := measurement.Result{ID: fmt.Sprintf("error-%d", time.Now().UnixNano()), Outcome: measurement.Error, VerificationClass: measurement.Unverified, Authority: measurement.UnknownAuthority, Independence: measurement.UnknownIndependence, StartedAt: time.Now().UTC(), FinishedAt: time.Now().UTC(), Error: &measurement.MeasurementError{Code: "EXECUTION_ERROR", Message: err.Error()}}
 	if errors.Is(err, context.DeadlineExceeded) {
-		return Verification{Outcome: TimedOut, Details: err.Error()}
+		return Verification{Outcome: TimedOut, Details: err.Error(), Measurement: m}
 	}
 	if errors.Is(err, context.Canceled) || ctx.Err() != nil {
-		return Verification{Outcome: Interrupted, Details: err.Error()}
+		return Verification{Outcome: Interrupted, Details: err.Error(), Measurement: m}
 	}
-	return Verification{Outcome: ProviderFailure, Details: err.Error()}
+	return Verification{Outcome: ProviderFailure, Details: err.Error(), Measurement: m}
 }
 func initialVerification(ctx context.Context, t *ban.ExecutionTrace, v ObjectiveVerifier, c Case) Verification {
 	for _, n := range t.Nodes {

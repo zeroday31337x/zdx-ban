@@ -13,6 +13,8 @@ type BranchVerifier struct {
 
 func (v BranchVerifier) Name() string { return "experiment:" + v.Objective.Type() }
 func (v BranchVerifier) Verify(ctx context.Context, _ string, s *ban.State) ban.VerificationResult {
-	r := verify(v.Objective, ctx, v.Case, s.Hypothesis)
-	return ban.VerificationResult{Verifier: v.Name(), Passed: r.Passed, Details: string(r.Outcome) + ": " + r.Details, At: time.Now().UTC()}
+	m := measure(v.Objective, ctx, v.Case, s.Hypothesis)
+	ban.ApplyMeasurement(s, m)
+	r := compatibility(m)
+	return ban.VerificationResult{Verifier: v.Name(), Passed: r.Passed, Details: string(m.Outcome) + ": " + r.Details, At: time.Now().UTC()}
 }

@@ -4,7 +4,7 @@ BAN-0 is a native Go research runtime testing whether the same frozen transforme
 
 ## Architecture
 
-The Ollama provider streams bounded responses behind a `context.Context`-aware interface. The BAN engine generates distinct semantic hypotheses, stores them as typed nodes in a directed graph, independently scores visible dimensions, retains leading and credible minority branches, expands leaders, performs skeptic/counterfactual challenges, invokes deterministic verifiers, backtracks after failure, selects a verified state, and atomically writes a schema `0.1` JSON trace. The graph supports multiple parents, deterministic normalized fingerprints, convergence, cycle rejection, and configured depth/node bounds. Evaluation concurrency is explicitly bounded and defaults to one.
+The Ollama provider streams bounded responses behind a `context.Context`-aware interface. The BAN engine generates distinct semantic hypotheses, stores them as typed nodes in a directed graph, independently scores visible dimensions, retains leading and credible minority branches, expands leaders, performs skeptic/counterfactual challenges, invokes deterministic verifiers, backtracks after failure, selects a verified state, and atomically writes a schema `0.2` JSON trace. The graph supports multiple parents, deterministic normalized fingerprints, convergence, cycle rejection, and configured depth/node bounds. Evaluation concurrency is explicitly bounded and defaults to one.
 
 Subsystems live under `internal/model`, `internal/ban`, `internal/memory`, `internal/trace`, `internal/benchmark`, and `internal/telemetry`. Go is the orchestration/control-plane boundary; future native inference or PPS components can sit below provider/verifier/scheduler interfaces without entering BAN-0.
 
@@ -29,6 +29,10 @@ Run BAN, the same-model single-generation baseline, or the initial benchmark:
 ```
 
 Complete traces are stored in `traces/<run-id>.json`. They contain configuration, model information, runtime telemetry, every node and edge, component scores, verification results, initial/final winners, recovery fields, call/token counts, latency, and result. A temporary trace is renamed only after a complete synchronized write.
+
+## What BAN Means by Correctness
+
+See [MEASUREMENT.md](MEASUREMENT.md) for measurement-relative correctness, evidence authority and independence, the measurement hierarchy, candidate-vs-final semantics, and V0 local verification cost.
 
 ## Experimental validation
 

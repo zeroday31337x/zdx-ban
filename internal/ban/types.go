@@ -1,6 +1,9 @@
 package ban
 
-import "time"
+import (
+	"time"
+	"zdx-ban/internal/measurement"
+)
 
 type Status string
 
@@ -39,6 +42,7 @@ type State struct {
 	TokenCost                                                                                                                                               int
 	Latency                                                                                                                                                 time.Duration
 	VerificationResults                                                                                                                                     []VerificationResult
+	Measurements                                                                                                                                            []measurement.Result
 	Challenge                                                                                                                                               Challenge         `json:"challenge"`
 	Metadata                                                                                                                                                map[string]string `json:"metadata,omitempty"`
 }

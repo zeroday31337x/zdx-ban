@@ -25,7 +25,7 @@ Each result directory contains `manifest.json`, `paired-results.jsonl`, `summary
 
 ## Verification and interpretation
 
-Available objective verifiers are normalized exact output, numeric output with tolerance, explicit safe numeric constraints, and structured JSON field invariants. There is no permissive fallback in experimental mode. Outcomes distinguish incorrect answers, malformed output, unsupported/misconfigured verification, provider errors, timeouts, and interruption.
+Pass 3 emits experiment schema 0.2 and BAN trace schema 0.2. Pass 2 schema 0.1 files remain ordinary JSON and are not reinterpreted. Current objective verifiers are normalized exact output, numeric output with tolerance, explicit safe numeric constraints, and structured JSON field invariants. There is no permissive fallback in experimental mode. Outcomes distinguish incorrect answers, malformed output, unsupported/misconfigured verification, provider errors, timeouts, and interruption.
 
 “Recovery rate” is successful BAN final verification among cases where BAN’s initial top branch fails the objective verifier. Baseline has no structurally comparable initial branch, so the report does not fabricate a conditional baseline recovery probability. McNemar’s test compares final paired binary correctness only.
 

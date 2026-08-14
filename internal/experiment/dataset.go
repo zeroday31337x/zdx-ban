@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"zdx-ban/internal/measurement"
 )
 
 type Dataset struct {
@@ -64,6 +65,10 @@ func LoadDataset(path string, registry *Registry) (Dataset, error) {
 		return d, err
 	}
 	d.SHA256 = hex.EncodeToString(h.Sum(nil))
+	for i := range d.Cases {
+		d.Cases[i].Measurement.Contract.Provenance.DatasetVersion = d.Version
+		d.Cases[i].Measurement.Contract.Provenance.DatasetHash = d.SHA256
+	}
 	if len(d.Cases) == 0 {
 		return d, fmt.Errorf("empty dataset")
 	}
@@ -72,6 +77,12 @@ func LoadDataset(path string, registry *Registry) (Dataset, error) {
 func ValidateCase(c Case, r *Registry) error {
 	if c.ID == "" || c.Version == "" || c.DatasetVersion == "" || c.Category == "" || strings.TrimSpace(c.Prompt) == "" {
 		return fmt.Errorf("missing required field")
+	}
+	if c.Measurement.VerificationClass == "" {
+		return fmt.Errorf("measurement verification class required")
+	}
+	if err := measurement.ValidateContract(c.Measurement.Contract); err != nil {
+		return err
 	}
 	v, ok := r.Get(c.VerifierType)
 	if !ok {

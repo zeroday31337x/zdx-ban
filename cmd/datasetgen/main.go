@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"os"
 	"zdx-ban/internal/experiment"
+	"zdx-ban/internal/measurement"
 )
 
 func main() {
-	if err := write("datasets/ban-experiment-001-smoke.jsonl", "ban-exp-001-smoke-v1", 4); err != nil {
+	if err := write("datasets/ban-experiment-001-smoke.jsonl", "ban-exp-001-smoke-v2", 4); err != nil {
 		panic(err)
 	}
-	if err := write("datasets/ban-experiment-001.jsonl", "ban-exp-001-v1", 20); err != nil {
+	if err := write("datasets/ban-experiment-001.jsonl", "ban-exp-001-v2", 20); err != nil {
 		panic(err)
 	}
 }
@@ -31,7 +32,29 @@ func write(path, version string, n int) error {
 }
 func cases(version string, n int) []experiment.Case {
 	var out []experiment.Case
-	add := func(c experiment.Case) { c.DatasetVersion = version; c.Version = "1"; out = append(out, c) }
+	add := func(c experiment.Case) {
+		c.DatasetVersion = version
+		c.Version = "2"
+		class := measurement.BenchmarkVerified
+		authority := measurement.DeterministicRuntime
+		mt := measurement.Exact
+		if c.VerifierType == "numeric" || c.VerifierType == "constraint" {
+			class = measurement.FormallyVerified
+			authority = measurement.Formal
+			mt = measurement.Numeric
+		}
+		if c.VerifierType == "json" {
+			class = measurement.FormallyVerified
+			authority = measurement.Formal
+			mt = measurement.Structured
+		}
+		c.Measurement = experiment.MeasurementSpec{VerificationClass: class, Contract: measurement.Contract{ID: "contract-" + c.ID, Claim: "candidate output satisfies benchmark case " + c.ID, MeasurementType: mt, Observable: "model output", Method: "deterministic local " + c.VerifierType + " comparison", ExpectedRelationship: "observed output satisfies hidden benchmark specification", Authority: authority, Independence: measurement.Independent, Repeatability: measurement.Deterministic, Metadata: map[string]any{"scope": "benchmark specification only", "tier": "V0"}}}
+		if c.VerifierType == "numeric" {
+			zero := 0.0
+			c.Measurement.Contract.Tolerance = &measurement.Tolerance{Absolute: &zero}
+		}
+		out = append(out, c)
+	}
 	for i := 1; i <= n; i++ {
 		a := i*7 + 3
 		b := i*3 + 2

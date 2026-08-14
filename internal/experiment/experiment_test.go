@@ -7,10 +7,11 @@ import (
 	"path/filepath"
 	"testing"
 	"zdx-ban/internal/ban"
+	"zdx-ban/internal/measurement"
 )
 
 func validCase() Case {
-	return Case{DatasetVersion: "v1", ID: "x", Version: "1", Category: "arithmetic_constraints", Prompt: "return seven", Expected: 7.0, VerifierType: "numeric", VerifierConfig: map[string]any{"tolerance": 0.0}}
+	return Case{DatasetVersion: "v1", ID: "x", Version: "1", Category: "arithmetic_constraints", Prompt: "return seven", Expected: 7.0, VerifierType: "numeric", VerifierConfig: map[string]any{"tolerance": 0.0}, Measurement: MeasurementSpec{VerificationClass: measurement.FormallyVerified, Contract: measurement.Contract{ID: "c-x", Claim: "output equals seven", MeasurementType: measurement.Numeric, Observable: "model output", Method: "numeric comparison", ExpectedRelationship: "equals seven", Authority: measurement.Formal, Independence: measurement.Independent, Repeatability: measurement.Deterministic}}}
 }
 func TestDatasetValidation(t *testing.T) {
 	r := NewRegistry()
@@ -60,7 +61,7 @@ func TestStrictVerifiers(t *testing.T) {
 	}
 }
 func TestSummaryAndMcNemar(t *testing.T) {
-	rows := []PairedResult{{Category: "logic", Baseline: SideResult{Verification: Verification{Passed: true}, ModelCalls: 1}, BAN: SideResult{Verification: Verification{Passed: false}, ModelCalls: 5}}, {Category: "logic", Baseline: SideResult{Verification: Verification{Passed: false}, ModelCalls: 1}, BAN: SideResult{Verification: Verification{Passed: true}, ModelCalls: 5}, RecoveryAttempted: true, RecoverySuccessful: true}}
+	rows := []PairedResult{{Category: "logic", Baseline: SideResult{Verification: Verification{Passed: true, Measurement: measurement.Result{Outcome: measurement.Supported}}, ModelCalls: 1}, BAN: SideResult{Verification: Verification{Passed: false, Measurement: measurement.Result{Outcome: measurement.Contradicted}}, ModelCalls: 5}}, {Category: "logic", Baseline: SideResult{Verification: Verification{Passed: false, Measurement: measurement.Result{Outcome: measurement.Contradicted}}, ModelCalls: 1}, BAN: SideResult{Verification: Verification{Passed: true, Measurement: measurement.Result{Outcome: measurement.Supported}}, ModelCalls: 5}, RecoveryAttempted: true, RecoverySuccessful: true}}
 	s := Summarize(rows)
 	if s.TotalPairs != 2 || s.Baseline.Percentage != 50 || s.BAN.Percentage != 50 || s.RecoveryRate != 100 || s.McNemar == nil {
 		t.Fatalf("bad summary %+v", s)

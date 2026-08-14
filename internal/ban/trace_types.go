@@ -2,11 +2,12 @@ package ban
 
 import (
 	"time"
+	"zdx-ban/internal/measurement"
 	"zdx-ban/internal/model"
 	"zdx-ban/internal/telemetry"
 )
 
-const TraceSchemaVersion = "0.1"
+const TraceSchemaVersion = "0.2"
 
 type Metrics struct {
 	TotalNodes, ExpandedNodes, PrunedNodes, ModelCalls, Tokens, PeakActiveBranches int
@@ -21,6 +22,7 @@ type ExecutionTrace struct {
 	StartedAt, FinishedAt            time.Time
 	RuntimeStart, RuntimeFinish      telemetry.Snapshot
 	Nodes                            []*State
+	MeasurementEvents                []measurement.Result
 	Edges                            []Edge
 	InitialTopBranch, SelectedBranch string
 	RecoveredFromWrongBranch         bool

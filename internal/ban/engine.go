@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"sort"
 	"time"
+	"zdx-ban/internal/measurement"
 	"zdx-ban/internal/model"
 	"zdx-ban/internal/telemetry"
 	tr "zdx-ban/internal/trace"
@@ -131,6 +132,14 @@ func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace,
 		vr := e.Verifier.Verify(ctx, goal, s)
 		s.VerificationResults = append(s.VerificationResults, vr)
 		if !vr.Passed {
+			outcome := measurement.Contradicted
+			if len(s.Measurements) > 0 {
+				outcome = s.Measurements[len(s.Measurements)-1].Outcome
+			}
+			if outcome != measurement.Contradicted {
+				s.Status = Evaluated
+				continue
+			}
 			s.Status = Failed
 			if s.ID == t.InitialTopBranch {
 				t.RecoveredFromWrongBranch = true
@@ -156,6 +165,9 @@ func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace,
 	addUsage(&t.Metrics, answerResp)
 	result := Result{Answer: answerResp.Text, Selected: winner}
 	t.Nodes = g.Nodes()
+	for _, n := range t.Nodes {
+		t.MeasurementEvents = append(t.MeasurementEvents, n.Measurements...)
+	}
 	t.Edges = g.Edges()
 	t.Result = result
 	t.FinishedAt = time.Now().UTC()

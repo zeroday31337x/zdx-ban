@@ -4,6 +4,7 @@ import (
 	"math"
 	"sort"
 	"time"
+	"zdx-ban/internal/measurement"
 )
 
 type McNemarResult struct {
@@ -18,18 +19,9 @@ func Summarize(rows []PairedResult) Summary {
 	known := true
 	bt, nt := 0, 0
 	for _, r := range rows {
-		s.Baseline.Total++
-		s.BAN.Total++
-		s.BANInitial.Total++
-		if r.Baseline.Verification.Passed {
-			s.Baseline.Passed++
-		}
-		if r.BAN.Verification.Passed {
-			s.BAN.Passed++
-		}
-		if r.BANInitial.Passed {
-			s.BANInitial.Passed++
-		}
+		addAccuracy(&s.Baseline, r.Baseline.Verification)
+		addAccuracy(&s.BAN, r.BAN.Verification)
+		addAccuracy(&s.BANInitial, r.BANInitial)
 		if r.RecoveryAttempted {
 			s.RecoveryAttempts++
 		}
@@ -48,14 +40,8 @@ func Summarize(rows []PairedResult) Summary {
 		}
 		addGraph(&s.Graph, r.Graph)
 		c := s.Categories[r.Category]
-		c.Baseline.Total++
-		c.BAN.Total++
-		if r.Baseline.Verification.Passed {
-			c.Baseline.Passed++
-		}
-		if r.BAN.Verification.Passed {
-			c.BAN.Passed++
-		}
+		addAccuracy(&c.Baseline, r.Baseline.Verification)
+		addAccuracy(&c.BAN, r.BAN.Verification)
 		if r.RecoveryAttempted {
 			c.RecoveryAttempts++
 		}
@@ -63,6 +49,15 @@ func Summarize(rows []PairedResult) Summary {
 			c.Recoveries++
 		}
 		s.Categories[r.Category] = c
+		for _, m := range append(append([]measurement.Result{}, r.CandidateMeasurements...), r.FinalMeasurements...) {
+			addMeasurement(&s.Measurements, m)
+		}
+		for _, m := range r.Baseline.Measurements {
+			addMeasurement(&s.Measurements, m)
+		}
+		if r.BANInitial.Measurement.Outcome == measurement.Supported && r.BAN.Verification.Measurement.Outcome == measurement.Contradicted {
+			s.Measurements.CandidateSupportedFinalContradicted++
+		}
 	}
 	finishAcc(&s.Baseline)
 	finishAcc(&s.BAN)
@@ -96,10 +91,38 @@ func Summarize(rows []PairedResult) Summary {
 	s.McNemar = McNemar(rows)
 	return s
 }
+func addAccuracy(a *Accuracy, v Verification) {
+	switch v.Measurement.Outcome {
+	case measurement.Supported:
+		a.Total++
+		a.Passed++
+	case measurement.Contradicted:
+		a.Total++
+	default:
+		a.Unscored++
+	}
+}
 func finishAcc(a *Accuracy) {
 	if a.Total > 0 {
 		a.Percentage = 100 * float64(a.Passed) / float64(a.Total)
 	}
+}
+func addMeasurement(s *MeasurementSummary, m measurement.Result) {
+	switch m.Outcome {
+	case measurement.Supported:
+		s.Supported++
+	case measurement.Contradicted:
+		s.Contradicted++
+	case measurement.Inconclusive, measurement.Unsupported:
+		s.Inconclusive++
+	case measurement.Error:
+		s.Errors++
+	case measurement.NotMeasured:
+		s.NotMeasured++
+	}
+	s.DeterministicLocalCalls += m.Cost.LocalMeasurementCalls
+	s.PaidInferenceCalls += m.Cost.PaidInferenceCalls
+	s.Latency += m.Cost.Latency
 }
 func addGraph(a *GraphMetrics, b GraphMetrics) {
 	a.NodesCreated += b.NodesCreated
@@ -140,10 +163,14 @@ func distribution(v []float64) Distribution {
 func McNemar(rows []PairedResult) *McNemarResult {
 	b, c := 0, 0
 	for _, r := range rows {
-		if r.Baseline.Verification.Passed && !r.BAN.Verification.Passed {
+		bo, ba := r.Baseline.Verification.Measurement.Outcome, r.BAN.Verification.Measurement.Outcome
+		if bo != measurement.Supported && bo != measurement.Contradicted || ba != measurement.Supported && ba != measurement.Contradicted {
+			continue
+		}
+		if bo == measurement.Supported && ba == measurement.Contradicted {
 			b++
 		}
-		if !r.Baseline.Verification.Passed && r.BAN.Verification.Passed {
+		if bo == measurement.Contradicted && ba == measurement.Supported {
 			c++
 		}
 	}
