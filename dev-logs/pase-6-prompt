@@ -1,0 +1,862 @@
+Token usage: total=161,840 input=125,585 (+ 8,454,101 cached) output=36,255 (reasoning 4,862)
+
+ZDX-BAN Pass 6.1 — Inference Runtime, Failure Semantics, and Experimental Integrity
+
+You are working on the existing "zdx-ban" repository.
+
+This is a corrective experimental-runtime pass, not a redesign of BAN search, memory, ThoughtIR, the VM, or the reasoning architecture.
+
+The current live memory experiment has produced enough evidence to show that the immediate blocker is execution/inference reliability and measurement semantics.
+
+Current observed result
+
+Experiment:
+
+"BAN-EXPERIMENT-001-20260818-152102-ffefedf9bac4-MEMORY"
+
+Dataset:
+
+"ban-memory-exp-001-smoke-v2"
+
+Model/provider:
+
+- provider: "ollama"
+- model: "qwen2.5:1.5b"
+- constrained ARM64 Android/Termux environment
+
+For "memory-001":
+
+BASELINE
+
+Completed successfully.
+
+- result: "SUPPORTED"
+- expected value: "45"
+- observed value: "45"
+- formally verified
+- model calls: "1"
+- tokens: "49"
+- total duration: approximately 181 seconds
+- deterministic verification itself: approximately 10.7 ms
+
+BAN_COLD
+
+Failed at approximately 300 seconds:
+
+"context deadline exceeded (Client.Timeout or context cancellation while reading body)"
+
+Yet the final record contains:
+
+"Error: "model_output_malformed""
+
+Other observations:
+
+- "ModelCalls: 0"
+- "Measurements: 0"
+- "NodesCreated: 0"
+- "DuplicatesDetected: 5"
+- "PeakActiveBranches: 3"
+
+BAN_MEMORY
+
+Also failed at approximately 300 seconds.
+
+Memory retrieval succeeded before inference failure:
+
+- "memory-good-001"
+- relevance approximately "0.521055"
+
+But:
+
+- no successful inference
+- no measurement
+- "ModelCalls: 0"
+- final error became "model_output_malformed"
+
+Important:
+
+"InitialMemoryHash != FinalMemoryHash"
+
+even though provider inference did not complete.
+
+BAN_MISLEADING_MEMORY
+
+Also failed at approximately 300 seconds.
+
+Retrieval correctly found:
+
+- "memory-good-001"
+- "memory-bad-001"
+
+with relevance scores approximately:
+
+- good: "0.521055"
+- bad: "0.505002"
+
+Inference still timed out before memory-use/rejection/recovery could be measured.
+
+Again:
+
+"InitialMemoryHash != FinalMemoryHash"
+
+and:
+
+- "ModelCalls: 0"
+- "Measurements: 0"
+- final error: "model_output_malformed"
+
+---
+
+Primary objective
+
+Make BAN capable of distinguishing:
+
+1. provider/runtime execution failure;
+2. transport timeout;
+3. inference timeout;
+4. valid provider response;
+5. malformed model output;
+6. verification failure;
+7. reasoning/measurement outcome;
+
+without conflating these states.
+
+Then make local inference deadlines configurable and sufficiently observable to run a valid four-condition "memory-001" experiment on constrained ARM64 hardware.
+
+Do not claim memory improves or harms reasoning until all applicable conditions actually complete and are measured.
+
+---
+
+Phase 0 — Repository and execution audit
+
+Before changing code:
+
+1. Inspect repository status.
+2. Record:
+   - branch;
+   - HEAD commit;
+   - dirty files;
+   - untracked files;
+   - relevant existing experiment artifacts.
+3. Preserve all existing user work.
+4. Do not delete experiment outputs or development logs.
+5. Do not reset unrelated changes.
+
+Then trace every timeout/deadline capable of producing the observed approximately 300-second failure.
+
+Search the complete path from:
+
+experiment runner
+→ BAN execution
+→ provider abstraction
+→ Ollama implementation
+→ HTTP client
+→ response/body parsing
+
+Identify all uses of:
+
+- "context.WithTimeout"
+- "context.WithDeadline"
+- "http.Client.Timeout"
+- transport timeouts
+- response-header timeout
+- CLI "--timeout"
+- experiment timeout
+- case timeout
+- provider timeout
+- inference timeout
+- any hard-coded "5*time.Minute"
+- parent contexts inherited from runners
+
+Do not assume which timeout generated the failure.
+
+Prove it from the code.
+
+Document the root timeout hierarchy before changing it.
+
+---
+
+Phase 1 — Explicit timeout hierarchy
+
+Replace ambiguous timeout behavior with an explicit bounded hierarchy.
+
+The architecture should distinguish at minimum:
+
+- connection/setup timeout;
+- provider response/inference timeout;
+- individual case deadline;
+- whole experiment/run deadline.
+
+Do not allow a hidden outer five-minute context to kill an inner fifteen-minute inference operation.
+
+Likewise, do not allow "http.Client.Timeout" to silently override the intended provider inference deadline.
+
+Prefer context-based cancellation for the overall inference operation.
+
+Transport-level timeouts should protect connection establishment and pathological I/O behavior without accidentally becoming the primary whole-generation deadline.
+
+For local Ollama live experiments, support a configurable inference deadline large enough for constrained ARM64 execution.
+
+A reasonable live diagnostic configuration is approximately:
+
+"15m"
+
+for a single provider inference.
+
+This MUST be configurable rather than embedded as an unconditional global constant.
+
+Automated tests must use injected short deadlines and must never wait minutes.
+
+Preserve bounded execution. Do not introduce unlimited waits.
+
+---
+
+Phase 2 — Failure taxonomy
+
+Do not classify transport/execution failures as malformed model output.
+
+Introduce or normalize explicit machine-readable failure semantics equivalent to:
+
+- "PROVIDER_CONNECTION_ERROR"
+- "PROVIDER_TIMEOUT"
+- "PROVIDER_CANCELLED"
+- "PROVIDER_RESPONSE_ERROR"
+- "MODEL_OUTPUT_MALFORMED"
+- "VERIFICATION_ERROR"
+- "EXECUTION_ERROR"
+
+Use the repository's existing error types/enums where suitable rather than duplicating abstractions.
+
+Required semantic rule:
+
+Provider did not produce a complete response
+
+This is a provider/runtime failure.
+
+It MUST NOT become:
+
+"model_output_malformed"
+
+Provider produced a response but parser cannot interpret it
+
+This is:
+
+"MODEL_OUTPUT_MALFORMED"
+
+Provider produced parseable output but deterministic/formal verification rejects it
+
+This is a measured reasoning result, not a transport error.
+
+Preserve the original/root error.
+
+Do not overwrite a provider timeout during later result assembly or parser/finalization logic.
+
+---
+
+Phase 3 — Provider-call accounting
+
+The current record reports:
+
+"ModelCalls: 0"
+
+for executions that clearly spent approximately 300 seconds waiting on the model provider.
+
+Correct this instrumentation.
+
+Distinguish observable lifecycle counters such as:
+
+- provider calls attempted/started;
+- provider calls completed;
+- provider calls failed;
+- provider calls timed out;
+- successful model responses.
+
+Do not pretend a timed-out request never occurred.
+
+Preserve backward compatibility where possible, but clarify the meaning of existing "ModelCalls".
+
+If changing its meaning would break historical reports, add explicit new counters and document the old field.
+
+Persist enough data to distinguish:
+
+"call never attempted"
+
+from:
+
+"call attempted but timed out".
+
+---
+
+Phase 4 — Provider lifecycle telemetry
+
+Instrument provider operations with observable timestamps/durations where available.
+
+At minimum record:
+
+- call start;
+- connection/request initiation;
+- response headers or first response byte if observable;
+- first generated/token/content event if observable;
+- response completion;
+- cancellation/timeout;
+- total provider duration;
+- prompt token count if reported;
+- completion token count if reported;
+- total token count if reported.
+
+Do not fabricate token counts when unavailable.
+
+On timeout, retain partial telemetry gathered before failure.
+
+For Ollama streaming responses, correctly distinguish:
+
+- connection established;
+- stream opened;
+- generation progressing;
+- stream stalled;
+- stream completed.
+
+Do not require chain-of-thought access.
+
+Only record externally observable runtime data.
+
+---
+
+Phase 5 — Duration decomposition
+
+The experiment needs enough telemetry to separate BAN overhead from inference cost.
+
+Record or derive durations equivalent to:
+
+- total attempt duration;
+- provider/inference duration;
+- memory retrieval duration;
+- graph/search duration;
+- verification/measurement duration;
+- remaining orchestration overhead.
+
+Do not double-count nested timings.
+
+The baseline demonstrates why:
+
+- total runtime ≈ 181 seconds
+- deterministic verification ≈ 10.7 milliseconds
+
+Inference dominates execution and must be independently measurable.
+
+---
+
+Phase 6 — Experimental memory integrity
+
+Investigate why these conditions show:
+
+"InitialMemoryHash != FinalMemoryHash"
+
+despite provider inference timing out:
+
+- "BAN_MEMORY"
+- "BAN_MISLEADING_MEMORY"
+
+Do not immediately remove memory writes.
+
+First determine what changed and why.
+
+For every memory-state mutation during an experiment, make the cause observable.
+
+A memory hash change must be attributable to concrete persisted events/records.
+
+Determine whether the mutation is:
+
+- intended episodic failure learning;
+- candidate-store persistence;
+- metadata-only mutation;
+- timestamp-induced nondeterminism;
+- retrieval bookkeeping;
+- actual semantic memory modification;
+- unintended contamination.
+
+Experimental condition isolation MUST remain valid.
+
+A failed provider execution must not silently change the retrieval state used by another independent experimental condition.
+
+If the protocol intentionally learns from failures, that learning must:
+
+1. be explicitly represented;
+2. occur only in the correct isolated condition/store;
+3. have provenance;
+4. be reproducible;
+5. not leak into sibling conditions;
+6. be distinguishable from durable authoritative memory.
+
+Do not weaken the existing memory/candidate-store separation.
+
+Add deterministic tests proving condition isolation across provider failures.
+
+---
+
+Phase 7 — Timestamp correctness
+
+Audit attempt timestamps.
+
+The emitted records appear to contain timestamp values that may represent run initialization rather than actual condition completion.
+
+Make timestamp semantics explicit.
+
+Where appropriate distinguish:
+
+- attempt started at;
+- attempt finished at;
+- record persisted at;
+- experiment started at.
+
+Do not reuse one timestamp for semantically different lifecycle events.
+
+Keep persisted JSONL reproducible and interpretable.
+
+---
+
+Phase 8 — Graph metrics audit
+
+Investigate this repeated pattern:
+
+- "NodesCreated: 0"
+- "DuplicatesDetected: 5"
+- "PeakActiveBranches: 3"
+
+Do NOT redesign BAN search solely because of these values.
+
+Determine precisely:
+
+- what object is being considered a duplicate;
+- when duplicate detection occurs;
+- whether candidate proposals exist before node creation;
+- whether provider calls occur for candidates later rejected as duplicates;
+- whether duplicate work is consuming expensive inference unnecessarily.
+
+If behavior is correct, document it and improve metrics so the record is understandable.
+
+For example, if appropriate, distinguish:
+
+- candidate proposals;
+- accepted graph nodes;
+- duplicate proposals;
+- provider evaluations;
+- pruned candidates.
+
+If an actual duplicate-evaluation bug exists, fix it without changing BAN's intended search semantics.
+
+---
+
+Phase 9 — Experimental outcome semantics
+
+Do not count infrastructure failures as incorrect reasoning.
+
+A condition that times out before producing a measurable answer should remain something equivalent to:
+
+"EXECUTION_FAILED / PROVIDER_TIMEOUT"
+
+It may contribute to reliability/runtime statistics.
+
+It must NOT automatically contribute as an incorrect answer to reasoning accuracy.
+
+Aggregate reporting must distinguish:
+
+- measured correct;
+- measured incorrect/contradicted;
+- inconclusive;
+- unsupported/unknown;
+- provider/runtime execution failure.
+
+Do not report:
+
+"BASELINE beats BAN"
+
+from the current run.
+
+The valid interpretation is only:
+
+- BASELINE completed and was supported.
+- BAN_COLD did not complete.
+- BAN_MEMORY did not complete.
+- BAN_MISLEADING_MEMORY did not complete.
+
+Therefore memory-effect comparison is currently unavailable.
+
+---
+
+Phase 10 — Configuration provenance
+
+Timeout/execution policy can materially affect experiment results.
+
+Ensure experimental provenance captures relevant runtime configuration, including where appropriate:
+
+- provider;
+- model;
+- inference deadline;
+- case deadline;
+- run deadline;
+- streaming mode;
+- branch/depth/concurrency configuration;
+- memory condition;
+- other execution settings that affect results.
+
+Review "ConfigurationHash".
+
+If timeout/runtime policy is currently absent from the configuration represented by that hash, include it or introduce a clearly scoped execution-policy hash.
+
+Historical results must remain readable.
+
+---
+
+Phase 11 — Deterministic test provider
+
+Extend the deterministic/fake provider infrastructure so these cases can be tested without Ollama:
+
+1. immediate valid response;
+2. delayed valid response;
+3. connection/provider failure;
+4. inference timeout;
+5. cancellation;
+6. complete but malformed output;
+7. valid parseable output that fails verification;
+8. partial/streaming response followed by timeout where supported.
+
+Tests must prove that each scenario receives the correct error/result classification.
+
+Also verify:
+
+- provider call accounting;
+- timestamps;
+- partial telemetry;
+- no accidental malformed-output overwrite;
+- memory-condition isolation;
+- aggregate-report exclusion/inclusion semantics.
+
+All deterministic tests should complete quickly.
+
+---
+
+Phase 12 — Single-case execution gate
+
+Do NOT immediately launch the full 20-case live memory smoke.
+
+First provide a way to run only:
+
+"memory-001"
+
+across the four experimental conditions:
+
+- "BASELINE"
+- "BAN_COLD"
+- "BAN_MEMORY"
+- "BAN_MISLEADING_MEMORY"
+
+Reuse an existing case-filter mechanism if one already exists.
+
+Only add a minimal "--case", "--case-id", or equivalent filter if necessary.
+
+Do not build redundant CLI machinery.
+
+The single-case live gate succeeds only when all four conditions either:
+
+A. complete with legitimate measurable outcomes,
+
+or
+
+B. fail with accurately classified, fully instrumented execution errors that expose the actual remaining blocker.
+
+The goal of the gate is not to force success artificially.
+
+It is to produce trustworthy experimental evidence.
+
+---
+
+Phase 13 — Live ARM64 validation
+
+After deterministic tests are green, if the local Ollama provider is available, run only the targeted "memory-001" validation first.
+
+Use the exact configured model:
+
+"qwen2.5:1.5b"
+
+Do not substitute another model.
+
+Capture:
+
+- condition;
+- provider call attempts;
+- provider duration;
+- total duration;
+- memory retrieval;
+- graph metrics;
+- measurement outcome;
+- failure code if any;
+- initial/final memory hashes;
+- execution configuration.
+
+If a condition still times out, stop escalation and diagnose the observed failure.
+
+Do not immediately run all 20 cases.
+
+Only proceed to the 20-case live smoke after the four-condition single-case gate is trustworthy.
+
+---
+
+Phase 14 — Runtime explosion protection
+
+Do not let diagnostic experiments accidentally become enormous serial runs.
+
+Before launching the full dataset, compute/report the configured upper execution bound based on:
+
+- cases;
+- repetitions;
+- conditions;
+- per-provider deadline;
+- case deadline;
+- run deadline.
+
+This is an upper bound, not a prediction.
+
+Warn through CLI/log output when the configured experiment has an unusually large worst-case execution envelope.
+
+Do not refuse valid experiments solely because they are large.
+
+Keep execution bounded and explicit.
+
+---
+
+Compatibility requirements
+
+Preserve:
+
+- existing BAN architecture;
+- memory abstractions;
+- measurement contract;
+- epistemic outcome semantics;
+- condition isolation;
+- JSONL result persistence;
+- report regeneration;
+- existing dataset hashes;
+- ThoughtIR;
+- ThoughtCompiler;
+- VM boundaries;
+- offline/live authorization boundary;
+- requirement that live provider calls cannot occur accidentally.
+
+Do not modify dataset contents merely to make tests pass.
+
+Do not weaken verification.
+
+Do not add fake empirical claims.
+
+Do not expose hidden model reasoning or chain-of-thought.
+
+Only use observable provider behavior, outputs, measurements, memory events, and deterministic instrumentation.
+
+---
+
+Validation
+
+Run the relevant repository tests.
+
+At minimum:
+
+- format changed Go files;
+- run focused package tests;
+- run experiment tests;
+- run memory tests;
+- run provider tests;
+- run deterministic cross-cutting tests;
+- "git diff --check".
+
+Do not launch expensive live inference merely to satisfy a unit test.
+
+If live Ollama is available, execute the single-case gate only after deterministic validation.
+
+---
+
+Deliverable
+
+At completion, provide a technical Pass 6.1 report containing:
+
+Root cause
+
+Identify the exact source(s) of the observed approximately 300-second timeout.
+
+Do not say merely "the model was slow."
+
+Show which deadline actually fired.
+
+Error-classification correction
+
+Explain how provider timeout can no longer become "model_output_malformed".
+
+Timeout hierarchy
+
+Report the resulting timeout/cancellation architecture.
+
+Instrumentation
+
+List newly persisted provider-call and duration telemetry.
+
+Provider accounting
+
+Explain the semantics of attempted, completed, failed, and timed-out calls.
+
+Experimental memory integrity
+
+Explain why memory hashes changed during the failed run and what was done to preserve condition isolation.
+
+Graph audit
+
+Explain the "NodesCreated:0 / DuplicatesDetected:5" behavior and whether it represented a bug.
+
+Tests
+
+Report deterministic tests and results.
+
+Live single-case validation
+
+If available, report all four "memory-001" conditions separately.
+
+Never collapse provider failures into reasoning failures.
+
+Remaining blockers
+
+List any issue preventing a valid 20-case memory experiment.
+
+Repository status
+
+Report:
+
+- starting commit;
+- ending commit/state;
+- changed files;
+- intentionally preserved unrelated files;
+- "git diff --check" result.
+
+Do not start another major architectural pass.
+
+The objective of Pass 6.1 is to make BAN's existing experiment runtime trustworthy, observable, bounded, and reproducible before drawing any conclusions about the effectiveness of memory.
+
+
+
+____________
+
+
+
+
+## Pass 6.1 report
+
+  ### Root cause
+
+  The ~300-second failures came from Ollama’s
+  http.Client.Timeout = 5m, configured before experiment flags
+  were parsed. The artifact’s Client.Timeout ... while reading
+  body message confirms that client-wide deadline fired.
+
+  A second bug converted the resulting structured-generation
+  error into model_output_malformed using string matching for
+  “structured”/“JSON”.
+
+  ### Corrections
+
+  - Added typed failure codes:
+      - PROVIDER_CONNECTION_ERROR
+      - PROVIDER_TIMEOUT
+      - PROVIDER_CANCELLED
+      - PROVIDER_RESPONSE_ERROR
+      - MODEL_OUTPUT_MALFORMED
+      - VERIFICATION_ERROR
+      - EXECUTION_ERROR
+
+  - Removed the Ollama whole-request HTTP timeout.
+  - Transport timeout now protects connection/TLS setup.
+  - Context deadlines control inference, case, and run
+    execution.
+
+  - Defaults are configurable through:
+      - --inference-timeout (15m)
+      - --case-timeout
+      - --run-timeout
+
+  - Runtime policy is persisted in RunConfig and therefore
+    included in ConfigurationHash.
+
+  - Added --case-id memory-001.
+  - Added worst-case execution-envelope reporting and warnings.
+
+  ### Instrumentation
+
+  Each provider call now records:
+
+  - attempted, completed, failed, timed-out, and successful-
+    response counts;
+
+  - start and finish timestamps;
+  - request initiation;
+  - headers/stream opening;
+  - first content;
+  - stream progress/chunks/completion;
+  - timeout/cancellation;
+  - provider duration;
+  - prompt/completion tokens when reported;
+  - partial response telemetry on failure.
+
+  ModelCalls retains successful-response semantics.
+  ProviderAccounting.Attempted distinguishes an unattempted
+  request from a timed-out request.
+
+  Duration fields now separate provider, retrieval, graph/
+  search, verification, orchestration, and total attempt time.
+
+  ### Memory integrity
+
+  The hash changes were caused by unconditional episodic
+  learning after BAN execution, including provider failures with
+  no measurement.
+
+  Episode writes now require a measured non-error outcome and
+  produce an explicit APPEND_EPISODE mutation event. Provider
+  failures leave both useful-memory and misleading-memory stores
+  unchanged. Each condition now reports its own actual initial/
+  final hashes.
+
+  ### Graph audit
+
+  NodesCreated:0 / DuplicatesDetected:5 was a metrics bug, not
+  evidence of five duplicate evaluations:
+
+  - failed traces populated nodes only at successful
+    finalization;
+
+  - duplicate count was inferred as configured proposals minus
+    recorded nodes.
+
+  Failure traces now finalize graph state, and duplicates are
+  counted only from actual fingerprint collisions. Metrics
+  distinguish candidate proposals, accepted nodes, duplicate
+  proposals, provider evaluations, and pruned candidates.
+
+  ### Outcome semantics
+
+  Execution failures remain unmeasured failures and are excluded
+  from reasoning comparisons. Failed conditions cannot be
+  classified as helpful or harmful memory effects. Pairwise
+  memory comparisons skip execution-failed observations.
+
+  ### Tests
+
+  Passed:
+
+  go test ./...
+  go test ./internal/experiment ./internal/memory ./internal/
+  model ./internal/inference/... ./internal/ban
+  git diff --check
+
+  Deterministic coverage includes connection failure,
+  cancellation, timeout, malformed complete output, partial-
+  stream timeout, accounting, partial telemetry, and memory
+  isolation.
+
+  ### Live validation

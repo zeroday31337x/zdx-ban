@@ -1,0 +1,1112 @@
+ZDX-BAN — Development Pass 5
+
+Empirical Memory Validation, Recovery, and Epistemic Stability
+
+You are continuing development of the existing ZDX-BAN repository.
+
+Passes 1–4 established the BAN architecture, measurement semantics, provenance requirements, non-binary correctness model, uncertainty handling, and memory architecture.
+
+Do not redesign BAN in this pass.
+
+Pass 5 is an empirical validation pass.
+
+The objective is to determine whether BAN's memory system provides measurable value while preserving the epistemic properties already established by the model.
+
+The central question is:
+
+«Does memory improve BAN's reasoning, efficiency, recovery, and consistency without turning remembered information into assumed truth?»
+
+---
+
+1. Preserve Existing Epistemic Invariants
+
+These are hard requirements.
+
+Do not weaken, bypass, reinterpret, or replace them.
+
+1.1 Memory is advisory
+
+A retrieved memory is context.
+
+It is not evidence merely because it was remembered.
+
+Memory may:
+
+- suggest hypotheses;
+- identify previously useful approaches;
+- surface prior failures;
+- reduce redundant exploration;
+- provide candidate measurements;
+- identify relevant historical observations.
+
+It must never automatically establish correctness.
+
+1.2 Current authoritative evidence outranks memory
+
+When current authoritative evidence conflicts with stored memory:
+
+CURRENT_AUTHORITATIVE_EVIDENCE > MEMORY
+
+BAN must update its active conclusion accordingly.
+
+The disagreement itself should remain observable through provenance rather than silently overwriting history.
+
+1.3 Unknown is not false
+
+Preserve the distinction between:
+
+UNKNOWN
+UNSUPPORTED
+INCONCLUSIVE
+CONTRADICTED
+FAILED
+SUPPORTED
+
+Do not collapse unknown, novel, unsupported, or currently unverifiable claims into false.
+
+This is essential for preserving possible advances that do not yet possess established supporting evidence.
+
+1.4 INCONCLUSIVE is distinct from FAIL
+
+An experiment that cannot establish an answer must not be classified as failure unless the measurement contract actually defines that outcome as failure.
+
+1.5 Correctness remains measurement-relative
+
+BAN does not treat:
+
+checker == true
+
+as universal correctness.
+
+Correctness remains dependent upon:
+
+- observable;
+- measurement method;
+- criterion;
+- tolerance;
+- authority;
+- independence;
+- repeatability;
+- provenance.
+
+1.6 Preserve non-binary information
+
+Do not convert BAN into a pass/fail benchmark.
+
+The experiment must retain useful intermediate information, including competing hypotheses and partially supported possibilities.
+
+---
+
+2. Experimental Conditions
+
+Implement four strictly isolated conditions.
+
+Use explicit identifiers:
+
+BASELINE
+BAN_COLD
+BAN_MEMORY
+BAN_MISLEADING_MEMORY
+
+BASELINE
+
+Evaluate the task without BAN memory assistance.
+
+This establishes the external comparison point.
+
+BAN_COLD
+
+Run the BAN reasoning architecture with memory disabled or empty.
+
+This measures the contribution of the BAN architecture independently from memory.
+
+BAN_MEMORY
+
+Run BAN with valid historical memory populated from prior experiment history.
+
+This measures beneficial memory leverage.
+
+BAN_MISLEADING_MEMORY
+
+Seed BAN with plausible but:
+
+- stale;
+- incomplete;
+- superseded;
+- contextually inappropriate;
+- or deliberately misleading
+
+memory.
+
+This condition is critical.
+
+We need to know whether BAN can recover from memory, not merely benefit when memory happens to be correct.
+
+The system must never knowingly manufacture misleading memory during normal execution. Misleading memories belong only in explicitly labeled experiment fixtures.
+
+---
+
+3. Strict Experimental Isolation
+
+Condition leakage would invalidate the experiment.
+
+Ensure:
+
+- memory stores are isolated per run/condition;
+- random seeds are recorded;
+- case ordering is controlled;
+- provider configuration is recorded;
+- no experimental condition can read another condition's transient state;
+- repeated cases do not silently benefit from previous repetitions unless that is explicitly part of the memory condition;
+- BASELINE cannot access BAN memory;
+- BAN_COLD must begin without historical memory;
+- BAN_MEMORY receives only the memory assigned by its experiment definition;
+- BAN_MISLEADING_MEMORY receives only its deliberately constructed fixture.
+
+Introduce an explicit experiment/run identifier.
+
+Suggested conceptual structure:
+
+Experiment
+  Run
+    Condition
+      Case
+        Attempt
+        Measurements
+        MemoryInteractions
+        Result
+
+Reuse existing project structures where appropriate rather than introducing unnecessary abstractions.
+
+---
+
+4. Dataset / Case Boundary
+
+Do not bake evaluation cases directly into BAN reasoning logic.
+
+Create a clean experiment dataset boundary.
+
+Each case should support metadata such as:
+
+case_id
+dataset_version
+category
+prompt/input
+expected_observables
+measurement_contract
+authority_information
+difficulty
+novelty_class
+memory_fixture
+tags
+
+Preserve dataset provenance.
+
+Record:
+
+- dataset/version;
+- case origin;
+- import timestamp when appropriate;
+- checksum/hash where useful;
+- transformation provenance.
+
+The experiment framework must make it possible to introduce future datasets without modifying BAN core reasoning.
+
+---
+
+5. Required Evaluation Categories
+
+Construct the framework so cases can evaluate at least the following behaviors.
+
+5.1 Useful memory leverage
+
+Memory contains information that should legitimately improve the current task.
+
+Measure whether BAN:
+
+- retrieves it;
+- recognizes relevance;
+- uses it;
+- avoids unnecessary repeated work;
+- improves the final result.
+
+5.2 Irrelevant memory rejection
+
+Memory is valid historically but irrelevant to the current context.
+
+BAN should avoid allowing irrelevant memory to distort the current result.
+
+5.3 Stale memory override
+
+Memory was once correct but authoritative current evidence has changed.
+
+BAN must prefer the current evidence.
+
+5.4 Misleading-memory recovery
+
+Memory points strongly toward the wrong candidate.
+
+BAN must remain capable of escaping that path.
+
+Measure:
+
+- whether recovery occurred;
+- evidence required for recovery;
+- additional work caused by misleading retrieval;
+- whether confidence/calibration recovered.
+
+5.5 Unknown / novel preservation
+
+Cases should include claims or candidate solutions that lack sufficient established evidence.
+
+BAN must not reject them merely because they are absent from memory or prior knowledge.
+
+Verify that:
+
+not remembered != false
+not established != impossible
+not verified != failed
+
+5.6 Repeated-problem efficiency
+
+A problem or strongly related problem appears again.
+
+Determine whether memory reduces:
+
+- exploration;
+- provider calls;
+- redundant measurements;
+- elapsed reasoning operations;
+- unnecessary candidate generation.
+
+Efficiency improvements must not come at the expense of correctness or epistemic integrity.
+
+5.7 Failure-memory leverage
+
+Historical failure information should be useful.
+
+BAN should be able to remember that a route previously failed under specified conditions without concluding that the route universally fails.
+
+Failure memory must retain its contextual measurement contract.
+
+5.8 Conflicting historical observations
+
+Store more than one historical observation where results differ.
+
+BAN should reason over provenance/context rather than arbitrarily treating the newest or most frequent memory as truth.
+
+---
+
+6. Memory Attribution
+
+For every evaluated case, make memory influence observable without exposing private chain-of-thought.
+
+Do not store or require chain-of-thought.
+
+Record structured attribution instead.
+
+Example semantic fields:
+
+memory_retrieved
+memory_ids
+memory_relevance
+memory_used
+memory_rejected
+memory_conflicted
+memory_conflict_resolution
+memory_effect
+evidence_override
+
+"memory_effect" may use semantics such as:
+
+NONE
+HELPFUL
+HARMFUL
+NEUTRAL
+RECOVERED_FROM_HARM
+UNKNOWN
+
+These are measurements, not assumed truth.
+
+Every attribution should be grounded in observable execution events where possible.
+
+---
+
+7. Tier-2 Memory Promotion Validation
+
+If the current BAN implementation includes tiered memory, explicitly test promotion behavior.
+
+A single successful observation should not automatically become broadly authoritative memory.
+
+Test whether repeated/useful historical information can become more reusable while retaining:
+
+- provenance;
+- original measurement contracts;
+- confidence;
+- scope;
+- failure history;
+- contradictory observations.
+
+Promotion must increase accessibility or relevance weighting, not epistemic authority.
+
+A promoted memory remains memory.
+
+It does not become evidence merely because it was promoted.
+
+---
+
+8. Metrics
+
+Implement explicit metrics instead of reducing results to one accuracy percentage.
+
+At minimum compute:
+
+Outcome quality
+
+- supported-result rate;
+- contradicted-result rate;
+- inconclusive rate;
+- unsupported/unknown preservation rate;
+- measurement-contract compliance.
+
+Memory performance
+
+- retrieval precision;
+- retrieval usefulness;
+- harmful retrieval rate;
+- harmful-memory recovery rate;
+- irrelevant-memory rejection rate;
+- stale-memory override success;
+- memory-assisted improvement rate.
+
+Efficiency
+
+Where measurable:
+
+- provider/model calls;
+- reasoning/evaluation operations;
+- measurements performed;
+- repeated work avoided;
+- token usage if the provider exposes it;
+- elapsed duration.
+
+Do not compare latency across environments as though it were intrinsically meaningful unless execution conditions are comparable.
+
+Epistemic stability
+
+Measure cases where memory changed the result.
+
+Classify whether the change was:
+
+JUSTIFIED_IMPROVEMENT
+JUSTIFIED_CORRECTION
+UNJUSTIFIED_DRIFT
+HARMFUL_ANCHORING
+RECOVERY
+NO_MATERIAL_CHANGE
+
+Novelty preservation
+
+Measure whether previously unknown or unsupported candidates survived long enough to be properly evaluated rather than being rejected because memory lacked precedent.
+
+---
+
+9. Comparative Reporting
+
+Comparison should be first-class.
+
+Provide comparisons such as:
+
+BASELINE vs BAN_COLD
+BAN_COLD vs BAN_MEMORY
+BAN_MEMORY vs BAN_MISLEADING_MEMORY
+
+The most important questions are:
+
+1. Does BAN itself outperform or provide richer information than the baseline?
+2. Does memory improve BAN over cold execution?
+3. How badly can misleading memory damage BAN?
+4. Can BAN detect and recover from that damage?
+5. Does memory reduce exploration cost?
+6. Does memory introduce anchoring?
+7. Does memory cause novel possibilities to be incorrectly suppressed?
+8. Does authoritative evidence still dominate remembered information?
+
+Avoid presenting a single aggregate score as the complete result.
+
+BAN exists specifically because collapsing complex information into one binary or scalar can discard important categories of evidence.
+
+---
+
+10. Repetition and Statistical Structure
+
+Support repeated runs.
+
+Each condition/case should be executable multiple times.
+
+Record the repetition number and relevant deterministic/non-deterministic configuration.
+
+Implement enough aggregation to report:
+
+- count;
+- rate;
+- mean where meaningful;
+- median where meaningful;
+- dispersion where useful;
+- per-category outcomes.
+
+Do not create fake statistical significance.
+
+If sample size does not justify a conclusion, report that limitation.
+
+---
+
+11. Execution Modes
+
+Implement two evaluation paths.
+
+Deterministic test mode
+
+Use deterministic fake providers/fixtures.
+
+This mode must validate:
+
+- orchestration;
+- condition isolation;
+- memory injection;
+- memory retrieval;
+- misleading-memory recovery logic;
+- metrics;
+- persistence;
+- reporting.
+
+These tests belong in CI.
+
+Live provider experiment mode
+
+Live execution must be explicitly opt-in.
+
+Never automatically spend provider/API resources during normal tests.
+
+Live runs must record enough provider metadata for reproducibility where available.
+
+Do not place provider-specific behavior inside BAN core architecture if the existing abstraction can handle it.
+
+---
+
+12. Experiment Sizes
+
+Provide an execution path for:
+
+Smoke experiment
+
+20 cases
+
+Purpose:
+
+- validate experiment mechanics;
+- discover broken metrics;
+- test memory isolation;
+- validate reports.
+
+Primary experiment
+
+100 cases
+
+Purpose:
+
+- establish the first meaningful comparative BAN memory dataset.
+
+The architecture should support larger future runs without redesign.
+
+Do not fabricate the 20-case or 100-case live results.
+
+If live provider credentials/configuration are unavailable, complete the framework and deterministic validation and clearly report that the live empirical experiment remains unexecuted.
+
+---
+
+13. Durable Results
+
+Persist raw experiment results using an append-friendly durable format.
+
+Prefer:
+
+JSONL
+
+Each row should preserve enough information to independently inspect the measurement.
+
+Do not only persist aggregate results.
+
+Suggested information:
+
+experiment_id
+run_id
+case_id
+condition
+repetition
+dataset_version
+seed
+provider/model metadata
+result classification
+measurements
+memory interactions
+provenance
+timing
+usage
+errors
+timestamp
+
+Aggregate reports must be regenerable from raw results.
+
+---
+
+14. CLI
+
+Add or extend CLI functionality so the experiment can be operated without editing source files.
+
+Desired conceptual commands:
+
+ban experiment run ...
+ban experiment report ...
+ban experiment inspect ...
+ban experiment compare ...
+
+Adapt command names to the repository's existing CLI conventions.
+
+Required capabilities:
+
+run
+
+Run selected:
+
+- dataset;
+- condition(s);
+- repetitions;
+- deterministic/live mode;
+- case limit.
+
+report
+
+Generate aggregate results.
+
+inspect
+
+Inspect a single:
+
+- experiment;
+- run;
+- case;
+- memory interaction.
+
+compare
+
+Compare conditions.
+
+Example:
+
+BAN_COLD -> BAN_MEMORY
+BAN_MEMORY -> BAN_MISLEADING_MEMORY
+
+CLI output should remain useful to humans while preserving machine-readable output where appropriate.
+
+---
+
+15. Reports
+
+Generate a human-readable report from persisted experiment data.
+
+Use Markdown unless the repository already has a stronger reporting convention.
+
+Suggested report sections:
+
+Experiment Metadata
+Dataset
+Conditions
+Outcome Distribution
+Memory Utility
+Memory Harm
+Recovery
+Efficiency
+Novelty Preservation
+Epistemic Stability
+Per-Category Results
+Interesting Cases
+Inconclusive Findings
+Limitations
+
+Do not hide failures behind aggregate averages.
+
+Highlight individual cases demonstrating:
+
+- strong memory benefit;
+- misleading-memory anchoring;
+- successful recovery;
+- stale-memory rejection;
+- novel-candidate preservation;
+- unresolved ambiguity.
+
+---
+
+16. Test Requirements
+
+Add deterministic tests for at least:
+
+1. useful memory improves an observable;
+2. irrelevant memory is ignored/rejected;
+3. authoritative new evidence overrides conflicting memory;
+4. misleading memory can be recovered from;
+5. misleading memory cannot silently become evidence;
+6. absence from memory does not make a candidate false;
+7. unsupported remains distinct from contradicted;
+8. INCONCLUSIVE remains distinct from FAIL;
+9. condition memory stores are isolated;
+10. experiment repetitions are independently recorded;
+11. raw JSONL can regenerate aggregate reports;
+12. comparison output correctly attributes differences between conditions;
+13. Tier-2 promotion does not increase epistemic authority;
+14. historical failure memory retains contextual scope;
+15. conflicting memories preserve provenance.
+
+Run the repository's complete existing test suite after implementation.
+
+Do not weaken existing tests to make this pass succeed.
+
+---
+
+17. Architecture Constraints
+
+Prefer additions under existing boundaries such as:
+
+internal/experiment
+internal/measurement
+internal/memory
+internal/ban
+
+only where consistent with the repository's current structure.
+
+Do not create duplicate abstractions when suitable ones already exist.
+
+Before coding:
+
+1. inspect the repository;
+2. understand Passes 1–4;
+3. identify existing memory, experiment, model, measurement, provenance, and CLI structures;
+4. extend those structures minimally.
+
+Maintain package boundaries.
+
+Avoid circular dependencies.
+
+Keep provider-specific implementation behind existing provider interfaces.
+
+---
+
+18. No Chain-of-Thought Requirement
+
+BAN's experiment system must not require hidden model reasoning.
+
+Evaluate observable artifacts:
+
+- candidate selections;
+- measurements;
+- evidence;
+- memory retrieval;
+- memory acceptance/rejection;
+- state transitions;
+- output classifications;
+- resource usage.
+
+Structured reasoning metadata is acceptable.
+
+Private chain-of-thought is not required and must not become an architectural dependency.
+
+---
+
+19. Documentation
+
+Add or update documentation describing the empirical experiment.
+
+Create an appropriate document such as:
+
+EXPERIMENTS.md
+
+or extend the existing experiment documentation if one already exists.
+
+Document:
+
+- the four conditions;
+- what each comparison means;
+- experimental isolation;
+- memory's advisory status;
+- measurement semantics;
+- deterministic vs live execution;
+- dataset provenance;
+- raw result format;
+- CLI usage;
+- report interpretation;
+- limitations.
+
+Explicitly state:
+
+«Better memory performance does not prove that remembered information is true. It demonstrates that historical information improved measured behavior under the recorded experimental contract.»
+
+Also document:
+
+«A harmful-memory recovery result is valuable. BAN should be judged not only by whether it retrieves useful information, but by whether it can escape incorrect historical assumptions when current evidence disagrees.»
+
+---
+
+20. Pass 5 Completion Criteria
+
+Pass 5 is complete only when:
+
+- [ ] Four isolated experiment conditions exist.
+- [ ] Repeated execution is supported.
+- [ ] Deterministic fake-provider experiments pass.
+- [ ] Memory influence is observable through structured attribution.
+- [ ] Misleading-memory recovery is testable.
+- [ ] Unknown/novel candidates remain epistemically distinct from false candidates.
+- [ ] Current authoritative evidence demonstrably outranks memory.
+- [ ] Tier-2 promotion does not convert memory into authority.
+- [ ] Failure memory retains context.
+- [ ] Raw results persist durably as JSONL or an equivalent inspectable format.
+- [ ] Reports can be regenerated from raw data.
+- [ ] Condition comparisons are available.
+- [ ] CLI supports run/report/inspect/compare workflows.
+- [ ] 20-case smoke configuration exists.
+- [ ] 100-case primary configuration exists.
+- [ ] Live execution is explicit opt-in.
+- [ ] No live results are fabricated.
+- [ ] Existing BAN tests still pass.
+- [ ] New Pass 5 tests pass.
+- [ ] Documentation is complete.
+
+---
+
+21. Final Codex Report
+
+When implementation is complete, return a concise engineering report containing:
+
+Repository audit
+
+What Pass 4 already provided and which existing components were reused.
+
+Implementation
+
+Files created/changed and the purpose of each major change.
+
+Experimental architecture
+
+How the four conditions are isolated and executed.
+
+Memory validation
+
+How useful, irrelevant, stale, and misleading memories are represented and evaluated.
+
+Epistemic safeguards
+
+Evidence that:
+
+memory != evidence
+unknown != false
+inconclusive != fail
+current authoritative evidence > memory
+
+remains true.
+
+Metrics
+
+List all implemented metrics and exactly how they are calculated.
+
+Tests
+
+Exact commands executed and results.
+
+Smoke experiment
+
+If deterministic:
+
+Report it explicitly as deterministic/synthetic validation.
+
+If a live experiment was actually executed:
+
+Report the actual configuration and resulting persisted artifact.
+
+Never imply deterministic fixtures are empirical model results.
+
+Remaining limitations
+
+Identify unresolved weaknesses, especially:
+
+- anchoring;
+- retrieval quality;
+- dataset bias;
+- provider variance;
+- insufficient sample sizes;
+- metrics that remain proxies rather than direct measurements.
+
+Pass 6 candidates
+
+Do not implement Pass 6.
+
+Identify what the evidence from Pass 5 suggests should be investigated next.
+
+---
+
+The purpose of Pass 5 is not to demonstrate that BAN succeeds.
+
+The purpose is to create an experimental system capable of discovering where BAN succeeds, where it fails, where memory helps, where memory harms, and whether it can recognize the difference without abandoning uncertainty or suppressing novelty.
+
+_______
+
+output
+_______
+
+ZDX-BAN Pass 5 Status
+
+  Pass 5 is implemented and deterministically
+  validated. BAN’s search architecture was
+  preserved; no live empirical claims are made.
+
+  ## Repository audit
+
+  - Remote:
+    https://github.com/zeroday31337x/zdx-ban.git
+
+  - Branch: main
+  - Starting commit:
+    2e79b86aa47ca694929c5e5a65b3e856debc39f4
+
+  - Pass 4 commit: development pass 4 completed
+  - Initial tracked state: clean
+  - Preserved untracked file: dev-logs/pass5.log
+  - Final state: expected uncommitted Pass 5
+    changes
+
+  - git diff --check: PASS
+
+  Pass 4’s memory store, deterministic retrieval,
+  provenance, episodic learning, consolidation,
+  measurement semantics, and four ablation
+  conditions were reused.
+
+  ## Implementation
+
+  Major additions:
+
+  - internal/experiment/memory_validation.go
+      - Explicit epistemic outcomes:
+        SUPPORTED, CONTRADICTED, INCONCLUSIVE,
+        UNSUPPORTED, UNKNOWN, FAILED
+
+      - Memory effects and epistemic-stability
+        classifications
+
+      - Structured attribution and condition
+        comparison
+
+      - Aggregate outcome, memory, efficiency, and
+        novelty metrics
+
+  - internal/experiment/memory_raw.go
+      - Atomic condition-level JSONL persistence
+      - Experiment, run, and attempt identifiers
+      - Raw results sufficient to regenerate
+        reports
+
+  - internal/experiment/memory_runner.go
+      - Observable retrieval attribution
+      - Memory conflict and authoritative override
+        records
+
+      - Fixed condition execution order
+      - Per-repetition isolation and snapshot
+        hashes
+
+  - internal/experiment/memory_report.go
+      - Regenerable Markdown reports
+      - Condition and category comparisons
+      - Memory utility, harm, recovery, novelty,
+        and efficiency sections
+
+  - CLI supports:
+      - memory-smoke
+      - memory-run
+      - memory-report
+      - memory-inspect
+      - memory-compare
+      - --limit
+      - Explicit --live authorization
+
+  Live provider calls cannot occur accidentally.
+
+  ## Experimental architecture
+
+  Four conditions remain isolated:
+
+  - BASELINE
+  - BAN_COLD
+  - BAN_MEMORY
+  - BAN_MISLEADING_MEMORY
+
+  Each completed case/repetition produces four
+  independent raw observations. Condition order,
+  seed, provider/model configuration, memory
+  hashes, measurements, graph behavior, resource
+  use, and attribution are persisted.
+
+  Datasets now include explicit behavior metadata
+  for:
+
+  - useful memory leverage
+  - irrelevant-memory rejection
+  - stale-memory override
+  - misleading-memory recovery
+  - unknown/novel preservation
+  - repeated-problem efficiency
+  - failure-memory leverage
+  - conflicting historical observations
+
+  Dataset results:
+
+  - Smoke: 20 cases, ban-memory-exp-001-smoke-v2
+  - SHA-256:
+    1130b53f7a6a9e7757d96ef8b9984963c762ece977d2cb
+    092d10dbc810edea10
+
+  - Primary: 100 cases, ban-memory-exp-001-v2
+  - SHA-256:
+    f060d3f532b792a4d5eead292ef418322d0c948c182491
+    47dd8075eef7dc4180
+
+  ## Epistemic safeguards
+
+  Deterministic tests establish that:
+
+  - Memory remains advisory and does not become
+    current evidence.
+
+  - UNKNOWN does not become false.
+  - INCONCLUSIVE does not become failure.
+  - Current authoritative measurement overrides
+    conflicting memory.
+
+  - Misleading memory can be rejected or recovered
+    from.
+
+  - Tier-2 promotion increases accessibility, not
+    authority.
+
+  - Condition stores do not leak state.
+  - Provenance and contextual failure information
+    remain preserved.
+
+  - No paid inference is used for correctness
+    verification.
+
+  Memory-use attribution is explicitly labeled as
+  an observable behavioral proxy, not chain-of-
+  thought.
+
+  ## Metrics
+
+  Implemented metrics include:
+
+  - Outcome distribution by condition and category
+  - Measurement-contract compliance
+  - Retrieval precision using the documented
+    retrieval-score threshold
+
+  - Retrieval usefulness
+  - Retrieved-but-unused records
+  - Harmful retrieval rate
+  - Harmful-memory recovery
+  - Authoritative override events
+  - Memory-assisted improvement/regression
+  - Branches and model calls avoided
+  - Provider calls and measurements
+  - Novel-candidate preservation
+  - Stability classifications:
+    JUSTIFIED_IMPROVEMENT, JUSTIFIED_CORRECTION,
+    UNJUSTIFIED_DRIFT, HARMFUL_ANCHORING,
+    RECOVERY, NO_MATERIAL_CHANGE
+
+  ## Validation
+
+  go test -timeout 90s ./...
+  PASS
+
+  go vet ./...
+  PASS
+
+  go build -o ./bin/ban ./cmd/ban
+  PASS
+
+  ./bin/ban experiment memory-smoke --dry-run
+  PASS — 20 cases
+
+  ./bin/ban experiment memory-run --dry-run
+  PASS — 100 cases
+
+  git diff --check
+  PASS
+
+  Native binary:
+
+  ELF64
+  AArch64
+  Position-Independent Executable
+
+  Deterministic fake-provider tests validate four-
+  condition orchestration, persistence, isolation,
+  recovery attribution, report regeneration,
+  comparisons, outcome distinctions, and promotion
+  safeguards. These are synthetic engineering
+  validations—not empirical model results.
+
+  ## Ollama
+
+  - Endpoint: http://127.0.0.1:11434
+  - Configured model: qwen2.5:1.5b
+  - Availability: unavailable
+  - Exact blocker: connection refused on port
+    11434
+
+  - Live memory smoke experiment: not executed
+  - Fabricated results: none
+
+  ## Documentation
+
+  Updated:
+
+  - EXPERIMENTS.md
+  - MEMORY.md
+  - README.md
+
+  Experiment schema is now 0.4; BAN trace remains
+  0.3; memory remains 0.1.
+
+  ## Remaining limitations
+
+  - Retrieval relevance remains a lexical/scoring
+    proxy.
+
+  - Memory-use attribution cannot prove internal
+    model reliance.
+
+  - Semantic answer leakage may evade lexical
+    checks.
+
+  - Provider variance and anchoring require live
+    repeated trials.
+
+  - No statistically meaningful live sample exists
+    yet.
+
+  - Latency comparisons remain host- and provider-
+    dependent.
+
+  Pass 6 should be chosen only after running the
+  live 20-case memory smoke experiment and
+  inspecting the persisted condition-level
+  results.
