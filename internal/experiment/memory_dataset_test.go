@@ -3,11 +3,13 @@ package experiment
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 	"zdx-ban/internal/ban"
+	"zdx-ban/internal/inference"
 	"zdx-ban/internal/memory"
 )
 
@@ -68,5 +70,55 @@ func TestMemoryResumeRejectsStateDrift(t *testing.T) {
 	r.Dataset.Cases[0].Exposure[0].Content = "changed seed state"
 	if _, e := r.Run(context.Background(), true); e == nil {
 		t.Fatal("resume accepted dataset/memory drift")
+	}
+}
+
+func TestProviderFailureDoesNotMutateConditionMemory(t *testing.T) {
+	c := validMemoryCase()
+	r := MemoryRunner{Provider: failureProvider{err: inference.NewFailure(inference.ProviderConnectionError, errors.New("offline"))}, Registry: NewRegistry(), Config: RunConfig{Model: "m", Provider: "fake", MaxTokens: 8, Timeout: time.Second, InferenceTimeout: time.Second, Repetitions: 1, BAN: ban.DefaultConfig(), RequireObjectiveVerification: true}, Retrieval: memory.DefaultRetrievalConfig(), WritePolicy: "writable"}
+	row, err := r.runCase(context.Background(), c, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if row.InitialMemoryHash != row.FinalMemoryHash {
+		t.Fatalf("provider failure mutated memory: %s -> %s events=%+v", row.InitialMemoryHash, row.FinalMemoryHash, row.MemoryEvents)
+	}
+	if row.MisleadingInitialMemoryHash != row.MisleadingFinalMemoryHash {
+		t.Fatalf("provider failure mutated misleading memory: %s -> %s", row.MisleadingInitialMemoryHash, row.MisleadingFinalMemoryHash)
+	}
+	if len(row.MemoryEvents) != 0 || row.Metrics.EpisodicWrites != 0 {
+		t.Fatalf("unexpected mutation events: %+v", row.MemoryEvents)
+	}
+}
+
+func TestDeterministicFourConditionRunPersistsRawRows(t *testing.T) {
+	p := &pairedMock{}
+	c := validMemoryCase()
+	data := MemoryDataset{Version: "mv1", Path: "memory", SHA256: "hash", Cases: []MemoryCase{c}}
+	cfg := RunConfig{Model: "frozen", Provider: "deterministic-fake", Temperature: .2, MaxTokens: 32, Timeout: time.Second, Repetitions: 1, BAN: ban.DefaultConfig(), RequireObjectiveVerification: true, MemoryEnabled: true}
+	retrieval := memory.DefaultRetrievalConfig()
+	root := t.TempDir()
+	r := MemoryRunner{Provider: p, Registry: NewRegistry(), Dataset: data, Config: cfg, OutputRoot: root, ExperimentID: "four-condition", Retrieval: retrieval, Consolidation: memory.ConsolidationConfig{MinDistinctEpisodes: 2}, WritePolicy: "read-only"}
+	if _, err := r.Run(context.Background(), false); err != nil {
+		t.Fatal(err)
+	}
+	rows, err := LoadMemoryRows(filepath.Join(root, "four-condition", "memory-results.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 4 {
+		t.Fatalf("want four isolated observations, got %d", len(rows))
+	}
+	seen := map[MemoryCondition]bool{}
+	for _, row := range rows {
+		seen[row.Condition] = true
+		if row.AttemptID == "" || row.RunID == "" {
+			t.Fatal("missing run identity")
+		}
+	}
+	for _, cond := range []MemoryCondition{BaselineCondition, ColdCondition, MemoryConditionEnabled, MisleadingCondition} {
+		if !seen[cond] {
+			t.Fatalf("missing %s", cond)
+		}
 	}
 }

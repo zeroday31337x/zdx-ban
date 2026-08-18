@@ -32,7 +32,7 @@ Complete traces are stored in `traces/<run-id>.json`. They contain configuration
 
 ## Memory-grounded intelligence
 
-See [MEMORY.md](MEMORY.md) for Pass 4 tiered memory, deterministic retrieval, leakage controls, experimental ablations, and the rule that current measurement overrides memory.
+See [MEMORY.md](MEMORY.md) for tiered memory and epistemic safeguards, and [EXPERIMENTS.md](EXPERIMENTS.md) for Pass 5 isolated conditions, durable raw JSONL, report regeneration, inspection, and comparisons.
 
 ## What BAN Means by Correctness
 

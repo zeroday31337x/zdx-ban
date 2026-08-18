@@ -3,9 +3,55 @@ package experiment
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"zdx-ban/internal/measurement"
 )
+
+func WriteMemoryRawReport(path string, rows []MemoryRawResult) error {
+	a := AggregateMemoryRows(rows)
+	var b strings.Builder
+	fmt.Fprintf(&b, "# BAN Pass 5 Memory Validation\n\nRaw observations: %d  \n\n", a.Rows)
+	b.WriteString("## Outcome Distribution\n\n")
+	for _, c := range []MemoryCondition{BaselineCondition, ColdCondition, MemoryConditionEnabled, MisleadingCondition} {
+		x := a.ByCondition[c]
+		fmt.Fprintf(&b, "- %s: supported=%d contradicted=%d inconclusive=%d unsupported=%d unknown=%d failed=%d\n", c, x[EpistemicSupported], x[EpistemicContradicted], x[EpistemicInconclusive], x[EpistemicUnsupported], x[EpistemicUnknown], x[EpistemicFailed])
+	}
+	b.WriteString("\n## Memory Utility and Harm\n\n")
+	fmt.Fprintf(&b, "Retrieved records: %d  \nHelpful: %d  \nHarmful: %d  \nRecovered from harm: %d  \nRejected memories: %d  \nAuthoritative overrides: %d  \n", a.Retrievals, a.Helpful, a.Harmful, a.Recovered, a.IrrelevantRejected, a.StaleOverrides)
+	den := func(n int) float64 {
+		if a.RetrievalObservations == 0 {
+			return 0
+		}
+		return float64(n) * 100 / float64(a.RetrievalObservations)
+	}
+	precision := 0.0
+	if a.Retrievals > 0 {
+		precision = float64(a.RelevantRetrievals) * 100 / float64(a.Retrievals)
+	}
+	fmt.Fprintf(&b, "Retrieval precision (score >= 0.20): %.2f%%  \nRetrieved but unused: %d  \n", precision, a.RetrievedUnused)
+	fmt.Fprintf(&b, "Retrieval usefulness: %.2f%%  \nHarmful retrieval rate: %.2f%%  \nHarm recovery rate: %.2f%%  \nMeasurement-contract compliant: %d/%d  \nNovel candidates preserved: %d  \nBranches avoided: %d  \nModel calls avoided: %d  \n", den(a.Helpful), den(a.Harmful), den(a.Recovered), a.ContractCompliant, a.Rows, a.NovelCandidatesPreserved, a.BranchesAvoided, a.ModelCallsAvoided)
+	b.WriteString("\n## Comparisons\n\n")
+	for _, p := range [][2]MemoryCondition{{BaselineCondition, ColdCondition}, {ColdCondition, MemoryConditionEnabled}, {MemoryConditionEnabled, MisleadingCondition}} {
+		c := CompareMemoryRows(rows, p[0], p[1])
+		fmt.Fprintf(&b, "- %s -> %s: paired=%d improved=%d regressed=%d unchanged=%d\n", c.From, c.To, c.Total, c.Improved, c.Regressed, c.Unchanged)
+	}
+	b.WriteString("\n## Per-Category Results\n\n")
+	cats := make([]string, 0, len(a.ByCategory))
+	for c := range a.ByCategory {
+		cats = append(cats, c)
+	}
+	sort.Strings(cats)
+	for _, c := range cats {
+		fmt.Fprintf(&b, "### %s\n\n", c)
+		for _, cond := range []MemoryCondition{BaselineCondition, ColdCondition, MemoryConditionEnabled, MisleadingCondition} {
+			x := a.ByCategory[c][cond]
+			fmt.Fprintf(&b, "- %s: supported=%d contradicted=%d inconclusive=%d\n", cond, x[EpistemicSupported], x[EpistemicContradicted], x[EpistemicInconclusive])
+		}
+	}
+	b.WriteString("\n## Limitations\n\nMemory-use attribution is based on observable retrieval and condition deltas, not private chain-of-thought. Better memory performance does not prove that remembered information is true. It demonstrates that historical information improved measured behavior under the recorded experimental contract. A harmful-memory recovery result is valuable: BAN is judged by whether current evidence lets it escape incorrect historical assumptions.\n")
+	return os.WriteFile(path, []byte(b.String()), 0644)
+}
 
 func WriteMemoryReport(path string, r *MemoryExperiment) error {
 	var b strings.Builder

@@ -1,4 +1,4 @@
-# BAN Pass 4 — Memory-Grounded Intelligence
+# BAN Pass 4–5 — Memory-Grounded Intelligence and Validation
 
 Pass 4 tests a limited form of the Architecting Intelligence hypothesis: retained, provenance-aware structure and experience may improve how BAN generates, prioritizes, recovers, and avoids reasoning paths. Memory is guidance about prior cases. It is never independent evidence that the present claim is correct.
 
@@ -64,3 +64,5 @@ Experiments support fresh seeded stores, reset, read-only or writable policy, bo
 ## Limitations
 
 Pass 4 uses lexical retrieval and leakage detection, small local JSONL stores, endpoint resource telemetry, and deterministic threshold consolidation. It has no embeddings, learned retrieval, neural memory, remote database, paid verification, KV-cache state, or PPS integration. Live results are required before claiming the memory hypothesis is experimentally supported.
+
+Pass 5 adds condition-level attribution and comparisons. Retrieval never changes a memory's epistemic class. Tier-2 promotion increases accessibility only; it cannot make historical guidance independent current evidence. Absence from memory remains `UNKNOWN`, not false. Inability to decide remains `INCONCLUSIVE`, not failure.

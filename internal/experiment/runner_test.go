@@ -3,10 +3,12 @@ package experiment
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
 	"zdx-ban/internal/ban"
+	"zdx-ban/internal/inference"
 	"zdx-ban/internal/model"
 )
 
@@ -50,6 +52,55 @@ func (p *pairedMock) GenerateStructured(_ context.Context, r model.GenerateReque
 	}
 	return model.GenerateResponse{PromptTokens: 1, CompletionTokens: 1, Latency: time.Millisecond}, nil
 }
+
+type failureProvider struct {
+	err   error
+	delay time.Duration
+}
+
+func (p failureProvider) Generate(ctx context.Context, r model.GenerateRequest) (model.GenerateResponse, error) {
+	if p.delay > 0 {
+		select {
+		case <-time.After(p.delay):
+		case <-ctx.Done():
+			return model.GenerateResponse{}, ctx.Err()
+		}
+	}
+	return model.GenerateResponse{}, p.err
+}
+func (p failureProvider) GenerateStructured(ctx context.Context, r model.GenerateRequest, d any) (model.GenerateResponse, error) {
+	return p.Generate(ctx, r)
+}
+
+func TestProviderFailureClassificationAndAccounting(t *testing.T) {
+	c := validCase()
+	tests := []struct {
+		name     string
+		provider failureProvider
+		timeout  time.Duration
+		code     inference.FailureCode
+	}{
+		{"connection", failureProvider{err: inference.NewFailure(inference.ProviderConnectionError, errors.New("dial failed"))}, time.Second, inference.ProviderConnectionError},
+		{"malformed", failureProvider{err: inference.NewFailure(inference.ModelOutputMalformed, errors.New("bad JSON"))}, time.Second, inference.ModelOutputMalformed},
+		{"timeout", failureProvider{delay: 50 * time.Millisecond}, 5 * time.Millisecond, inference.ProviderTimeout},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := Runner{Provider: tt.provider, Registry: NewRegistry(), Config: RunConfig{Model: "m", Provider: "fake", MaxTokens: 8, Timeout: time.Second, InferenceTimeout: tt.timeout, Repetitions: 1, BAN: ban.DefaultConfig(), RequireObjectiveVerification: true}}
+			row := r.runPair(context.Background(), c, 1)
+			if row.BAN.Provider.Attempted != 1 || row.BAN.Provider.Failed != 1 {
+				t.Fatalf("accounting=%+v", row.BAN.Provider)
+			}
+			if row.BAN.FailureCategory != string(tt.code) {
+				t.Fatalf("category=%s want=%s", row.BAN.FailureCategory, tt.code)
+			}
+			if tt.code == inference.ProviderTimeout && row.BAN.Provider.TimedOut != 1 {
+				t.Fatalf("timeout accounting=%+v", row.BAN.Provider)
+			}
+		})
+	}
+}
+
 func mockRunner(t *testing.T, p *pairedMock) Runner {
 	c := validCase()
 	c.ForcedRecovery = true

@@ -1,0 +1,1468 @@
+{
+  "Experiment": "BAN-MEMORY-EXPERIMENT-001",
+  "SchemaVersion": "0.4",
+  "TraceSchemaVersion": "0.3",
+  "MemorySchemaVersion": "0.1",
+  "ExperimentID": "BAN-EXPERIMENT-001-20260818-152102-ffefedf9bac4-MEMORY",
+  "DatasetVersion": "ban-memory-exp-001-smoke-v2",
+  "DatasetHash": "1130b53f7a6a9e7757d96ef8b9984963c762ece977d2cb092d10dbc810edea10",
+  "StartingCommit": "2e79b86aa47ca694929c5e5a65b3e856debc39f4",
+  "GitRemote": "https://github.com/zeroday31337x/zdx-ban.git",
+  "GitDirty": true,
+  "Config": {
+    "Model": "qwen2.5:1.5b",
+    "Provider": "ollama",
+    "Temperature": 0.2,
+    "seed": 42,
+    "MaxTokens": 1024,
+    "Timeout": 300000000000,
+    "Repetitions": 1,
+    "CaseLimit": 0,
+    "BAN": {
+      "InitialBranches": 5,
+      "RetainBranches": 2,
+      "MaxDepth": 2,
+      "MaxNodes": 20,
+      "MaxConcurrentModelCalls": 1,
+      "MaxConcurrentEvaluations": 1,
+      "MaxActiveBranches": 3
+    },
+    "RequireObjectiveVerification": true,
+    "MemoryEnabled": true,
+    "MemoryRetrieval": {
+      "MaxRecords": 8,
+      "MaxChars": 6000,
+      "MaxAge": 0,
+      "IncludeTiers": [
+        "TIER_1_FOUNDATION",
+        "TIER_2_DOMAIN",
+        "TIER_3_EPISODIC"
+      ],
+      "TokenWeight": 0.45,
+      "CategoryWeight": 0.2,
+      "TagWeight": 0.15,
+      "TierWeight": 0.1,
+      "RecencyWeight": 0.05,
+      "OutcomeWeight": 0.05
+    },
+    "MemoryConsolidation": {
+      "MinDistinctEpisodes": 2
+    },
+    "MemoryWritePolicy": "writable"
+  },
+  "ConditionOrder": [
+    "BASELINE",
+    "BAN_COLD",
+    "BAN_MEMORY",
+    "BAN_MISLEADING_MEMORY"
+  ],
+  "InitialMemoryHash": "8c3e33d73af408b026a86f287cd0abb675b3e2421720dba8f847ad204fab5739",
+  "FinalMemoryHash": "",
+  "Cases": [
+    {
+      "CaseID": "memory-001",
+      "Category": "arithmetic_constraints",
+      "Behavior": "USEFUL_MEMORY_LEVERAGE",
+      "Repetition": 1,
+      "RunID": "BAN-EXPERIMENT-001-20260818-152904-911404872a7a",
+      "Baseline": {
+        "answer": "45",
+        "verification": {
+          "outcome": "pass",
+          "passed": true,
+          "details": "SUPPORTED under FORMALLY_VERIFIED: 45",
+          "value": 45,
+          "duration": 10721154,
+          "measurement": {
+            "ID": "arithmetic-001-1787066644475612391",
+            "ContractID": "contract-arithmetic-001",
+            "Claim": "candidate output satisfies benchmark case arithmetic-001",
+            "Outcome": "SUPPORTED",
+            "VerificationClass": "FORMALLY_VERIFIED",
+            "Observation": 45,
+            "Expected": 45,
+            "tolerance": {
+              "absolute": 0
+            },
+            "Evidence": [
+              {
+                "ID": "e-arithmetic-001-1787066644475966853",
+                "Source": "deterministic local numeric",
+                "Observation": 45,
+                "Relationship": "SUPPORTS",
+                "MeasurementID": "contract-arithmetic-001",
+                "Provenance": {
+                  "Implementation": "",
+                  "ImplementationVersion": "",
+                  "BenchmarkCase": "",
+                  "DatasetVersion": "",
+                  "DatasetHash": "",
+                  "FixtureVersion": "",
+                  "Runtime": "",
+                  "GitCommit": "2e79b86aa47ca694929c5e5a65b3e856debc39f4",
+                  "GitRemote": "https://github.com/zeroday31337x/zdx-ban.git",
+                  "GitDirty": true,
+                  "Timestamp": "0001-01-01T00:00:00Z"
+                },
+                "Timestamp": "2026-08-18T15:24:04.475979699Z",
+                "Independent": true,
+                "correlationGroup": "contract-arithmetic-001"
+              }
+            ],
+            "Method": "deterministic local numeric comparison",
+            "Authority": "FORMAL",
+            "Independence": "INDEPENDENT",
+            "Repeatable": true,
+            "Repeatability": "DETERMINISTIC",
+            "Provenance": {
+              "Implementation": "zdx-ban/internal/experiment/numeric",
+              "ImplementationVersion": "0.4",
+              "BenchmarkCase": "arithmetic-001",
+              "DatasetVersion": "ban-memory-exp-001-smoke-v2-evaluation",
+              "DatasetHash": "",
+              "FixtureVersion": "",
+              "Runtime": "go1.26.5",
+              "GitCommit": "2e79b86aa47ca694929c5e5a65b3e856debc39f4",
+              "GitRemote": "https://github.com/zeroday31337x/zdx-ban.git",
+              "GitDirty": true,
+              "Timestamp": "2026-08-18T15:24:04.481767699Z"
+            },
+            "StartedAt": "2026-08-18T15:24:04.471046545Z",
+            "FinishedAt": "2026-08-18T15:24:04.481767699Z",
+            "Cost": {
+              "Latency": 10721154,
+              "HeapBytesBefore": 1268912,
+              "HeapBytesAfter": 1308016,
+              "ExternalAPICalls": 0,
+              "PaidInferenceCalls": 0,
+              "LocalMeasurementCalls": 1
+            }
+          }
+        },
+        "measurements": [
+          {
+            "ID": "arithmetic-001-1787066644475612391",
+            "ContractID": "contract-arithmetic-001",
+            "Claim": "candidate output satisfies benchmark case arithmetic-001",
+            "Outcome": "SUPPORTED",
+            "VerificationClass": "FORMALLY_VERIFIED",
+            "Observation": 45,
+            "Expected": 45,
+            "tolerance": {
+              "absolute": 0
+            },
+            "Evidence": [
+              {
+                "ID": "e-arithmetic-001-1787066644475966853",
+                "Source": "deterministic local numeric",
+                "Observation": 45,
+                "Relationship": "SUPPORTS",
+                "MeasurementID": "contract-arithmetic-001",
+                "Provenance": {
+                  "Implementation": "",
+                  "ImplementationVersion": "",
+                  "BenchmarkCase": "",
+                  "DatasetVersion": "",
+                  "DatasetHash": "",
+                  "FixtureVersion": "",
+                  "Runtime": "",
+                  "GitCommit": "2e79b86aa47ca694929c5e5a65b3e856debc39f4",
+                  "GitRemote": "https://github.com/zeroday31337x/zdx-ban.git",
+                  "GitDirty": true,
+                  "Timestamp": "0001-01-01T00:00:00Z"
+                },
+                "Timestamp": "2026-08-18T15:24:04.475979699Z",
+                "Independent": true,
+                "correlationGroup": "contract-arithmetic-001"
+              }
+            ],
+            "Method": "deterministic local numeric comparison",
+            "Authority": "FORMAL",
+            "Independence": "INDEPENDENT",
+            "Repeatable": true,
+            "Repeatability": "DETERMINISTIC",
+            "Provenance": {
+              "Implementation": "zdx-ban/internal/experiment/numeric",
+              "ImplementationVersion": "0.4",
+              "BenchmarkCase": "arithmetic-001",
+              "DatasetVersion": "ban-memory-exp-001-smoke-v2-evaluation",
+              "DatasetHash": "",
+              "FixtureVersion": "",
+              "Runtime": "go1.26.5",
+              "GitCommit": "2e79b86aa47ca694929c5e5a65b3e856debc39f4",
+              "GitRemote": "https://github.com/zeroday31337x/zdx-ban.git",
+              "GitDirty": true,
+              "Timestamp": "2026-08-18T15:24:04.481767699Z"
+            },
+            "StartedAt": "2026-08-18T15:24:04.471046545Z",
+            "FinishedAt": "2026-08-18T15:24:04.481767699Z",
+            "Cost": {
+              "Latency": 10721154,
+              "HeapBytesBefore": 1268912,
+              "HeapBytesAfter": 1308016,
+              "ExternalAPICalls": 0,
+              "PaidInferenceCalls": 0,
+              "LocalMeasurementCalls": 1
+            }
+          }
+        ],
+        "Latency": 181170825318,
+        "ModelCalls": 1,
+        "tokens": 49,
+        "Telemetry": {
+          "Before": {
+            "architecture": "arm64",
+            "os": "android",
+            "go_version": "go1.26.5",
+            "cpus": 8,
+            "goroutines": 3,
+            "heap_alloc": 1129936,
+            "total_alloc": 1129936,
+            "num_gc": 0,
+            "system_memory": 11694112,
+            "at": "2026-08-18T15:21:03.300028611Z"
+          },
+          "After": {
+            "architecture": "arm64",
+            "os": "android",
+            "go_version": "go1.26.5",
+            "cpus": 8,
+            "goroutines": 5,
+            "heap_alloc": 1268896,
+            "total_alloc": 1268896,
+            "num_gc": 0,
+            "system_memory": 11956256,
+            "at": "2026-08-18T15:24:04.47085116Z"
+          },
+          "PeakHeapAlloc": 1268896,
+          "TotalAllocBefore": 1129936,
+          "TotalAllocAfter": 1268896,
+          "GCBefore": 0,
+          "GCAfter": 0,
+          "Duration": 181170826856,
+          "ModelLatency": 181163206242
+        }
+      },
+      "Cold": {
+        "answer": "",
+        "verification": {
+          "outcome": "timeout",
+          "passed": false,
+          "details": "context deadline exceeded (Client.Timeout or context cancellation while reading body)",
+          "duration": 0,
+          "measurement": {
+            "ID": "error-1787066944606568332",
+            "ContractID": "",
+            "Claim": "",
+            "Outcome": "ERROR",
+            "VerificationClass": "UNVERIFIED",
+            "Observation": null,
+            "Expected": null,
+            "Evidence": null,
+            "Method": "",
+            "Authority": "UNKNOWN",
+            "Independence": "UNKNOWN",
+            "Repeatable": false,
+            "Repeatability": "",
+            "Provenance": {
+              "Implementation": "",
+              "ImplementationVersion": "",
+              "BenchmarkCase": "",
+              "DatasetVersion": "",
+              "DatasetHash": "",
+              "FixtureVersion": "",
+              "Runtime": "",
+              "GitCommit": "",
+              "GitRemote": "",
+              "GitDirty": false,
+              "Timestamp": "0001-01-01T00:00:00Z"
+            },
+            "StartedAt": "2026-08-18T15:29:04.606785563Z",
+            "FinishedAt": "2026-08-18T15:29:04.606786486Z",
+            "Cost": {
+              "Latency": 0,
+              "HeapBytesBefore": 0,
+              "HeapBytesAfter": 0,
+              "ExternalAPICalls": 0,
+              "PaidInferenceCalls": 0,
+              "LocalMeasurementCalls": 0
+            },
+            "error": {
+              "Code": "EXECUTION_ERROR",
+              "Message": "context deadline exceeded (Client.Timeout or context cancellation while reading body)",
+              "Retryable": false
+            }
+          }
+        },
+        "measurements": null,
+        "Latency": 300124326788,
+        "ModelCalls": 0,
+        "Telemetry": {
+          "Before": {
+            "architecture": "arm64",
+            "os": "android",
+            "go_version": "go1.26.5",
+            "cpus": 8,
+            "goroutines": 5,
+            "heap_alloc": 1308720,
+            "total_alloc": 1308720,
+            "num_gc": 0,
+            "system_memory": 11956256,
+            "at": "2026-08-18T15:24:04.482190237Z"
+          },
+          "After": {
+            "architecture": "arm64",
+            "os": "android",
+            "go_version": "go1.26.5",
+            "cpus": 8,
+            "goroutines": 3,
+            "heap_alloc": 1440312,
+            "total_alloc": 1440312,
+            "num_gc": 0,
+            "system_memory": 11956256,
+            "at": "2026-08-18T15:29:04.606516717Z"
+          },
+          "PeakHeapAlloc": 1440312,
+          "TotalAllocBefore": 1308720,
+          "TotalAllocAfter": 1440312,
+          "GCBefore": 0,
+          "GCAfter": 0,
+          "Duration": 300124327326,
+          "ModelLatency": 0
+        },
+        "failureCategory": "model_output_malformed"
+      },
+      "WithMemory": {
+        "answer": "",
+        "verification": {
+          "outcome": "timeout",
+          "passed": false,
+          "details": "context deadline exceeded (Client.Timeout or context cancellation while reading body)",
+          "duration": 0,
+          "measurement": {
+            "ID": "error-1787067245728790273",
+            "ContractID": "",
+            "Claim": "",
+            "Outcome": "ERROR",
+            "VerificationClass": "UNVERIFIED",
+            "Observation": null,
+            "Expected": null,
+            "Evidence": null,
+            "Method": "",
+            "Authority": "UNKNOWN",
+            "Independence": "UNKNOWN",
+            "Repeatable": false,
+            "Repeatability": "",
+            "Provenance": {
+              "Implementation": "",
+              "ImplementationVersion": "",
+              "BenchmarkCase": "",
+              "DatasetVersion": "",
+              "DatasetHash": "",
+              "FixtureVersion": "",
+              "Runtime": "",
+              "GitCommit": "",
+              "GitRemote": "",
+              "GitDirty": false,
+              "Timestamp": "0001-01-01T00:00:00Z"
+            },
+            "StartedAt": "2026-08-18T15:34:05.736203196Z",
+            "FinishedAt": "2026-08-18T15:34:05.736208042Z",
+            "Cost": {
+              "Latency": 0,
+              "HeapBytesBefore": 0,
+              "HeapBytesAfter": 0,
+              "ExternalAPICalls": 0,
+              "PaidInferenceCalls": 0,
+              "LocalMeasurementCalls": 0
+            },
+            "error": {
+              "Code": "EXECUTION_ERROR",
+              "Message": "context deadline exceeded (Client.Timeout or context cancellation while reading body)",
+              "Retryable": false
+            }
+          }
+        },
+        "measurements": null,
+        "Latency": 300142927634,
+        "ModelCalls": 0,
+        "Telemetry": {
+          "Before": {
+            "architecture": "arm64",
+            "os": "android",
+            "go_version": "go1.26.5",
+            "cpus": 8,
+            "goroutines": 3,
+            "heap_alloc": 1607648,
+            "total_alloc": 1607648,
+            "num_gc": 0,
+            "system_memory": 11956256,
+            "at": "2026-08-18T15:29:05.585806871Z"
+          },
+          "After": {
+            "architecture": "arm64",
+            "os": "android",
+            "go_version": "go1.26.5",
+            "cpus": 8,
+            "goroutines": 3,
+            "heap_alloc": 1753992,
+            "total_alloc": 1753992,
+            "num_gc": 0,
+            "system_memory": 11956256,
+            "at": "2026-08-18T15:34:05.728732042Z"
+          },
+          "PeakHeapAlloc": 1753992,
+          "TotalAllocBefore": 1607648,
+          "TotalAllocAfter": 1753992,
+          "GCBefore": 0,
+          "GCAfter": 0,
+          "Duration": 300142928249,
+          "ModelLatency": 0
+        },
+        "failureCategory": "model_output_malformed"
+      },
+      "Misleading": {
+        "answer": "",
+        "verification": {
+          "outcome": "timeout",
+          "passed": false,
+          "details": "context deadline exceeded (Client.Timeout or context cancellation while reading body)",
+          "duration": 0,
+          "measurement": {
+            "ID": "error-1787067546213933291",
+            "ContractID": "",
+            "Claim": "",
+            "Outcome": "ERROR",
+            "VerificationClass": "UNVERIFIED",
+            "Observation": null,
+            "Expected": null,
+            "Evidence": null,
+            "Method": "",
+            "Authority": "UNKNOWN",
+            "Independence": "UNKNOWN",
+            "Repeatable": false,
+            "Repeatability": "",
+            "Provenance": {
+              "Implementation": "",
+              "ImplementationVersion": "",
+              "BenchmarkCase": "",
+              "DatasetVersion": "",
+              "DatasetHash": "",
+              "FixtureVersion": "",
+              "Runtime": "",
+              "GitCommit": "",
+              "GitRemote": "",
+              "GitDirty": false,
+              "Timestamp": "0001-01-01T00:00:00Z"
+            },
+            "StartedAt": "2026-08-18T15:39:06.214289906Z",
+            "FinishedAt": "2026-08-18T15:39:06.214295214Z",
+            "Cost": {
+              "Latency": 0,
+              "HeapBytesBefore": 0,
+              "HeapBytesAfter": 0,
+              "ExternalAPICalls": 0,
+              "PaidInferenceCalls": 0,
+              "LocalMeasurementCalls": 0
+            },
+            "error": {
+              "Code": "EXECUTION_ERROR",
+              "Message": "context deadline exceeded (Client.Timeout or context cancellation while reading body)",
+              "Retryable": false
+            }
+          }
+        },
+        "measurements": null,
+        "Latency": 300116940633,
+        "ModelCalls": 0,
+        "Telemetry": {
+          "Before": {
+            "architecture": "arm64",
+            "os": "android",
+            "go_version": "go1.26.5",
+            "cpus": 8,
+            "goroutines": 3,
+            "heap_alloc": 1931176,
+            "total_alloc": 1931176,
+            "num_gc": 0,
+            "system_memory": 11956256,
+            "at": "2026-08-18T15:34:06.096892042Z"
+          },
+          "After": {
+            "architecture": "arm64",
+            "os": "android",
+            "go_version": "go1.26.5",
+            "cpus": 8,
+            "goroutines": 3,
+            "heap_alloc": 2046416,
+            "total_alloc": 2046416,
+            "num_gc": 0,
+            "system_memory": 11956256,
+            "at": "2026-08-18T15:39:06.213827753Z"
+          },
+          "PeakHeapAlloc": 2046416,
+          "TotalAllocBefore": 1931176,
+          "TotalAllocAfter": 2046416,
+          "GCBefore": 0,
+          "GCAfter": 0,
+          "Duration": 300116942556,
+          "ModelLatency": 0
+        },
+        "failureCategory": "model_output_malformed"
+      },
+      "ColdPair": {
+        "CaseID": "arithmetic-001",
+        "Category": "arithmetic_constraints",
+        "Repetition": 1,
+        "Seed": 42,
+        "Baseline": {
+          "answer": "45",
+          "verification": {
+            "outcome": "pass",
+            "passed": true,
+            "details": "SUPPORTED under FORMALLY_VERIFIED: 45",
+            "value": 45,
+            "duration": 10721154,
+            "measurement": {
+              "ID": "arithmetic-001-1787066644475612391",
+              "ContractID": "contract-arithmetic-001",
+              "Claim": "candidate output satisfies benchmark case arithmetic-001",
+              "Outcome": "SUPPORTED",
+              "VerificationClass": "FORMALLY_VERIFIED",
+              "Observation": 45,
+              "Expected": 45,
+              "tolerance": {
+                "absolute": 0
+              },
+              "Evidence": [
+                {
+                  "ID": "e-arithmetic-001-1787066644475966853",
+                  "Source": "deterministic local numeric",
+                  "Observation": 45,
+                  "Relationship": "SUPPORTS",
+                  "MeasurementID": "contract-arithmetic-001",
+                  "Provenance": {
+                    "Implementation": "",
+                    "ImplementationVersion": "",
+                    "BenchmarkCase": "",
+                    "DatasetVersion": "",
+                    "DatasetHash": "",
+                    "FixtureVersion": "",
+                    "Runtime": "",
+                    "GitCommit": "2e79b86aa47ca694929c5e5a65b3e856debc39f4",
+                    "GitRemote": "https://github.com/zeroday31337x/zdx-ban.git",
+                    "GitDirty": true,
+                    "Timestamp": "0001-01-01T00:00:00Z"
+                  },
+                  "Timestamp": "2026-08-18T15:24:04.475979699Z",
+                  "Independent": true,
+                  "correlationGroup": "contract-arithmetic-001"
+                }
+              ],
+              "Method": "deterministic local numeric comparison",
+              "Authority": "FORMAL",
+              "Independence": "INDEPENDENT",
+              "Repeatable": true,
+              "Repeatability": "DETERMINISTIC",
+              "Provenance": {
+                "Implementation": "zdx-ban/internal/experiment/numeric",
+                "ImplementationVersion": "0.4",
+                "BenchmarkCase": "arithmetic-001",
+                "DatasetVersion": "ban-memory-exp-001-smoke-v2-evaluation",
+                "DatasetHash": "",
+                "FixtureVersion": "",
+                "Runtime": "go1.26.5",
+                "GitCommit": "2e79b86aa47ca694929c5e5a65b3e856debc39f4",
+                "GitRemote": "https://github.com/zeroday31337x/zdx-ban.git",
+                "GitDirty": true,
+                "Timestamp": "2026-08-18T15:24:04.481767699Z"
+              },
+              "StartedAt": "2026-08-18T15:24:04.471046545Z",
+              "FinishedAt": "2026-08-18T15:24:04.481767699Z",
+              "Cost": {
+                "Latency": 10721154,
+                "HeapBytesBefore": 1268912,
+                "HeapBytesAfter": 1308016,
+                "ExternalAPICalls": 0,
+                "PaidInferenceCalls": 0,
+                "LocalMeasurementCalls": 1
+              }
+            }
+          },
+          "measurements": [
+            {
+              "ID": "arithmetic-001-1787066644475612391",
+              "ContractID": "contract-arithmetic-001",
+              "Claim": "candidate output satisfies benchmark case arithmetic-001",
+              "Outcome": "SUPPORTED",
+              "VerificationClass": "FORMALLY_VERIFIED",
+              "Observation": 45,
+              "Expected": 45,
+              "tolerance": {
+                "absolute": 0
+              },
+              "Evidence": [
+                {
+                  "ID": "e-arithmetic-001-1787066644475966853",
+                  "Source": "deterministic local numeric",
+                  "Observation": 45,
+                  "Relationship": "SUPPORTS",
+                  "MeasurementID": "contract-arithmetic-001",
+                  "Provenance": {
+                    "Implementation": "",
+                    "ImplementationVersion": "",
+                    "BenchmarkCase": "",
+                    "DatasetVersion": "",
+                    "DatasetHash": "",
+                    "FixtureVersion": "",
+                    "Runtime": "",
+                    "GitCommit": "2e79b86aa47ca694929c5e5a65b3e856debc39f4",
+                    "GitRemote": "https://github.com/zeroday31337x/zdx-ban.git",
+                    "GitDirty": true,
+                    "Timestamp": "0001-01-01T00:00:00Z"
+                  },
+                  "Timestamp": "2026-08-18T15:24:04.475979699Z",
+                  "Independent": true,
+                  "correlationGroup": "contract-arithmetic-001"
+                }
+              ],
+              "Method": "deterministic local numeric comparison",
+              "Authority": "FORMAL",
+              "Independence": "INDEPENDENT",
+              "Repeatable": true,
+              "Repeatability": "DETERMINISTIC",
+              "Provenance": {
+                "Implementation": "zdx-ban/internal/experiment/numeric",
+                "ImplementationVersion": "0.4",
+                "BenchmarkCase": "arithmetic-001",
+                "DatasetVersion": "ban-memory-exp-001-smoke-v2-evaluation",
+                "DatasetHash": "",
+                "FixtureVersion": "",
+                "Runtime": "go1.26.5",
+                "GitCommit": "2e79b86aa47ca694929c5e5a65b3e856debc39f4",
+                "GitRemote": "https://github.com/zeroday31337x/zdx-ban.git",
+                "GitDirty": true,
+                "Timestamp": "2026-08-18T15:24:04.481767699Z"
+              },
+              "StartedAt": "2026-08-18T15:24:04.471046545Z",
+              "FinishedAt": "2026-08-18T15:24:04.481767699Z",
+              "Cost": {
+                "Latency": 10721154,
+                "HeapBytesBefore": 1268912,
+                "HeapBytesAfter": 1308016,
+                "ExternalAPICalls": 0,
+                "PaidInferenceCalls": 0,
+                "LocalMeasurementCalls": 1
+              }
+            }
+          ],
+          "Latency": 181170825318,
+          "ModelCalls": 1,
+          "tokens": 49,
+          "Telemetry": {
+            "Before": {
+              "architecture": "arm64",
+              "os": "android",
+              "go_version": "go1.26.5",
+              "cpus": 8,
+              "goroutines": 3,
+              "heap_alloc": 1129936,
+              "total_alloc": 1129936,
+              "num_gc": 0,
+              "system_memory": 11694112,
+              "at": "2026-08-18T15:21:03.300028611Z"
+            },
+            "After": {
+              "architecture": "arm64",
+              "os": "android",
+              "go_version": "go1.26.5",
+              "cpus": 8,
+              "goroutines": 5,
+              "heap_alloc": 1268896,
+              "total_alloc": 1268896,
+              "num_gc": 0,
+              "system_memory": 11956256,
+              "at": "2026-08-18T15:24:04.47085116Z"
+            },
+            "PeakHeapAlloc": 1268896,
+            "TotalAllocBefore": 1129936,
+            "TotalAllocAfter": 1268896,
+            "GCBefore": 0,
+            "GCAfter": 0,
+            "Duration": 181170826856,
+            "ModelLatency": 181163206242
+          }
+        },
+        "BAN": {
+          "answer": "",
+          "verification": {
+            "outcome": "timeout",
+            "passed": false,
+            "details": "context deadline exceeded (Client.Timeout or context cancellation while reading body)",
+            "duration": 0,
+            "measurement": {
+              "ID": "error-1787066944606568332",
+              "ContractID": "",
+              "Claim": "",
+              "Outcome": "ERROR",
+              "VerificationClass": "UNVERIFIED",
+              "Observation": null,
+              "Expected": null,
+              "Evidence": null,
+              "Method": "",
+              "Authority": "UNKNOWN",
+              "Independence": "UNKNOWN",
+              "Repeatable": false,
+              "Repeatability": "",
+              "Provenance": {
+                "Implementation": "",
+                "ImplementationVersion": "",
+                "BenchmarkCase": "",
+                "DatasetVersion": "",
+                "DatasetHash": "",
+                "FixtureVersion": "",
+                "Runtime": "",
+                "GitCommit": "",
+                "GitRemote": "",
+                "GitDirty": false,
+                "Timestamp": "0001-01-01T00:00:00Z"
+              },
+              "StartedAt": "2026-08-18T15:29:04.606785563Z",
+              "FinishedAt": "2026-08-18T15:29:04.606786486Z",
+              "Cost": {
+                "Latency": 0,
+                "HeapBytesBefore": 0,
+                "HeapBytesAfter": 0,
+                "ExternalAPICalls": 0,
+                "PaidInferenceCalls": 0,
+                "LocalMeasurementCalls": 0
+              },
+              "error": {
+                "Code": "EXECUTION_ERROR",
+                "Message": "context deadline exceeded (Client.Timeout or context cancellation while reading body)",
+                "Retryable": false
+              }
+            }
+          },
+          "measurements": null,
+          "Latency": 300124326788,
+          "ModelCalls": 0,
+          "Telemetry": {
+            "Before": {
+              "architecture": "arm64",
+              "os": "android",
+              "go_version": "go1.26.5",
+              "cpus": 8,
+              "goroutines": 5,
+              "heap_alloc": 1308720,
+              "total_alloc": 1308720,
+              "num_gc": 0,
+              "system_memory": 11956256,
+              "at": "2026-08-18T15:24:04.482190237Z"
+            },
+            "After": {
+              "architecture": "arm64",
+              "os": "android",
+              "go_version": "go1.26.5",
+              "cpus": 8,
+              "goroutines": 3,
+              "heap_alloc": 1440312,
+              "total_alloc": 1440312,
+              "num_gc": 0,
+              "system_memory": 11956256,
+              "at": "2026-08-18T15:29:04.606516717Z"
+            },
+            "PeakHeapAlloc": 1440312,
+            "TotalAllocBefore": 1308720,
+            "TotalAllocAfter": 1440312,
+            "GCBefore": 0,
+            "GCAfter": 0,
+            "Duration": 300124327326,
+            "ModelLatency": 0
+          },
+          "failureCategory": "model_output_malformed"
+        },
+        "BANInitial": {
+          "outcome": "incorrect",
+          "passed": false,
+          "details": "initial winner missing from trace",
+          "duration": 0,
+          "measurement": {
+            "ID": "",
+            "ContractID": "",
+            "Claim": "",
+            "Outcome": "",
+            "VerificationClass": "",
+            "Observation": null,
+            "Expected": null,
+            "Evidence": null,
+            "Method": "",
+            "Authority": "",
+            "Independence": "",
+            "Repeatable": false,
+            "Repeatability": "",
+            "Provenance": {
+              "Implementation": "",
+              "ImplementationVersion": "",
+              "BenchmarkCase": "",
+              "DatasetVersion": "",
+              "DatasetHash": "",
+              "FixtureVersion": "",
+              "Runtime": "",
+              "GitCommit": "",
+              "GitRemote": "",
+              "GitDirty": false,
+              "Timestamp": "0001-01-01T00:00:00Z"
+            },
+            "StartedAt": "0001-01-01T00:00:00Z",
+            "FinishedAt": "0001-01-01T00:00:00Z",
+            "Cost": {
+              "Latency": 0,
+              "HeapBytesBefore": 0,
+              "HeapBytesAfter": 0,
+              "ExternalAPICalls": 0,
+              "PaidInferenceCalls": 0,
+              "LocalMeasurementCalls": 0
+            }
+          }
+        },
+        "CandidateMeasurements": null,
+        "FinalMeasurements": null,
+        "InitialWinnerID": "",
+        "FinalWinnerID": "",
+        "RecoveryAttempted": false,
+        "RecoverySuccessful": false,
+        "Graph": {
+          "NodesCreated": 0,
+          "DuplicatesDetected": 5,
+          "Convergences": 0,
+          "MultipleParentNodes": 0,
+          "BranchesPruned": 0,
+          "MaxDepthReached": 0,
+          "PeakActiveBranches": 3
+        },
+        "TraceRunID": "2ae94b836600ebb4",
+        "Memory": {
+          "Enabled": false,
+          "InitialSnapshotHash": "",
+          "RetrievedMemoryIDs": null,
+          "RetrievalReasons": null,
+          "WorkingMemoryChars": 0,
+          "GuidanceHash": "",
+          "Events": null
+        },
+        "CompletedAt": "2026-08-18T15:21:03.299010765Z",
+        "ConfigurationHash": "dd35a928959a1ae6ddc2dae3d890c3984853b5b5a3b1314b4ab770545d03f36d"
+      },
+      "MemoryPair": {
+        "CaseID": "arithmetic-001",
+        "Category": "arithmetic_constraints",
+        "Repetition": 1,
+        "Seed": 42,
+        "Baseline": {
+          "answer": "",
+          "verification": {
+            "outcome": "",
+            "passed": false,
+            "details": "",
+            "duration": 0,
+            "measurement": {
+              "ID": "",
+              "ContractID": "",
+              "Claim": "",
+              "Outcome": "",
+              "VerificationClass": "",
+              "Observation": null,
+              "Expected": null,
+              "Evidence": null,
+              "Method": "",
+              "Authority": "",
+              "Independence": "",
+              "Repeatable": false,
+              "Repeatability": "",
+              "Provenance": {
+                "Implementation": "",
+                "ImplementationVersion": "",
+                "BenchmarkCase": "",
+                "DatasetVersion": "",
+                "DatasetHash": "",
+                "FixtureVersion": "",
+                "Runtime": "",
+                "GitCommit": "",
+                "GitRemote": "",
+                "GitDirty": false,
+                "Timestamp": "0001-01-01T00:00:00Z"
+              },
+              "StartedAt": "0001-01-01T00:00:00Z",
+              "FinishedAt": "0001-01-01T00:00:00Z",
+              "Cost": {
+                "Latency": 0,
+                "HeapBytesBefore": 0,
+                "HeapBytesAfter": 0,
+                "ExternalAPICalls": 0,
+                "PaidInferenceCalls": 0,
+                "LocalMeasurementCalls": 0
+              }
+            }
+          },
+          "measurements": null,
+          "Latency": 0,
+          "ModelCalls": 0,
+          "Telemetry": {
+            "Before": {
+              "architecture": "",
+              "os": "",
+              "go_version": "",
+              "cpus": 0,
+              "goroutines": 0,
+              "heap_alloc": 0,
+              "total_alloc": 0,
+              "num_gc": 0,
+              "system_memory": 0,
+              "at": "0001-01-01T00:00:00Z"
+            },
+            "After": {
+              "architecture": "",
+              "os": "",
+              "go_version": "",
+              "cpus": 0,
+              "goroutines": 0,
+              "heap_alloc": 0,
+              "total_alloc": 0,
+              "num_gc": 0,
+              "system_memory": 0,
+              "at": "0001-01-01T00:00:00Z"
+            },
+            "PeakHeapAlloc": 0,
+            "TotalAllocBefore": 0,
+            "TotalAllocAfter": 0,
+            "GCBefore": 0,
+            "GCAfter": 0,
+            "Duration": 0,
+            "ModelLatency": 0
+          }
+        },
+        "BAN": {
+          "answer": "",
+          "verification": {
+            "outcome": "timeout",
+            "passed": false,
+            "details": "context deadline exceeded (Client.Timeout or context cancellation while reading body)",
+            "duration": 0,
+            "measurement": {
+              "ID": "error-1787067245728790273",
+              "ContractID": "",
+              "Claim": "",
+              "Outcome": "ERROR",
+              "VerificationClass": "UNVERIFIED",
+              "Observation": null,
+              "Expected": null,
+              "Evidence": null,
+              "Method": "",
+              "Authority": "UNKNOWN",
+              "Independence": "UNKNOWN",
+              "Repeatable": false,
+              "Repeatability": "",
+              "Provenance": {
+                "Implementation": "",
+                "ImplementationVersion": "",
+                "BenchmarkCase": "",
+                "DatasetVersion": "",
+                "DatasetHash": "",
+                "FixtureVersion": "",
+                "Runtime": "",
+                "GitCommit": "",
+                "GitRemote": "",
+                "GitDirty": false,
+                "Timestamp": "0001-01-01T00:00:00Z"
+              },
+              "StartedAt": "2026-08-18T15:34:05.736203196Z",
+              "FinishedAt": "2026-08-18T15:34:05.736208042Z",
+              "Cost": {
+                "Latency": 0,
+                "HeapBytesBefore": 0,
+                "HeapBytesAfter": 0,
+                "ExternalAPICalls": 0,
+                "PaidInferenceCalls": 0,
+                "LocalMeasurementCalls": 0
+              },
+              "error": {
+                "Code": "EXECUTION_ERROR",
+                "Message": "context deadline exceeded (Client.Timeout or context cancellation while reading body)",
+                "Retryable": false
+              }
+            }
+          },
+          "measurements": null,
+          "Latency": 300142927634,
+          "ModelCalls": 0,
+          "Telemetry": {
+            "Before": {
+              "architecture": "arm64",
+              "os": "android",
+              "go_version": "go1.26.5",
+              "cpus": 8,
+              "goroutines": 3,
+              "heap_alloc": 1607648,
+              "total_alloc": 1607648,
+              "num_gc": 0,
+              "system_memory": 11956256,
+              "at": "2026-08-18T15:29:05.585806871Z"
+            },
+            "After": {
+              "architecture": "arm64",
+              "os": "android",
+              "go_version": "go1.26.5",
+              "cpus": 8,
+              "goroutines": 3,
+              "heap_alloc": 1753992,
+              "total_alloc": 1753992,
+              "num_gc": 0,
+              "system_memory": 11956256,
+              "at": "2026-08-18T15:34:05.728732042Z"
+            },
+            "PeakHeapAlloc": 1753992,
+            "TotalAllocBefore": 1607648,
+            "TotalAllocAfter": 1753992,
+            "GCBefore": 0,
+            "GCAfter": 0,
+            "Duration": 300142928249,
+            "ModelLatency": 0
+          },
+          "failureCategory": "model_output_malformed"
+        },
+        "BANInitial": {
+          "outcome": "incorrect",
+          "passed": false,
+          "details": "initial winner missing from trace",
+          "duration": 0,
+          "measurement": {
+            "ID": "",
+            "ContractID": "",
+            "Claim": "",
+            "Outcome": "",
+            "VerificationClass": "",
+            "Observation": null,
+            "Expected": null,
+            "Evidence": null,
+            "Method": "",
+            "Authority": "",
+            "Independence": "",
+            "Repeatable": false,
+            "Repeatability": "",
+            "Provenance": {
+              "Implementation": "",
+              "ImplementationVersion": "",
+              "BenchmarkCase": "",
+              "DatasetVersion": "",
+              "DatasetHash": "",
+              "FixtureVersion": "",
+              "Runtime": "",
+              "GitCommit": "",
+              "GitRemote": "",
+              "GitDirty": false,
+              "Timestamp": "0001-01-01T00:00:00Z"
+            },
+            "StartedAt": "0001-01-01T00:00:00Z",
+            "FinishedAt": "0001-01-01T00:00:00Z",
+            "Cost": {
+              "Latency": 0,
+              "HeapBytesBefore": 0,
+              "HeapBytesAfter": 0,
+              "ExternalAPICalls": 0,
+              "PaidInferenceCalls": 0,
+              "LocalMeasurementCalls": 0
+            }
+          }
+        },
+        "CandidateMeasurements": null,
+        "FinalMeasurements": null,
+        "InitialWinnerID": "",
+        "FinalWinnerID": "",
+        "RecoveryAttempted": false,
+        "RecoverySuccessful": false,
+        "Graph": {
+          "NodesCreated": 0,
+          "DuplicatesDetected": 5,
+          "Convergences": 0,
+          "MultipleParentNodes": 0,
+          "BranchesPruned": 0,
+          "MaxDepthReached": 0,
+          "PeakActiveBranches": 3
+        },
+        "TraceRunID": "e3f2def6b5c0f1d3",
+        "Memory": {
+          "Enabled": true,
+          "InitialSnapshotHash": "ae840bc5c6e0b5f97dc2853fac01509419820397579a3ccb7c78ae091e18e033",
+          "RetrievedMemoryIDs": [
+            "memory-good-001"
+          ],
+          "RetrievalReasons": {
+            "memory-good-001": {
+              "CategoryMatch": true,
+              "StrategyMatch": false,
+              "Supported": true,
+              "FailureRelevant": false,
+              "TokenOverlap": 0.15789473684210525,
+              "TagMatches": [
+                "arithmetic"
+              ],
+              "Tier": "TIER_3_EPISODIC",
+              "Recency": 0.00004834504003828059,
+              "Score": 0.5210550488309492
+            }
+          },
+          "WorkingMemoryChars": 146,
+          "GuidanceHash": "7cdae3283b095bee780c3b58c15f88ca9758aa219ecd13a3a627487c5230ea01",
+          "Events": null
+        },
+        "CompletedAt": "2026-08-18T15:29:05.583617332Z",
+        "ConfigurationHash": "dd35a928959a1ae6ddc2dae3d890c3984853b5b5a3b1314b4ab770545d03f36d"
+      },
+      "MisleadingPair": {
+        "CaseID": "arithmetic-001",
+        "Category": "arithmetic_constraints",
+        "Repetition": 1,
+        "Seed": 42,
+        "Baseline": {
+          "answer": "",
+          "verification": {
+            "outcome": "",
+            "passed": false,
+            "details": "",
+            "duration": 0,
+            "measurement": {
+              "ID": "",
+              "ContractID": "",
+              "Claim": "",
+              "Outcome": "",
+              "VerificationClass": "",
+              "Observation": null,
+              "Expected": null,
+              "Evidence": null,
+              "Method": "",
+              "Authority": "",
+              "Independence": "",
+              "Repeatable": false,
+              "Repeatability": "",
+              "Provenance": {
+                "Implementation": "",
+                "ImplementationVersion": "",
+                "BenchmarkCase": "",
+                "DatasetVersion": "",
+                "DatasetHash": "",
+                "FixtureVersion": "",
+                "Runtime": "",
+                "GitCommit": "",
+                "GitRemote": "",
+                "GitDirty": false,
+                "Timestamp": "0001-01-01T00:00:00Z"
+              },
+              "StartedAt": "0001-01-01T00:00:00Z",
+              "FinishedAt": "0001-01-01T00:00:00Z",
+              "Cost": {
+                "Latency": 0,
+                "HeapBytesBefore": 0,
+                "HeapBytesAfter": 0,
+                "ExternalAPICalls": 0,
+                "PaidInferenceCalls": 0,
+                "LocalMeasurementCalls": 0
+              }
+            }
+          },
+          "measurements": null,
+          "Latency": 0,
+          "ModelCalls": 0,
+          "Telemetry": {
+            "Before": {
+              "architecture": "",
+              "os": "",
+              "go_version": "",
+              "cpus": 0,
+              "goroutines": 0,
+              "heap_alloc": 0,
+              "total_alloc": 0,
+              "num_gc": 0,
+              "system_memory": 0,
+              "at": "0001-01-01T00:00:00Z"
+            },
+            "After": {
+              "architecture": "",
+              "os": "",
+              "go_version": "",
+              "cpus": 0,
+              "goroutines": 0,
+              "heap_alloc": 0,
+              "total_alloc": 0,
+              "num_gc": 0,
+              "system_memory": 0,
+              "at": "0001-01-01T00:00:00Z"
+            },
+            "PeakHeapAlloc": 0,
+            "TotalAllocBefore": 0,
+            "TotalAllocAfter": 0,
+            "GCBefore": 0,
+            "GCAfter": 0,
+            "Duration": 0,
+            "ModelLatency": 0
+          }
+        },
+        "BAN": {
+          "answer": "",
+          "verification": {
+            "outcome": "timeout",
+            "passed": false,
+            "details": "context deadline exceeded (Client.Timeout or context cancellation while reading body)",
+            "duration": 0,
+            "measurement": {
+              "ID": "error-1787067546213933291",
+              "ContractID": "",
+              "Claim": "",
+              "Outcome": "ERROR",
+              "VerificationClass": "UNVERIFIED",
+              "Observation": null,
+              "Expected": null,
+              "Evidence": null,
+              "Method": "",
+              "Authority": "UNKNOWN",
+              "Independence": "UNKNOWN",
+              "Repeatable": false,
+              "Repeatability": "",
+              "Provenance": {
+                "Implementation": "",
+                "ImplementationVersion": "",
+                "BenchmarkCase": "",
+                "DatasetVersion": "",
+                "DatasetHash": "",
+                "FixtureVersion": "",
+                "Runtime": "",
+                "GitCommit": "",
+                "GitRemote": "",
+                "GitDirty": false,
+                "Timestamp": "0001-01-01T00:00:00Z"
+              },
+              "StartedAt": "2026-08-18T15:39:06.214289906Z",
+              "FinishedAt": "2026-08-18T15:39:06.214295214Z",
+              "Cost": {
+                "Latency": 0,
+                "HeapBytesBefore": 0,
+                "HeapBytesAfter": 0,
+                "ExternalAPICalls": 0,
+                "PaidInferenceCalls": 0,
+                "LocalMeasurementCalls": 0
+              },
+              "error": {
+                "Code": "EXECUTION_ERROR",
+                "Message": "context deadline exceeded (Client.Timeout or context cancellation while reading body)",
+                "Retryable": false
+              }
+            }
+          },
+          "measurements": null,
+          "Latency": 300116940633,
+          "ModelCalls": 0,
+          "Telemetry": {
+            "Before": {
+              "architecture": "arm64",
+              "os": "android",
+              "go_version": "go1.26.5",
+              "cpus": 8,
+              "goroutines": 3,
+              "heap_alloc": 1931176,
+              "total_alloc": 1931176,
+              "num_gc": 0,
+              "system_memory": 11956256,
+              "at": "2026-08-18T15:34:06.096892042Z"
+            },
+            "After": {
+              "architecture": "arm64",
+              "os": "android",
+              "go_version": "go1.26.5",
+              "cpus": 8,
+              "goroutines": 3,
+              "heap_alloc": 2046416,
+              "total_alloc": 2046416,
+              "num_gc": 0,
+              "system_memory": 11956256,
+              "at": "2026-08-18T15:39:06.213827753Z"
+            },
+            "PeakHeapAlloc": 2046416,
+            "TotalAllocBefore": 1931176,
+            "TotalAllocAfter": 2046416,
+            "GCBefore": 0,
+            "GCAfter": 0,
+            "Duration": 300116942556,
+            "ModelLatency": 0
+          },
+          "failureCategory": "model_output_malformed"
+        },
+        "BANInitial": {
+          "outcome": "incorrect",
+          "passed": false,
+          "details": "initial winner missing from trace",
+          "duration": 0,
+          "measurement": {
+            "ID": "",
+            "ContractID": "",
+            "Claim": "",
+            "Outcome": "",
+            "VerificationClass": "",
+            "Observation": null,
+            "Expected": null,
+            "Evidence": null,
+            "Method": "",
+            "Authority": "",
+            "Independence": "",
+            "Repeatable": false,
+            "Repeatability": "",
+            "Provenance": {
+              "Implementation": "",
+              "ImplementationVersion": "",
+              "BenchmarkCase": "",
+              "DatasetVersion": "",
+              "DatasetHash": "",
+              "FixtureVersion": "",
+              "Runtime": "",
+              "GitCommit": "",
+              "GitRemote": "",
+              "GitDirty": false,
+              "Timestamp": "0001-01-01T00:00:00Z"
+            },
+            "StartedAt": "0001-01-01T00:00:00Z",
+            "FinishedAt": "0001-01-01T00:00:00Z",
+            "Cost": {
+              "Latency": 0,
+              "HeapBytesBefore": 0,
+              "HeapBytesAfter": 0,
+              "ExternalAPICalls": 0,
+              "PaidInferenceCalls": 0,
+              "LocalMeasurementCalls": 0
+            }
+          }
+        },
+        "CandidateMeasurements": null,
+        "FinalMeasurements": null,
+        "InitialWinnerID": "",
+        "FinalWinnerID": "",
+        "RecoveryAttempted": false,
+        "RecoverySuccessful": false,
+        "Graph": {
+          "NodesCreated": 0,
+          "DuplicatesDetected": 5,
+          "Convergences": 0,
+          "MultipleParentNodes": 0,
+          "BranchesPruned": 0,
+          "MaxDepthReached": 0,
+          "PeakActiveBranches": 3
+        },
+        "TraceRunID": "0765e914a787a37d",
+        "Memory": {
+          "Enabled": true,
+          "InitialSnapshotHash": "fbaa89a408adcacd59391a3cf5e2040cf009edf6056529209971441dc0b83133",
+          "RetrievedMemoryIDs": [
+            "memory-good-001",
+            "memory-bad-001"
+          ],
+          "RetrievalReasons": {
+            "memory-bad-001": {
+              "CategoryMatch": true,
+              "StrategyMatch": false,
+              "Supported": false,
+              "FailureRelevant": true,
+              "TokenOverlap": 0.05555555555555555,
+              "TagMatches": [
+                "arithmetic"
+              ],
+              "Tier": "TIER_2_DOMAIN",
+              "Recency": 0.00004834504003828059,
+              "Score": 0.5050024172520019
+            },
+            "memory-good-001": {
+              "CategoryMatch": true,
+              "StrategyMatch": false,
+              "Supported": true,
+              "FailureRelevant": false,
+              "TokenOverlap": 0.15789473684210525,
+              "TagMatches": [
+                "arithmetic"
+              ],
+              "Tier": "TIER_3_EPISODIC",
+              "Recency": 0.00004834504003828059,
+              "Score": 0.5210550488309492
+            }
+          },
+          "WorkingMemoryChars": 279,
+          "GuidanceHash": "88297121d9ee986906055256f60844940837da39efc77084f1bffb01497f883d",
+          "Events": null
+        },
+        "CompletedAt": "2026-08-18T15:34:06.095397658Z",
+        "ConfigurationHash": "dd35a928959a1ae6ddc2dae3d890c3984853b5b5a3b1314b4ab770545d03f36d"
+      },
+      "InitialMemoryHash": "ae840bc5c6e0b5f97dc2853fac01509419820397579a3ccb7c78ae091e18e033",
+      "FinalMemoryHash": "1a069af2b03c5b196f220e42adcda2a74e1d5953c7f7a7efb6eb1f39a7afa687",
+      "Metrics": {
+        "RetrievalCount": 1,
+        "RelevantHits": 1,
+        "RetrievedUnused": 0,
+        "HarmfulRetrievals": 1,
+        "MemoryInducedErrors": 0,
+        "ContradictionEvents": 0,
+        "SupersessionEvents": 0,
+        "WorkingMemoryChars": 146,
+        "EpisodicWrites": 1,
+        "ConsolidationEvents": 0,
+        "MemoryLeverageBranches": 0,
+        "MemoryLeverageModelCalls": 0
+      },
+      "MemoryAttribution": {
+        "MemoryRetrieved": true,
+        "MemoryIDs": [
+          "memory-good-001"
+        ],
+        "MemoryRelevance": {
+          "memory-good-001": 0.5210550488309492
+        },
+        "MemoryUsed": false,
+        "MemoryRejected": null,
+        "MemoryConflicted": null,
+        "MemoryConflictResolution": "",
+        "MemoryEffect": "NEUTRAL",
+        "EvidenceOverride": false,
+        "ObservableBasis": "retrieval events plus measured cold/memory outcome delta; use is a behavioral proxy, not chain-of-thought"
+      },
+      "MisleadingAttribution": {
+        "MemoryRetrieved": true,
+        "MemoryIDs": [
+          "memory-good-001",
+          "memory-bad-001"
+        ],
+        "MemoryRelevance": {
+          "memory-bad-001": 0.5050024172520019,
+          "memory-good-001": 0.5210550488309492
+        },
+        "MemoryUsed": false,
+        "MemoryRejected": null,
+        "MemoryConflicted": null,
+        "MemoryConflictResolution": "",
+        "MemoryEffect": "NEUTRAL",
+        "EvidenceOverride": false,
+        "ObservableBasis": "retrieval, current measurement, recovery, and condition delta"
+      },
+      "MemoryEvents": null,
+      "EpisodeID": "episode-79a82bc14160b908",
+      "Consolidations": [
+        {
+          "Pattern": "arithmetic_constraints-strategy",
+          "ContributingEpisodeIDs": [
+            "memory-good-001"
+          ],
+          "CreatedRecordID": "",
+          "SkippedReason": "insufficient distinct correlation groups",
+          "At": "2026-08-18T15:39:06.406885906Z"
+        }
+      ],
+      "CompletedAt": "2026-08-18T15:29:04.606947101Z"
+    }
+  ],
+  "StartedAt": "2026-08-18T15:21:03.175389303Z"
+}

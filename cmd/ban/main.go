@@ -10,7 +10,7 @@ import (
 	"zdx-ban/internal/ban"
 	"zdx-ban/internal/benchmark"
 	"zdx-ban/internal/experiment"
-	"zdx-ban/internal/model"
+	"zdx-ban/internal/inference/ollama"
 )
 
 func main() {
@@ -22,7 +22,7 @@ func main() {
 func run() error {
 	args := os.Args[1:]
 	mode := "run"
-	if len(args) > 0 && (args[0] == "run" || args[0] == "baseline" || args[0] == "benchmark" || args[0] == "experiment" || args[0] == "memory") {
+	if len(args) > 0 && (args[0] == "run" || args[0] == "baseline" || args[0] == "benchmark" || args[0] == "experiment" || args[0] == "memory" || args[0] == "model" || args[0] == "thought" || args[0] == "vm" || args[0] == "runtime" || args[0] == "training") {
 		mode = args[0]
 		args = args[1:]
 	}
@@ -31,8 +31,11 @@ func run() error {
 	}
 	modelName := env("BAN_MODEL", "qwen2.5:1.5b")
 	baseURL := env("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+	if mode == "model" || mode == "thought" || mode == "vm" || mode == "runtime" || mode == "training" {
+		return runtimeCommand(mode, args, baseURL, modelName)
+	}
 	if mode == "experiment" {
-		p := model.NewOllama(baseURL, modelName, 5*time.Minute)
+		p := ollama.New(baseURL, modelName, 10*time.Second)
 		return experiment.Command(args, p, modelName)
 	}
 	fs := flag.NewFlagSet("ban", flag.ContinueOnError)
@@ -46,7 +49,7 @@ func run() error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	p := model.NewOllama(baseURL, modelName, *timeout)
+	p := ollama.New(baseURL, modelName, *timeout)
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
 	remaining := fs.Args()

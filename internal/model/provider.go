@@ -1,20 +1,7 @@
 package model
 
-import (
-	"bytes"
-	"context"
-	"encoding/json"
-)
+import "zdx-ban/internal/inference"
 
-type Provider interface {
-	Generate(context.Context, GenerateRequest) (GenerateResponse, error)
-	GenerateStructured(context.Context, GenerateRequest, any) (GenerateResponse, error)
-	Health(context.Context) error
-	ModelInfo(context.Context) (Info, error)
-}
+type Provider = inference.Engine
 
-func DecodeStrict(data []byte, dst any) error {
-	d := json.NewDecoder(bytes.NewReader(data))
-	d.DisallowUnknownFields()
-	return d.Decode(dst)
-}
+var DecodeStrict = inference.DecodeStrict

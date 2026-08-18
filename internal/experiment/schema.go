@@ -9,7 +9,7 @@ import (
 	"zdx-ban/internal/telemetry"
 )
 
-const SchemaVersion = "0.3"
+const SchemaVersion = "0.4"
 const ExperimentName = "BAN-EXPERIMENT-001"
 
 type Constraint struct {
@@ -38,8 +38,13 @@ type RunConfig struct {
 	Temperature                  float64
 	Seed                         *int `json:"seed,omitempty"`
 	MaxTokens                    int
-	Timeout                      time.Duration
+	Timeout                      time.Duration `json:"timeout"`
+	InferenceTimeout             time.Duration `json:"inferenceTimeout"`
+	CaseTimeout                  time.Duration `json:"caseTimeout"`
+	RunTimeout                   time.Duration `json:"runTimeout"`
+	Streaming                    bool          `json:"streaming"`
 	Repetitions                  int
+	CaseLimit                    int
 	BAN                          ban.Config
 	RequireObjectiveVerification bool
 	MemoryEnabled                bool
@@ -80,22 +85,38 @@ type Verification struct {
 	Duration    time.Duration      `json:"duration"`
 	Measurement measurement.Result `json:"measurement"`
 }
+type ProviderCall struct {
+	Attempt                        int
+	StartedAt, FinishedAt          time.Time
+	Duration                       time.Duration
+	Completed, Failed, TimedOut    bool
+	FailureCode, Error             string
+	PromptTokens, CompletionTokens *int
+	Runtime                        model.CallTelemetry
+}
+type ProviderAccounting struct {
+	Attempted, Completed, Failed, TimedOut, SuccessfulResponses int
+	Calls                                                       []ProviderCall
+}
+
 type RunTelemetry struct {
 	Before, After                                    telemetry.Snapshot
 	PeakHeapAlloc, TotalAllocBefore, TotalAllocAfter uint64
 	GCBefore, GCAfter                                uint32
 	Duration, ModelLatency                           time.Duration
 }
-type GraphMetrics struct{ NodesCreated, DuplicatesDetected, Convergences, MultipleParentNodes, BranchesPruned, MaxDepthReached, PeakActiveBranches int }
+type GraphMetrics struct{ CandidateProposals, NodesCreated, DuplicateProposals, DuplicatesDetected, Convergences, MultipleParentNodes, BranchesPruned, PrunedCandidates, ProviderEvaluations, MaxDepthReached, PeakActiveBranches int }
 type SideResult struct {
-	Answer          string               `json:"answer"`
-	Verification    Verification         `json:"verification"`
-	Measurements    []measurement.Result `json:"measurements"`
-	Latency         time.Duration
-	ModelCalls      int
-	Tokens          *int `json:"tokens,omitempty"`
-	Telemetry       RunTelemetry
-	FailureCategory string `json:"failureCategory,omitempty"`
+	Answer                                                                                                               string               `json:"answer"`
+	Verification                                                                                                         Verification         `json:"verification"`
+	Measurements                                                                                                         []measurement.Result `json:"measurements"`
+	StartedAt, FinishedAt                                                                                                time.Time
+	Latency, ProviderDuration, MemoryRetrievalDuration, GraphSearchDuration, VerificationDuration, OrchestrationDuration time.Duration
+	ModelCalls                                                                                                           int                `json:"modelCalls"`
+	Provider                                                                                                             ProviderAccounting `json:"providerAccounting"`
+	Tokens                                                                                                               *int               `json:"tokens,omitempty"`
+	Telemetry                                                                                                            RunTelemetry
+	FailureCategory                                                                                                      string `json:"failureCategory,omitempty"`
 }
 type PairedResult struct {
 	CaseID, Category                         string
@@ -109,7 +130,7 @@ type PairedResult struct {
 	Graph                                    GraphMetrics
 	TraceRunID                               string
 	Memory                                   ban.MemoryInteraction
-	CompletedAt                              time.Time
+	AttemptStartedAt, CompletedAt            time.Time
 	ConfigurationHash                        string
 }
 type Distribution struct {

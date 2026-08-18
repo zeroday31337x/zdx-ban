@@ -17,5 +17,5 @@ func Fingerprint(s *State) string {
 }
 func NewState(id string, p Proposal, depth int) *State {
 	now := time.Now().UTC()
-	return &State{ID: id, Depth: depth, Title: p.Title, Hypothesis: p.Hypothesis, ReasoningSummary: p.ReasoningSummary, Assumptions: p.Assumptions, Status: Proposed, CreatedAt: now, UpdatedAt: now, Metadata: map[string]string{}}
+	return &State{ID: id, Depth: depth, Title: p.Title, Hypothesis: p.Hypothesis, ReasoningSummary: p.ReasoningSummary, Assumptions: p.Assumptions, Status: Proposed, Kind: ReasoningCandidate, CreatedAt: now, UpdatedAt: now, Metadata: map[string]string{}}
 }

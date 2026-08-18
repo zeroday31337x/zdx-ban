@@ -13,14 +13,29 @@ Both are generated from inspectable deterministic definitions in `cmd/datasetgen
 
 ```sh
 ./bin/ban experiment memory-smoke --dry-run
-./bin/ban experiment memory-smoke --repetitions 1
-./bin/ban experiment memory-run --repetitions 3
+./bin/ban experiment memory-smoke --repetitions 1 --live
+./bin/ban experiment memory-run --repetitions 3 --live
+./bin/ban experiment memory-report results/<id>/memory-results.jsonl results/<id>/pass5-report.md
+./bin/ban experiment memory-inspect results/<id>/memory-results.jsonl <case-or-run-id>
+./bin/ban experiment memory-compare results/<id>/memory-results.jsonl BAN_COLD BAN_MEMORY
 ./bin/ban memory inspect
 ./bin/ban memory stats
 ./bin/ban memory reset --confirm
 ```
 
 See [MEMORY.md](MEMORY.md) for intervention semantics and leakage controls.
+
+## Pass 5 empirical memory validation
+
+Pass 5 emits experiment schema `0.4` while retaining BAN trace schema `0.3` and memory schema `0.1`. It persists one raw JSONL observation per experiment/run/condition/case/attempt, from which reports and comparisons are regenerated.
+
+Stores are isolated by condition and repetition. Live execution requires `--live`; tests use deterministic fake providers. Memory effects derive from observable retrieval, measurement, recovery, and condition deltas, never private chain-of-thought. `UNKNOWN`, `UNSUPPORTED`, `INCONCLUSIVE`, `CONTRADICTED`, `FAILED`, and `SUPPORTED` remain distinct.
+
+The 20/100-case datasets cover useful transfer, irrelevant rejection, stale override, misleading recovery, novelty preservation, repeated-problem efficiency, failure-memory leverage, and conflicting observations. Expected answers remain verifier-only.
+
+Better memory performance does not prove that remembered information is true. It demonstrates that historical information improved measured behavior under the recorded experimental contract.
+
+A harmful-memory recovery result is valuable. BAN should be judged not only by whether it retrieves useful information, but by whether it can escape incorrect historical assumptions when current evidence disagrees.
 
 ## Commands
 

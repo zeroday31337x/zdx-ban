@@ -24,6 +24,8 @@ type SeedMemory struct {
 }
 type MemoryCase struct {
 	DatasetVersion, ID, Version, Category, Relationship string
+	Origin, Difficulty, NoveltyClass, Behavior          string
+	ExpectedObservables, AuthorityInformation           []string
 	Exposure                                            []SeedMemory
 	Evaluation                                          Case
 	Misleading                                          []SeedMemory
@@ -58,6 +60,12 @@ func LoadMemoryDataset(path string, registry *Registry) (MemoryDataset, error) {
 		}
 		if c.ID == "" || c.Version == "" || c.DatasetVersion == "" || c.Relationship == "" {
 			return d, fmt.Errorf("line %d incomplete memory case", line)
+		}
+		if strings.HasSuffix(c.DatasetVersion, "v2") {
+			allowed := map[string]bool{"USEFUL_MEMORY_LEVERAGE": true, "IRRELEVANT_MEMORY_REJECTION": true, "STALE_MEMORY_OVERRIDE": true, "MISLEADING_MEMORY_RECOVERY": true, "UNKNOWN_NOVEL_PRESERVATION": true, "REPEATED_PROBLEM_EFFICIENCY": true, "FAILURE_MEMORY_LEVERAGE": true, "CONFLICTING_HISTORICAL_OBSERVATIONS": true}
+			if !allowed[c.Behavior] || c.Origin == "" || c.Difficulty == "" || c.NoveltyClass == "" || len(c.ExpectedObservables) == 0 || len(c.AuthorityInformation) == 0 {
+				return d, fmt.Errorf("line %d incomplete Pass 5 metadata", line)
+			}
 		}
 		if ids[c.ID] {
 			return d, fmt.Errorf("duplicate memory case id %q", c.ID)

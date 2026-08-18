@@ -23,6 +23,9 @@ func Command(args []string, p model.Provider, modelName string) error {
 	if action == "memory-smoke" || action == "memory-run" {
 		return MemoryCommand(action, args, p, modelName)
 	}
+	if action == "memory-report" || action == "memory-inspect" || action == "memory-compare" {
+		return MemoryArtifactCommand(action, args)
+	}
 	if action == "report" {
 		if len(args) != 1 {
 			return fmt.Errorf("report requires result file")
@@ -53,7 +56,10 @@ func Command(args []string, p model.Provider, modelName string) error {
 	verbose := fs.Bool("verbose", false, "show detailed traces")
 	temp := fs.Float64("temperature", .2, "generation temperature")
 	tokens := fs.Int("max-tokens", 1024, "per-call generation limit")
-	timeout := fs.Duration("timeout", 5*time.Minute, "timeout policy")
+	timeout := fs.Duration("timeout", 15*time.Minute, "legacy inference timeout")
+	inferenceTimeout := fs.Duration("inference-timeout", 15*time.Minute, "per provider inference deadline")
+	caseTimeout := fs.Duration("case-timeout", time.Hour, "whole case deadline")
+	runTimeout := fs.Duration("run-timeout", 5*time.Hour, "whole experiment deadline")
 	seed := fs.Int("seed", 42, "base seed")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -63,7 +69,7 @@ func Command(args []string, p model.Provider, modelName string) error {
 	if err != nil {
 		return err
 	}
-	cfg := RunConfig{Model: modelName, Provider: "ollama", Temperature: *temp, Seed: seed, MaxTokens: *tokens, Timeout: *timeout, Repetitions: *reps, BAN: ban.DefaultConfig(), RequireObjectiveVerification: true}
+	cfg := RunConfig{Model: modelName, Provider: "ollama", Temperature: *temp, Seed: seed, MaxTokens: *tokens, Timeout: *timeout, InferenceTimeout: *inferenceTimeout, CaseTimeout: *caseTimeout, RunTimeout: *runTimeout, Streaming: true, Repetitions: *reps, BAN: ban.DefaultConfig(), RequireObjectiveVerification: true}
 	r := Runner{Provider: p, Registry: registry, Dataset: data, Config: cfg, OutputRoot: *output, ExperimentID: *resume, Verbose: *verbose}
 	if *dry {
 		if err = r.DryRun(); err != nil {
@@ -72,8 +78,10 @@ func Command(args []string, p model.Provider, modelName string) error {
 		fmt.Printf("dry-run valid: %d cases, dataset=%s, sha256=%s, objective verification required\n", len(data.Cases), data.Version, data.SHA256)
 		return nil
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	signalCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	ctx, cancelRun := context.WithTimeout(signalCtx, *runTimeout)
+	defer cancelRun()
 	r.Progress = func(row PairedResult, n, total int) {
 		fmt.Printf("[%02d/%02d] %s baseline=%s BAN=%s recovery=%v\n", n, total, row.CaseID, outcomeLabel(row.Baseline.Verification), outcomeLabel(row.BAN.Verification), row.RecoverySuccessful)
 	}

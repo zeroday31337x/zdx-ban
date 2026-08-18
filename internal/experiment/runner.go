@@ -13,8 +13,10 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"sync"
 	"time"
 	"zdx-ban/internal/ban"
+	"zdx-ban/internal/inference"
 	"zdx-ban/internal/measurement"
 	"zdx-ban/internal/memory"
 	"zdx-ban/internal/model"
@@ -34,6 +36,70 @@ type Runner struct {
 	MemoryRetrieval *memory.RetrievalResult
 	SkipBaseline    bool
 }
+type trackedProvider struct {
+	model.Provider
+	mu               sync.Mutex
+	calls            []ProviderCall
+	inferenceTimeout time.Duration
+}
+
+func (p *trackedProvider) invoke(ctx context.Context, f func(context.Context) (model.GenerateResponse, error)) (model.GenerateResponse, error) {
+	started := time.Now().UTC()
+	if p.inferenceTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, p.inferenceTimeout)
+		defer cancel()
+	}
+	resp, err := f(ctx)
+	finished := time.Now().UTC()
+	call := ProviderCall{StartedAt: started, FinishedAt: finished, Duration: finished.Sub(started), Completed: err == nil, Failed: err != nil, Runtime: resp.Call}
+	if resp.PromptTokens > 0 {
+		x := resp.PromptTokens
+		call.PromptTokens = &x
+	}
+	if resp.CompletionTokens > 0 {
+		x := resp.CompletionTokens
+		call.CompletionTokens = &x
+	}
+	if err != nil {
+		call.FailureCode = string(inference.FailureCodeOf(err))
+		call.Error = err.Error()
+		call.TimedOut = inference.FailureCodeOf(err) == inference.ProviderTimeout
+	}
+	p.mu.Lock()
+	call.Attempt = len(p.calls) + 1
+	p.calls = append(p.calls, call)
+	p.mu.Unlock()
+	return resp, err
+}
+func (p *trackedProvider) Generate(ctx context.Context, r model.GenerateRequest) (model.GenerateResponse, error) {
+	return p.invoke(ctx, func(c context.Context) (model.GenerateResponse, error) { return p.Provider.Generate(c, r) })
+}
+func (p *trackedProvider) GenerateStructured(ctx context.Context, r model.GenerateRequest, d any) (model.GenerateResponse, error) {
+	return p.invoke(ctx, func(c context.Context) (model.GenerateResponse, error) {
+		return inference.GenerateStructured(c, p.Provider, r, d)
+	})
+}
+func (p *trackedProvider) accounting() ProviderAccounting {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	a := ProviderAccounting{Calls: append([]ProviderCall(nil), p.calls...)}
+	for _, c := range a.Calls {
+		a.Attempted++
+		if c.Completed {
+			a.Completed++
+			a.SuccessfulResponses++
+		}
+		if c.Failed {
+			a.Failed++
+		}
+		if c.TimedOut {
+			a.TimedOut++
+		}
+	}
+	return a
+}
+
 type seededProvider struct {
 	model.Provider
 	seed *int
@@ -45,7 +111,7 @@ func (p seededProvider) Generate(ctx context.Context, r model.GenerateRequest) (
 }
 func (p seededProvider) GenerateStructured(ctx context.Context, r model.GenerateRequest, d any) (model.GenerateResponse, error) {
 	r.Seed = p.seed
-	return p.Provider.GenerateStructured(ctx, r, d)
+	return inference.GenerateStructured(ctx, p.Provider, r, d)
 }
 func (r *Runner) Validate() error {
 	if r.Registry == nil || r.Provider == nil {
@@ -103,7 +169,13 @@ func (r *Runner) Run(ctx context.Context, resume bool) (ResultFile, error) {
 				return state, ctx.Err()
 			default:
 			}
-			row := r.runPair(ctx, c, rep)
+			caseCtx := ctx
+			cancelCase := func() {}
+			if r.Config.CaseTimeout > 0 {
+				caseCtx, cancelCase = context.WithTimeout(ctx, r.Config.CaseTimeout)
+			}
+			row := r.runPair(caseCtx, c, rep)
+			cancelCase()
 			if ctx.Err() != nil {
 				_ = persist(dir, &state)
 				return state, ctx.Err()
@@ -135,9 +207,10 @@ func (r *Runner) runPair(ctx context.Context, c Case, rep int) PairedResult {
 		x := *seed + rep - 1
 		seed = &x
 	}
-	p := seededProvider{r.Provider, seed}
+	baseTracker := &trackedProvider{Provider: r.Provider, inferenceTimeout: r.Config.InferenceTimeout}
+	p := seededProvider{baseTracker, seed}
 	v, _ := r.Registry.Get(c.VerifierType)
-	row := PairedResult{CaseID: c.ID, Category: c.Category, Repetition: rep, Seed: seed, CompletedAt: time.Now().UTC(), ConfigurationHash: configHash(r.Config)}
+	row := PairedResult{CaseID: c.ID, Category: c.Category, Repetition: rep, Seed: seed, AttemptStartedAt: time.Now().UTC(), ConfigurationHash: configHash(r.Config)}
 	before := telemetry.Capture()
 	var start time.Time
 	var after telemetry.Snapshot
@@ -145,7 +218,11 @@ func (r *Runner) runPair(ctx context.Context, c Case, rep int) PairedResult {
 		start = time.Now()
 		baseResp, err := p.Generate(ctx, model.GenerateRequest{Prompt: c.Prompt, Temperature: r.Config.Temperature, Seed: seed, MaxTokens: r.Config.MaxTokens})
 		after = telemetry.Capture()
-		row.Baseline = SideResult{Answer: baseResp.Text, Latency: time.Since(start), ModelCalls: 1, Telemetry: telemetryResult(before, after, time.Since(start), baseResp.Latency)}
+		row.Baseline = SideResult{Answer: baseResp.Text, StartedAt: start.UTC(), FinishedAt: time.Now().UTC(), Latency: time.Since(start), Provider: baseTracker.accounting(), Telemetry: telemetryResult(before, after, time.Since(start), baseResp.Latency)}
+		row.Baseline.ModelCalls = row.Baseline.Provider.SuccessfulResponses
+		for _, call := range row.Baseline.Provider.Calls {
+			row.Baseline.ProviderDuration += call.Duration
+		}
 		row.Baseline.Tokens = tokenPtr(baseResp)
 		if err != nil {
 			row.Baseline.Verification = errorVerification(ctx, err)
@@ -162,6 +239,8 @@ func (r *Runner) runPair(ctx context.Context, c Case, rep int) PairedResult {
 	}
 	before = telemetry.Capture()
 	start = time.Now()
+	banTracker := &trackedProvider{Provider: r.Provider, inferenceTimeout: r.Config.InferenceTimeout}
+	p = seededProvider{banTracker, seed}
 	e := ban.NewEngine(p, r.Config.BAN)
 	e.Temperature = r.Config.Temperature
 	e.MaxTokens = r.Config.MaxTokens
@@ -183,9 +262,16 @@ func (r *Runner) runPair(ctx context.Context, c Case, rep int) PairedResult {
 	}
 	result, bt, berr := e.Run(ctx, c.Prompt)
 	after = telemetry.Capture()
-	row.BAN = SideResult{Latency: time.Since(start), Telemetry: telemetryResult(before, after, time.Since(start), 0)}
+	row.BAN = SideResult{StartedAt: start.UTC(), FinishedAt: time.Now().UTC(), Latency: time.Since(start), Provider: banTracker.accounting(), Telemetry: telemetryResult(before, after, time.Since(start), 0)}
+	row.BAN.ModelCalls = row.BAN.Provider.SuccessfulResponses
+	for _, call := range row.BAN.Provider.Calls {
+		row.BAN.ProviderDuration += call.Duration
+	}
+	row.BAN.GraphSearchDuration = row.BAN.Latency - row.BAN.ProviderDuration
+	if row.BAN.GraphSearchDuration < 0 {
+		row.BAN.GraphSearchDuration = 0
+	}
 	if bt != nil {
-		row.BAN.ModelCalls = bt.Metrics.ModelCalls
 		if bt.Metrics.Tokens > 0 {
 			x := bt.Metrics.Tokens
 			row.BAN.Tokens = &x
@@ -208,6 +294,7 @@ func (r *Runner) runPair(ctx context.Context, c Case, rep int) PairedResult {
 	if berr != nil {
 		row.BAN.Verification = errorVerification(ctx, berr)
 		row.BAN.FailureCategory = classifyBAN(berr, bt)
+		row.CompletedAt = time.Now().UTC()
 		return row
 	}
 	row.BAN.Answer = result.Answer
@@ -217,6 +304,12 @@ func (r *Runner) runPair(ctx context.Context, c Case, rep int) PairedResult {
 	row.RecoverySuccessful = row.RecoveryAttempted && row.BAN.Verification.Passed && bt.RecoveredFromWrongBranch
 	if !row.BAN.Verification.Passed {
 		row.BAN.FailureCategory = classifyFinal(row.BAN.Verification, bt)
+	}
+	row.CompletedAt = time.Now().UTC()
+	row.BAN.VerificationDuration = row.BAN.Verification.Duration
+	row.BAN.OrchestrationDuration = row.BAN.Latency - row.BAN.ProviderDuration - row.BAN.VerificationDuration
+	if row.BAN.OrchestrationDuration < 0 {
+		row.BAN.OrchestrationDuration = 0
 	}
 	return row
 }
@@ -236,9 +329,13 @@ func (r *Runner) loadOrCreate(ctx context.Context, dir string, resume bool) (Res
 		}
 		return s, nil
 	}
-	info, err := r.Provider.ModelInfo(ctx)
-	if err != nil {
-		info = model.Info{Provider: r.Config.Provider, Model: r.Config.Model}
+	info := model.Info{Provider: r.Config.Provider, Model: r.Config.Model}
+	if p, ok := r.Provider.(interface {
+		ModelInfo(context.Context) (model.Info, error)
+	}); ok {
+		if reported, err := p.ModelInfo(ctx); err == nil {
+			info = reported
+		}
 	}
 	return ResultFile{Experiment: ExperimentName, SchemaVersion: SchemaVersion, Manifest: Manifest{Experiment: ExperimentName, SchemaVersion: SchemaVersion, ExperimentID: r.ExperimentID, DatasetVersion: r.Dataset.Version, DatasetPath: r.Dataset.Path, DatasetSHA256: r.Dataset.SHA256, GitCommit: gitCommit(), GitRemote: gitRemote(), GitDirty: gitDirty(), TraceSchemaVersion: ban.TraceSchemaVersion, MemorySchemaVersion: memory.SchemaVersion, Model: info, Configuration: r.Config, Host: telemetry.Capture(), StartedAt: time.Now().UTC()}}, nil
 }
@@ -332,7 +429,10 @@ func tokenPtr(r model.GenerateResponse) *int {
 	return &x
 }
 func errorVerification(ctx context.Context, err error) Verification {
-	m := measurement.Result{ID: fmt.Sprintf("error-%d", time.Now().UnixNano()), Outcome: measurement.Error, VerificationClass: measurement.Unverified, Authority: measurement.UnknownAuthority, Independence: measurement.UnknownIndependence, StartedAt: time.Now().UTC(), FinishedAt: time.Now().UTC(), Error: &measurement.MeasurementError{Code: "EXECUTION_ERROR", Message: err.Error()}}
+	m := measurement.Result{ID: fmt.Sprintf("error-%d", time.Now().UnixNano()), Outcome: measurement.Error, VerificationClass: measurement.Unverified, Authority: measurement.UnknownAuthority, Independence: measurement.UnknownIndependence, StartedAt: time.Now().UTC(), FinishedAt: time.Now().UTC(), Error: &measurement.MeasurementError{Code: string(inference.FailureCodeOf(err)), Message: err.Error()}}
+	if inference.FailureCodeOf(err) == inference.ModelOutputMalformed {
+		return Verification{Outcome: MalformedOutput, Details: err.Error(), Measurement: m}
+	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return Verification{Outcome: TimedOut, Details: err.Error(), Measurement: m}
 	}
@@ -350,7 +450,7 @@ func initialVerification(ctx context.Context, t *ban.ExecutionTrace, v Objective
 	return Verification{Outcome: Incorrect, Details: "initial winner missing from trace"}
 }
 func graphMetrics(t *ban.ExecutionTrace) GraphMetrics {
-	g := GraphMetrics{NodesCreated: len(t.Nodes), BranchesPruned: t.Metrics.PrunedNodes, PeakActiveBranches: t.Config.MaxActiveBranches}
+	g := GraphMetrics{CandidateProposals: t.Metrics.CandidateProposals, NodesCreated: len(t.Nodes), DuplicateProposals: t.Metrics.DuplicateProposals, DuplicatesDetected: t.Metrics.DuplicateProposals, BranchesPruned: t.Metrics.PrunedNodes, PrunedCandidates: t.Metrics.PrunedNodes, ProviderEvaluations: t.Metrics.ProviderEvaluations, PeakActiveBranches: t.Metrics.PeakActiveBranches}
 	for _, n := range t.Nodes {
 		if n.Depth > g.MaxDepthReached {
 			g.MaxDepthReached = n.Depth
@@ -360,13 +460,12 @@ func graphMetrics(t *ban.ExecutionTrace) GraphMetrics {
 			g.Convergences++
 		}
 	}
-	expected := t.Config.InitialBranches + t.Metrics.ExpandedNodes*2
-	if expected > len(t.Nodes) {
-		g.DuplicatesDetected = expected - len(t.Nodes)
-	}
 	return g
 }
 func classifyBAN(err error, t *ban.ExecutionTrace) string {
+	if code := inference.FailureCodeOf(err); code != inference.ExecutionError {
+		return string(code)
+	}
 	if stringsContains(err.Error(), "structured") || stringsContains(err.Error(), "JSON") {
 		return "model_output_malformed"
 	}

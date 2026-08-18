@@ -2,8 +2,8 @@ package ban
 
 import (
 	"time"
+	"zdx-ban/internal/inference"
 	"zdx-ban/internal/measurement"
-	"zdx-ban/internal/model"
 	"zdx-ban/internal/telemetry"
 )
 
@@ -20,6 +20,7 @@ type MemoryInteraction struct {
 }
 type Metrics struct {
 	TotalNodes, ExpandedNodes, PrunedNodes, ModelCalls, Tokens, PeakActiveBranches int
+	CandidateProposals, DuplicateProposals, ProviderEvaluations                    int
 	Latency                                                                        time.Duration
 	DidRecover                                                                     bool
 }
@@ -27,7 +28,7 @@ type ExecutionTrace struct {
 	TraceSchemaVersion               string `json:"trace_schema_version"`
 	RunID, Problem                   string
 	Config                           Config
-	Model                            model.Info
+	Model                            inference.ModelInfo
 	StartedAt, FinishedAt            time.Time
 	RuntimeStart, RuntimeFinish      telemetry.Snapshot
 	Nodes                            []*State

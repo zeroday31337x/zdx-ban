@@ -6,6 +6,11 @@ import (
 )
 
 type Status string
+type NodeKind string
+type CapabilityInvocation struct {
+	Capability, Why, ArtifactID string
+	At                          time.Time
+}
 
 const (
 	Proposed  Status = "PROPOSED"
@@ -16,6 +21,15 @@ const (
 	Verified  Status = "VERIFIED"
 	Failed    Status = "FAILED"
 	Selected  Status = "SELECTED"
+)
+const (
+	ReasoningCandidate  NodeKind = "REASONING_CANDIDATE"
+	PredictionNode      NodeKind = "PREDICTION"
+	ExecutionNode       NodeKind = "EXECUTION"
+	ObservationNode     NodeKind = "OBSERVATION"
+	MeasurementNode     NodeKind = "MEASUREMENT"
+	MemoryRetrievalNode NodeKind = "MEMORY_RETRIEVAL"
+	ToolResultNode      NodeKind = "TOOL_RESULT"
 )
 
 type VerificationResult struct {
@@ -43,8 +57,10 @@ type State struct {
 	Latency                                                                                                                                                 time.Duration
 	VerificationResults                                                                                                                                     []VerificationResult
 	Measurements                                                                                                                                            []measurement.Result
-	Challenge                                                                                                                                               Challenge         `json:"challenge"`
-	Metadata                                                                                                                                                map[string]string `json:"metadata,omitempty"`
+	Challenge                                                                                                                                               Challenge              `json:"challenge"`
+	Metadata                                                                                                                                                map[string]string      `json:"metadata,omitempty"`
+	Kind                                                                                                                                                    NodeKind               `json:"kind,omitempty"`
+	CapabilityInvocations                                                                                                                                   []CapabilityInvocation `json:"capability_invocations,omitempty"`
 }
 type Config struct{ InitialBranches, RetainBranches, MaxDepth, MaxNodes, MaxConcurrentModelCalls, MaxConcurrentEvaluations, MaxActiveBranches int }
 
