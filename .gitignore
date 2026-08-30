@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+training/slow-output/
+training/**/slow-output/
+training/slow_ubuntu/training.env
+training/slow_ubuntu/cron.log
+training/w0/data/
+training/w0/output/
+training/w0/releases/
+training/w0/*.sqlite3

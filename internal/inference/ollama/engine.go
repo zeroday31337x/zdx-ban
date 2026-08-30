@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 	"time"
 	"zdx-ban/internal/inference"
@@ -32,7 +33,7 @@ func New(url, model string, timeout time.Duration) *Engine {
 type request struct {
 	Model, Prompt, System string
 	Stream                bool
-	Format                string         `json:"format,omitempty"`
+	Format                any            `json:"format,omitempty"`
 	Options               map[string]any `json:"options,omitempty"`
 }
 type chunk struct {
@@ -73,11 +74,19 @@ func (o *Engine) generate(ctx context.Context, r inference.Request, structured b
 	}
 	q := request{Model: o.Model, Prompt: r.Prompt, System: r.System, Stream: true, Options: opts}
 	if structured {
-		q.Format = "json"
+		schema := r.StructuredSchema
+		if schema == nil {
+			var schemaErr error
+			schema, schemaErr = schemaFor(dst)
+			if schemaErr != nil {
+				return inference.Result{}, inference.NewFailure(inference.ProviderResponseError, schemaErr)
+			}
+		}
+		q.Format = schema
 	}
 	b, err := json.Marshal(q)
 	if err != nil {
-		return inference.Result{}, inference.NewFailure(inference.ExecutionError, err)
+		return inference.Result{}, inference.NewFailure(inference.ProviderResponseError, err)
 	}
 	var last error
 	var lastResult inference.Result
@@ -107,6 +116,64 @@ func (o *Engine) generate(ctx context.Context, r inference.Request, structured b
 		}
 	}
 	return lastResult, last
+}
+
+func schemaFor(dst any) (map[string]any, error) {
+	if dst == nil {
+		return nil, errors.New("structured output destination is nil")
+	}
+	return schemaForType(reflect.TypeOf(dst))
+}
+
+func schemaForType(t reflect.Type) (map[string]any, error) {
+	for t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	switch t.Kind() {
+	case reflect.Struct:
+		properties := map[string]any{}
+		required := []string{}
+		for i := 0; i < t.NumField(); i++ {
+			field := t.Field(i)
+			if !field.IsExported() {
+				continue
+			}
+			name := field.Name
+			if tag := field.Tag.Get("json"); tag != "" {
+				parts := strings.Split(tag, ",")
+				if parts[0] == "-" {
+					continue
+				}
+				if parts[0] != "" {
+					name = parts[0]
+				}
+			}
+			property, err := schemaForType(field.Type)
+			if err != nil {
+				return nil, fmt.Errorf("structured field %s: %w", field.Name, err)
+			}
+			properties[name] = property
+			required = append(required, name)
+		}
+		return map[string]any{"type": "object", "properties": properties, "required": required, "additionalProperties": false}, nil
+	case reflect.Slice, reflect.Array:
+		items, err := schemaForType(t.Elem())
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"type": "array", "items": items}, nil
+	case reflect.String:
+		return map[string]any{"type": "string"}, nil
+	case reflect.Bool:
+		return map[string]any{"type": "boolean"}, nil
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return map[string]any{"type": "integer"}, nil
+	case reflect.Float32, reflect.Float64:
+		return map[string]any{"type": "number"}, nil
+	default:
+		return nil, fmt.Errorf("unsupported structured output type %s", t)
+	}
 }
 func (o *Engine) call(ctx context.Context, id string, b []byte) (inference.Result, error) {
 	start := time.Now()

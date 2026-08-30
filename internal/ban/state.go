@@ -11,7 +11,13 @@ import (
 var nonWord = regexp.MustCompile(`[^a-z0-9]+`)
 
 func Fingerprint(s *State) string {
-	n := nonWord.ReplaceAllString(strings.ToLower(strings.TrimSpace(s.Title+" "+s.Hypothesis)), " ")
+	n := nonWord.ReplaceAllString(strings.ToLower(strings.TrimSpace(s.Title+" "+s.Hypothesis+" "+s.ReasoningSummary+" "+strings.Join(s.Assumptions, " "))), " ")
+	h := sha256.Sum256([]byte(strings.Join(strings.Fields(n), " ")))
+	return hex.EncodeToString(h[:16])
+}
+
+func AnswerFingerprint(s *State) string {
+	n := nonWord.ReplaceAllString(strings.ToLower(strings.TrimSpace(s.Hypothesis)), " ")
 	h := sha256.Sum256([]byte(strings.Join(strings.Fields(n), " ")))
 	return hex.EncodeToString(h[:16])
 }

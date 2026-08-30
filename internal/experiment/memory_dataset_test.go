@@ -6,10 +6,12 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 	"zdx-ban/internal/ban"
 	"zdx-ban/internal/inference"
+	"zdx-ban/internal/measurement"
 	"zdx-ban/internal/memory"
 )
 
@@ -39,6 +41,19 @@ func TestMemoryDatasetValidationAndLeakage(t *testing.T) {
 	c.Exposure[0].Content = c.Evaluation.Prompt
 	if _, e := LoadMemoryDataset(writeMemoryCase(t, c), NewRegistry()); e == nil {
 		t.Fatal("duplicate prompt leakage accepted")
+	}
+}
+
+func TestMemoryDatasetPopulatesMeasurementDatasetHash(t *testing.T) {
+	d, err := LoadMemoryDataset("../../datasets/ban-memory-experiment-001-smoke.jsonl", NewRegistry())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range d.Cases {
+		p := c.Evaluation.Measurement.Contract.Provenance
+		if p.DatasetHash != d.SHA256 || p.DatasetVersion != d.Version {
+			t.Fatalf("case %s provenance=%+v dataset=%s/%s", c.ID, p, d.Version, d.SHA256)
+		}
 	}
 }
 func TestMemorySeedHashReproducibleAndReset(t *testing.T) {
@@ -75,8 +90,9 @@ func TestMemoryResumeRejectsStateDrift(t *testing.T) {
 
 func TestProviderFailureDoesNotMutateConditionMemory(t *testing.T) {
 	c := validMemoryCase()
-	r := MemoryRunner{Provider: failureProvider{err: inference.NewFailure(inference.ProviderConnectionError, errors.New("offline"))}, Registry: NewRegistry(), Config: RunConfig{Model: "m", Provider: "fake", MaxTokens: 8, Timeout: time.Second, InferenceTimeout: time.Second, Repetitions: 1, BAN: ban.DefaultConfig(), RequireObjectiveVerification: true}, Retrieval: memory.DefaultRetrievalConfig(), WritePolicy: "writable"}
-	row, err := r.runCase(context.Background(), c, 1)
+	r := MemoryRunner{Provider: failureProvider{err: inference.NewFailure(inference.ProviderConnectionError, errors.New("offline"))}, Registry: NewRegistry(), Config: RunConfig{Model: "m", Provider: "fake", MaxTokens: 8, Timeout: time.Second, InferenceTimeout: time.Second, Repetitions: 1, BAN: ban.DefaultConfig(), RequireObjectiveVerification: true, MemoryOnlineLearning: true}, Retrieval: memory.DefaultRetrievalConfig(), WritePolicy: "writable"}
+	useful, misleading := memory.NewMemoryStore(), memory.NewMemoryStore()
+	row, err := r.runCase(context.Background(), c, 1, useful, misleading)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,6 +104,73 @@ func TestProviderFailureDoesNotMutateConditionMemory(t *testing.T) {
 	}
 	if len(row.MemoryEvents) != 0 || row.Metrics.EpisodicWrites != 0 {
 		t.Fatalf("unexpected mutation events: %+v", row.MemoryEvents)
+	}
+	if records, _ := useful.List(context.Background()); len(records) != 0 {
+		t.Fatalf("provider failure created gravity evidence: %+v", records)
+	}
+}
+
+func TestVerifiedOutcomeCreatesCumulativeGravityEvidence(t *testing.T) {
+	ctx := context.Background()
+	c := validMemoryCase()
+	retrieval := memory.DefaultRetrievalConfig()
+	r := MemoryRunner{Provider: &pairedMock{}, Registry: NewRegistry(), Dataset: MemoryDataset{Version: "mv1", SHA256: "hash"}, Config: RunConfig{Model: "frozen", Provider: "mock", Temperature: .2, MaxTokens: 32, Timeout: time.Second, Repetitions: 1, BAN: ban.DefaultConfig(), RequireObjectiveVerification: true, MemoryEnabled: true, MemoryOnlineLearning: true, MemoryRetrieval: retrieval}, Retrieval: retrieval, Consolidation: memory.ConsolidationConfig{MinDistinctEpisodes: 2}, WritePolicy: "writable", ExperimentID: "gravity-test"}
+	useful, misleading := memory.NewMemoryStore(), memory.NewMemoryStore()
+	row, err := r.runCase(ctx, c, 1, useful, misleading)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !row.WithMemory.Verification.Passed || len(row.LearnedMemoryRecords) == 0 {
+		t.Fatalf("verified route was not learned: %+v", row)
+	}
+	records, _ := useful.List(ctx)
+	wells := memory.BuildGravityWells(records, time.Now().UTC(), retrieval.Gravity)
+	if len(wells) != 1 || wells[0].SupportingEvidence == 0 || wells[0].Strength <= 0 {
+		t.Fatalf("verified route did not form gravity well: records=%+v wells=%+v", records, wells)
+	}
+	if row.LearnedMemoryRecords[0].StrategyType != c.Category || len(row.LearnedMemoryRecords[0].Provenance.MeasurementIDs) == 0 {
+		t.Fatalf("gravity evidence lacks semantic route/provenance: %+v", row.LearnedMemoryRecords[0])
+	}
+}
+
+func TestOnlineLearningRoutesLaterPromptThroughGravityWell(t *testing.T) {
+	first := validMemoryCase()
+	first.ID = "group-1"
+	first.Exposure[0].ID = "seed-1"
+	second := validMemoryCase()
+	second.ID = "group-2"
+	second.Exposure[0].ID = "seed-2"
+	second.Evaluation.ID = "x-2"
+	second.Evaluation.Expected = 7.5
+	second.Evaluation.VerifierConfig["tolerance"] = .5
+	second.Evaluation.Measurement.Contract.ID = "c-x-2"
+	retrieval := memory.DefaultRetrievalConfig()
+	data := MemoryDataset{Version: "mv1", Path: "memory", SHA256: "hash", Cases: []MemoryCase{first, second}}
+	cfg := RunConfig{Model: "frozen", Provider: "mock", Temperature: .2, MaxTokens: 32, Timeout: time.Second, Repetitions: 1, BAN: ban.DefaultConfig(), RequireObjectiveVerification: true, MemoryEnabled: true, MemoryOnlineLearning: true, MemoryRetrieval: retrieval}
+	runner := MemoryRunner{Provider: &pairedMock{}, Registry: NewRegistry(), Dataset: data, Config: cfg, OutputRoot: t.TempDir(), ExperimentID: "online-gravity", Retrieval: retrieval, Consolidation: memory.ConsolidationConfig{MinDistinctEpisodes: 2}, WritePolicy: "writable"}
+	result, err := runner.Run(context.Background(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Cases) != 2 {
+		t.Fatalf("cases=%d", len(result.Cases))
+	}
+	firstMetrics, secondMetrics := result.Cases[0].Metrics, result.Cases[1].Metrics
+	if firstMetrics.GravityEvidence != 0 || secondMetrics.GravityEvidence == 0 || secondMetrics.MaxGravityStrength <= firstMetrics.MaxGravityStrength || secondMetrics.GravityRoutedBranches == 0 {
+		t.Fatalf("gravity did not rise across prompts: first=%+v second=%+v", firstMetrics, secondMetrics)
+	}
+	if len(result.Cases[0].LearnedMemoryRecords) == 0 || len(result.Cases[1].MemoryPair.Memory.GravityWells) == 0 {
+		t.Fatalf("learned route was not isolated/persisted: first=%+v second-memory=%+v", result.Cases[0].LearnedMemoryRecords, result.Cases[1].MemoryPair.Memory)
+	}
+}
+
+func TestEpisodeRoutingSummaryDoesNotExposeAnswerOrFreeformReasoning(t *testing.T) {
+	c := validMemoryCase()
+	pair := PairedResult{SelectedRoute: BranchRoute{Title: "Direct arithmetic", ReasoningSummary: "the result is 130"}, FinalMeasurements: []measurement.Result{{Observation: 130.0, Expected: 130.0, Outcome: measurement.Supported}}, BAN: SideResult{Verification: Verification{Measurement: measurement.Result{Outcome: measurement.Supported}}}}
+	episode := episodeFromPair(c, pair)
+	visible := strings.Join(episode.UsefulBranches, " ")
+	if strings.Contains(visible, "130") || strings.Contains(visible, "the result") || visible != "Direct arithmetic" {
+		t.Fatalf("unsafe gravity route summary: %q", visible)
 	}
 }
 

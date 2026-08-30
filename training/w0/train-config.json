@@ -1,0 +1,20 @@
+{
+  "profile": "w0-pilot-50m-cpu",
+  "min_available_memory_mb": 1500,
+  "min_free_disk_mb": 8192,
+  "memory_poll_seconds": 30,
+  "max_sequence_length": 256,
+  "epochs": 1,
+  "max_optimizer_steps": 1000,
+  "gradient_accumulation_steps": 16,
+  "learning_rate": 0.0003,
+  "weight_decay": 0.1,
+  "warmup_optimizer_steps": 50,
+  "max_gradient_norm": 1.0,
+  "checkpoint_every_optimizer_steps": 10,
+  "torch_dtype": "float32",
+  "device": "auto",
+  "gradient_checkpointing": true,
+  "torch_threads": 4,
+  "seed": 20260826
+}

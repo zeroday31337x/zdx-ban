@@ -5,12 +5,11 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
-	"time"
 	"zdx-ban/internal/ban"
 	"zdx-ban/internal/benchmark"
 	"zdx-ban/internal/experiment"
-	"zdx-ban/internal/inference/ollama"
 )
 
 func main() {
@@ -20,36 +19,55 @@ func main() {
 	}
 }
 func run() error {
-	args := os.Args[1:]
+	config, args, err := loadAppConfig(os.Args[1:])
+	if err != nil {
+		return err
+	}
 	mode := "run"
-	if len(args) > 0 && (args[0] == "run" || args[0] == "baseline" || args[0] == "benchmark" || args[0] == "experiment" || args[0] == "memory" || args[0] == "model" || args[0] == "thought" || args[0] == "vm" || args[0] == "runtime" || args[0] == "training") {
+	if len(args) > 0 && (args[0] == "run" || args[0] == "baseline" || args[0] == "benchmark" || args[0] == "experiment" || args[0] == "memory" || args[0] == "model" || args[0] == "config" || args[0] == "thought" || args[0] == "vm" || args[0] == "runtime" || args[0] == "training") {
 		mode = args[0]
 		args = args[1:]
 	}
 	if mode == "memory" {
-		return memoryCommand(args)
+		return memoryCommand(args, config.Runtime.MemoryFile)
 	}
-	modelName := env("BAN_MODEL", "qwen2.5:1.5b")
-	baseURL := env("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+	if mode == "config" {
+		if len(args) != 1 || (args[0] != "show" && args[0] != "validate") {
+			return fmt.Errorf("config requires show or validate")
+		}
+		if args[0] == "validate" {
+			fmt.Println("ban.config valid")
+			return nil
+		}
+		return printJSON(config)
+	}
 	if mode == "model" || mode == "thought" || mode == "vm" || mode == "runtime" || mode == "training" {
-		return runtimeCommand(mode, args, baseURL, modelName)
+		return runtimeCommand(mode, args, config)
 	}
 	if mode == "experiment" {
-		p := ollama.New(baseURL, modelName, 10*time.Second)
-		return experiment.Command(args, p, modelName)
+		p := newOllama(config)
+		return experiment.Command(args, p, config.Model.Name, experimentDefaults(config))
 	}
 	fs := flag.NewFlagSet("ban", flag.ContinueOnError)
-	branches := fs.Int("branches", 5, "initial semantic branches")
-	retain := fs.Int("retain", 2, "leading branches to expand")
-	depth := fs.Int("depth", 2, "maximum graph depth")
-	nodes := fs.Int("nodes", 20, "maximum graph nodes")
-	concurrency := fs.Int("concurrency", 1, "bounded evaluation concurrency")
-	timeout := fs.Duration("timeout", 5*time.Minute, "run timeout")
-	dataset := fs.String("dataset", "datasets/initial.json", "benchmark dataset")
+	branches := fs.Int("branches", config.Search.InitialBranches, "initial semantic branches")
+	retain := fs.Int("retain", config.Search.RetainBranches, "leading branches to expand")
+	depth := fs.Int("depth", config.Search.MaxDepth, "maximum graph depth")
+	nodes := fs.Int("nodes", config.Search.MaxNodes, "maximum graph nodes")
+	concurrency := fs.Int("concurrency", 0, "override both model and evaluation concurrency")
+	modelConcurrency := fs.Int("model-concurrency", config.Search.MaxConcurrentModelCalls, "bounded model-call concurrency")
+	evaluationConcurrency := fs.Int("evaluation-concurrency", config.Search.MaxConcurrentEvaluations, "bounded evaluation concurrency")
+	timeout := fs.Duration("timeout", config.Runtime.RunTimeout.Duration, "run timeout")
+	dataset := fs.String("dataset", config.Runtime.BenchmarkDataset, "benchmark dataset")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	p := ollama.New(baseURL, modelName, *timeout)
+	if *concurrency < 0 || *modelConcurrency < 1 || *evaluationConcurrency < 1 {
+		return fmt.Errorf("concurrency values must be positive; --concurrency may be zero when unused")
+	}
+	if *branches < 1 || *retain < 1 || *retain > *branches || *depth < 1 || *nodes < *branches {
+		return fmt.Errorf("invalid search bounds: require branches >= retain >= 1, depth >= 1, and nodes >= branches")
+	}
+	p := newOllama(config)
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
 	remaining := fs.Args()
@@ -57,20 +75,25 @@ func run() error {
 		if len(remaining) == 0 {
 			return fmt.Errorf("problem is required")
 		}
-		r, err := benchmark.Baseline(ctx, p, strings.Join(remaining, " "), .2, 1024)
+		r, err := benchmark.Baseline(ctx, p, strings.Join(remaining, " "), config.Generation.Baseline.Temperature, config.Generation.Baseline.MaxTokens)
 		if err == nil {
 			fmt.Println(r.Answer)
 		}
 		return err
 	}
-	cfg := ban.DefaultConfig()
+	cfg := config.BANConfig()
 	cfg.InitialBranches = *branches
 	cfg.RetainBranches = *retain
 	cfg.MaxDepth = *depth
 	cfg.MaxNodes = *nodes
-	cfg.MaxConcurrentEvaluations = *concurrency
-	cfg.MaxConcurrentModelCalls = *concurrency
+	cfg.MaxConcurrentModelCalls = *modelConcurrency
+	cfg.MaxConcurrentEvaluations = *evaluationConcurrency
+	if *concurrency > 0 {
+		cfg.MaxConcurrentModelCalls = *concurrency
+		cfg.MaxConcurrentEvaluations = *concurrency
+	}
 	e := ban.NewEngine(p, cfg)
+	configureEngine(e, config)
 	e.Logf = func(f string, a ...any) { fmt.Printf(f+"\n", a...) }
 	if mode == "benchmark" {
 		items, err := benchmark.Load(*dataset)
@@ -94,12 +117,6 @@ func run() error {
 		return err
 	}
 	fmt.Println("\n" + result.Answer)
-	fmt.Printf("\ntrace: traces/%s.json\n", tr.RunID)
+	fmt.Printf("\ntrace: %s\n", filepath.Join(config.Runtime.TraceDir, tr.RunID+".json"))
 	return nil
-}
-func env(k, d string) string {
-	if v := os.Getenv(k); v != "" {
-		return v
-	}
-	return d
 }

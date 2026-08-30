@@ -9,19 +9,17 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
-	"time"
-	"zdx-ban/internal/ban"
 	"zdx-ban/internal/model"
 )
 
-func Command(args []string, p model.Provider, modelName string) error {
+func Command(args []string, p model.Provider, modelName string, defaults CommandDefaults) error {
 	if len(args) == 0 {
 		return fmt.Errorf("experiment requires smoke, run, or report")
 	}
 	action := args[0]
 	args = args[1:]
 	if action == "memory-smoke" || action == "memory-run" {
-		return MemoryCommand(action, args, p, modelName)
+		return MemoryCommand(action, args, p, modelName, defaults)
 	}
 	if action == "memory-report" || action == "memory-inspect" || action == "memory-compare" {
 		return MemoryArtifactCommand(action, args)
@@ -49,18 +47,22 @@ func Command(args []string, p model.Provider, modelName string) error {
 		defaultData = "datasets/ban-experiment-001-smoke.jsonl"
 	}
 	dataset := fs.String("dataset", defaultData, "JSONL dataset")
-	reps := fs.Int("repetitions", 1, "paired repetitions")
+	reps := fs.Int("repetitions", defaults.Repetitions, "paired repetitions")
 	output := fs.String("output", "results", "result root")
 	dry := fs.Bool("dry-run", false, "validate without model calls")
 	resume := fs.String("resume", "", "experiment ID to resume")
 	verbose := fs.Bool("verbose", false, "show detailed traces")
-	temp := fs.Float64("temperature", .2, "generation temperature")
-	tokens := fs.Int("max-tokens", 1024, "per-call generation limit")
-	timeout := fs.Duration("timeout", 15*time.Minute, "legacy inference timeout")
-	inferenceTimeout := fs.Duration("inference-timeout", 15*time.Minute, "per provider inference deadline")
-	caseTimeout := fs.Duration("case-timeout", time.Hour, "whole case deadline")
-	runTimeout := fs.Duration("run-timeout", 5*time.Hour, "whole experiment deadline")
-	seed := fs.Int("seed", 42, "base seed")
+	temp := fs.Float64("temperature", defaults.Temperature, "generation temperature")
+	tokens := fs.Int("max-tokens", defaults.MaxTokens, "per-call generation limit")
+	proposalTokens := fs.Int("proposal-max-tokens", defaults.ProposalMaxTokens, "per proposal-generation call limit")
+	evaluationTokens := fs.Int("evaluation-max-tokens", defaults.EvaluationMaxTokens, "per branch-evaluation call limit")
+	challengeTokens := fs.Int("challenge-max-tokens", defaults.ChallengeMaxTokens, "per challenge call limit")
+	finalTokens := fs.Int("final-max-tokens", defaults.FinalAnswerMaxTokens, "final-answer call limit")
+	timeout := fs.Duration("timeout", defaults.Timeout, "legacy inference timeout")
+	inferenceTimeout := fs.Duration("inference-timeout", defaults.InferenceTimeout, "per provider inference deadline")
+	caseTimeout := fs.Duration("case-timeout", defaults.CaseTimeout, "whole case deadline")
+	runTimeout := fs.Duration("run-timeout", defaults.RunTimeout, "whole experiment deadline")
+	seed := fs.Int("seed", defaults.Seed, "base seed")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -69,7 +71,7 @@ func Command(args []string, p model.Provider, modelName string) error {
 	if err != nil {
 		return err
 	}
-	cfg := RunConfig{Model: modelName, Provider: "ollama", Temperature: *temp, Seed: seed, MaxTokens: *tokens, Timeout: *timeout, InferenceTimeout: *inferenceTimeout, CaseTimeout: *caseTimeout, RunTimeout: *runTimeout, Streaming: true, Repetitions: *reps, BAN: ban.DefaultConfig(), RequireObjectiveVerification: true}
+	cfg := RunConfig{Model: modelName, Provider: defaults.Provider, Temperature: *temp, Seed: seed, MaxTokens: *tokens, ProposalMaxTokens: *proposalTokens, EvaluationMaxTokens: *evaluationTokens, ChallengeMaxTokens: *challengeTokens, FinalAnswerMaxTokens: *finalTokens, Timeout: *timeout, InferenceTimeout: *inferenceTimeout, CaseTimeout: *caseTimeout, RunTimeout: *runTimeout, Streaming: true, Repetitions: *reps, BAN: defaults.BAN, RequireObjectiveVerification: true}
 	r := Runner{Provider: p, Registry: registry, Dataset: data, Config: cfg, OutputRoot: *output, ExperimentID: *resume, Verbose: *verbose}
 	if *dry {
 		if err = r.DryRun(); err != nil {

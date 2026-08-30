@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 	"zdx-ban/internal/ban"
 	"zdx-ban/internal/measurement"
@@ -27,6 +28,9 @@ type MemoryMetrics struct {
 	RetrievalCount, RelevantHits, RetrievedUnused, HarmfulRetrievals, MemoryInducedErrors, ContradictionEvents, SupersessionEvents, WorkingMemoryChars, EpisodicWrites, ConsolidationEvents int
 	MemoryLeverageBranches                                                                                                                                                                  int
 	MemoryLeverageModelCalls                                                                                                                                                                int
+	GravityWells, GravityEvidence, GravityRoutedBranches                                                                                                                                    int
+	MaxGravityStrength                                                                                                                                                                      float64
+	LeverageComparable                                                                                                                                                                      bool
 }
 type MemoryCaseResult struct {
 	CaseID, Category, Behavior                             string
@@ -40,7 +44,8 @@ type MemoryCaseResult struct {
 	Metrics                                                MemoryMetrics
 	MemoryAttribution, MisleadingAttribution               MemoryAttribution
 	MemoryEvents                                           []memory.UpdateEvent
-	EpisodeID                                              string
+	EpisodeID, MisleadingEpisodeID                         string
+	LearnedMemoryRecords, LearnedMisleadingRecords         []memory.Record
 	Consolidations                                         []memory.ConsolidationRecord
 	CompletedAt                                            time.Time
 }
@@ -65,7 +70,21 @@ type MemoryRunner struct {
 	Retrieval                memory.RetrievalConfig
 	Consolidation            memory.ConsolidationConfig
 	WritePolicy              string
+	Foundation               []SeedMemory
 	Progress                 func(MemoryCaseResult, int, int)
+}
+
+func (r *MemoryRunner) foundationForCategory(category string) []SeedMemory {
+	if len(r.Foundation) == 0 {
+		return FoundationAnchors([]string{category})
+	}
+	var out []SeedMemory
+	for _, seed := range r.Foundation {
+		if seed.Category == category {
+			out = append(out, seed)
+		}
+	}
+	return out
 }
 
 func (r *MemoryRunner) Validate() error {
@@ -80,6 +99,9 @@ func (r *MemoryRunner) Validate() error {
 	}
 	if r.Retrieval.MaxRecords <= 0 || r.Retrieval.MaxChars <= 0 {
 		return fmt.Errorf("bounded retrieval required")
+	}
+	if r.Retrieval.Gravity.Weight < 0 || r.Retrieval.Gravity.Weight > 1 || r.Retrieval.Gravity.EvidenceSaturation <= 0 || r.Retrieval.Gravity.HalfLife < 0 {
+		return fmt.Errorf("invalid gravity router configuration")
 	}
 	for _, c := range r.Dataset.Cases {
 		if e := ValidateCase(c.Evaluation, r.Registry); e != nil {
@@ -102,9 +124,18 @@ func (r *MemoryRunner) Run(ctx context.Context, resume bool) (MemoryExperiment, 
 	}
 	state := MemoryExperiment{Experiment: "BAN-MEMORY-EXPERIMENT-001", SchemaVersion: SchemaVersion, TraceSchemaVersion: ban.TraceSchemaVersion, MemorySchemaVersion: memory.SchemaVersion, ExperimentID: r.ExperimentID, DatasetVersion: r.Dataset.Version, DatasetHash: r.Dataset.SHA256, StartingCommit: gitCommit(), GitRemote: gitRemote(), GitDirty: gitDirty(), Config: r.Config, StartedAt: time.Now().UTC()}
 	state.ConditionOrder = []MemoryCondition{BaselineCondition, ColdCondition, MemoryConditionEnabled, MisleadingCondition}
-	allSeeds := []SeedMemory{}
+	foundation := r.Foundation
+	if len(foundation) == 0 {
+		foundation = FoundationAnchors(nil)
+	}
+	allSeeds := append([]SeedMemory(nil), foundation...)
+	categories := []string{}
 	for _, c := range r.Dataset.Cases {
 		allSeeds = append(allSeeds, c.Exposure...)
+		categories = append(categories, c.Category)
+	}
+	if len(r.Foundation) == 0 {
+		allSeeds = append(FoundationAnchors(categories), allSeeds...)
 	}
 	global, _ := SeedStore(ctx, allSeeds, false)
 	state.InitialMemoryHash, _ = global.SnapshotHash(ctx)
@@ -119,8 +150,20 @@ func (r *MemoryRunner) Run(ctx context.Context, resume bool) (MemoryExperiment, 
 		state = prior
 	}
 	done := map[string]bool{}
+	usefulLearned := memory.NewMemoryStore()
+	misleadingLearned := memory.NewMemoryStore()
 	for _, x := range state.Cases {
 		done[pairKey(x.CaseID, x.Repetition)] = true
+		for _, record := range x.LearnedMemoryRecords {
+			if e := usefulLearned.Append(ctx, record); e != nil {
+				return state, fmt.Errorf("restore useful gravity memory: %w", e)
+			}
+		}
+		for _, record := range x.LearnedMisleadingRecords {
+			if e := misleadingLearned.Append(ctx, record); e != nil {
+				return state, fmt.Errorf("restore misleading gravity memory: %w", e)
+			}
+		}
 	}
 	total := len(r.Dataset.Cases) * r.Config.Repetitions
 	for rep := 1; rep <= r.Config.Repetitions; rep++ {
@@ -139,7 +182,7 @@ func (r *MemoryRunner) Run(ctx context.Context, resume bool) (MemoryExperiment, 
 			if r.Config.CaseTimeout > 0 {
 				caseCtx, cancelCase = context.WithTimeout(ctx, r.Config.CaseTimeout)
 			}
-			row, e := r.runCase(caseCtx, c, rep)
+			row, e := r.runCase(caseCtx, c, rep, usefulLearned, misleadingLearned)
 			cancelCase()
 			if e != nil {
 				return state, e
@@ -161,16 +204,22 @@ func (r *MemoryRunner) Run(ctx context.Context, resume bool) (MemoryExperiment, 
 	}
 	return state, nil
 }
-func (r *MemoryRunner) runCase(ctx context.Context, c MemoryCase, rep int) (MemoryCaseResult, error) {
+func (r *MemoryRunner) runCase(ctx context.Context, c MemoryCase, rep int, usefulLearned, misleadingLearned *memory.MemoryStore) (MemoryCaseResult, error) {
 	baseRunner := Runner{Provider: r.Provider, Registry: r.Registry, Config: r.Config}
 	cold := baseRunner.runPair(ctx, c.Evaluation, rep)
 	row := MemoryCaseResult{CaseID: c.ID, Category: c.Category, Behavior: c.Behavior, Repetition: rep, RunID: newID(), Baseline: cold.Baseline, Cold: cold.BAN, ColdPair: cold, CompletedAt: time.Now().UTC()}
-	seeded, e := SeedStore(ctx, c.Exposure, false)
+	seeded, e := SeedStore(ctx, append(append([]SeedMemory(nil), r.foundationForCategory(c.Category)...), c.Exposure...), false)
 	if e != nil {
 		return row, e
 	}
+	if r.Config.MemoryOnlineLearning {
+		if e = appendStore(ctx, seeded, usefulLearned); e != nil {
+			return row, e
+		}
+	}
 	row.InitialMemoryHash, _ = seeded.SnapshotHash(ctx)
-	req := memory.RetrievalRequest{Query: c.Evaluation.Prompt, Category: c.Category, Tags: c.Evaluation.Tags, Now: time.Now().UTC(), Config: r.Retrieval, ExcludeCaseID: c.Evaluation.ID, ExcludeExactAnswer: fmt.Sprint(c.Evaluation.Expected)}
+	contextTags := memory.ContextTags(c.Evaluation.Prompt, c.Category, c.Evaluation.Tags)
+	req := memory.RetrievalRequest{Query: c.Evaluation.Prompt, Category: c.Category, Tags: c.Evaluation.Tags, ContextTags: contextTags, Now: time.Now().UTC(), Config: r.Retrieval, ExcludeCaseID: c.Evaluation.ID, ExcludeExactAnswer: fmt.Sprint(c.Evaluation.Expected)}
 	retrievalStart := time.Now()
 	retrieved, e := memory.Retrieve(ctx, seeded, req)
 	row.MemoryRetrievalDuration = time.Since(retrievalStart)
@@ -186,6 +235,14 @@ func (r *MemoryRunner) runCase(ctx context.Context, c MemoryCase, rep int) (Memo
 	row.MemoryPair = withMemory
 	row.Metrics.RetrievalCount = len(retrieved.Records)
 	row.Metrics.WorkingMemoryChars = retrieved.ApproxChars
+	row.Metrics.GravityWells = len(retrieved.GravityWells)
+	row.Metrics.GravityRoutedBranches = withMemory.Graph.GravityRoutedBranches
+	for _, well := range retrieved.GravityWells {
+		row.Metrics.GravityEvidence += well.SupportingEvidence
+		if well.Strength > row.Metrics.MaxGravityStrength {
+			row.Metrics.MaxGravityStrength = well.Strength
+		}
+	}
 	for _, x := range retrieved.Records {
 		row.MemoryAttribution.MemoryIDs = append(row.MemoryAttribution.MemoryIDs, x.Record.ID)
 		if row.MemoryAttribution.MemoryRelevance == nil {
@@ -197,9 +254,15 @@ func (r *MemoryRunner) runCase(ctx context.Context, c MemoryCase, rep int) (Memo
 		}
 	}
 	row.MemoryAttribution.MemoryRetrieved = len(retrieved.Records) > 0
+	row.MemoryAttribution.ContextTags = append([]string(nil), retrieved.ContextTags...)
 	row.MemoryAttribution.ObservableBasis = "retrieval events plus measured cold/memory outcome delta; use is a behavioral proxy, not chain-of-thought"
-	misSeeds := append(append([]SeedMemory{}, c.Exposure...), c.Misleading...)
+	misSeeds := append(append(append([]SeedMemory(nil), r.foundationForCategory(c.Category)...), c.Exposure...), c.Misleading...)
 	misStore, _ := SeedStore(ctx, misSeeds, false)
+	if r.Config.MemoryOnlineLearning {
+		if e = appendStore(ctx, misStore, misleadingLearned); e != nil {
+			return row, e
+		}
+	}
 	row.MisleadingInitialMemoryHash, _ = misStore.SnapshotHash(ctx)
 	misRetrievalStart := time.Now()
 	misRetrieved, _ := memory.Retrieve(ctx, misStore, req)
@@ -219,6 +282,7 @@ func (r *MemoryRunner) runCase(ctx context.Context, c MemoryCase, rep int) (Memo
 		row.MisleadingAttribution.MemoryRelevance[x.Record.ID] = x.Reason.Score
 	}
 	row.MisleadingAttribution.MemoryRetrieved = len(misRetrieved.Records) > 0
+	row.MisleadingAttribution.ContextTags = append([]string(nil), misRetrieved.ContextTags...)
 	row.MisleadingAttribution.ObservableBasis = "retrieval, current measurement, recovery, and condition delta"
 	if withMemory.BAN.Verification.Measurement.Outcome == measurement.Contradicted && cold.BAN.Verification.Measurement.Outcome == measurement.Supported {
 		row.Metrics.MemoryInducedErrors++
@@ -244,23 +308,51 @@ func (r *MemoryRunner) runCase(ctx context.Context, c MemoryCase, rep int) (Memo
 	}
 	episode := episodeFromPair(c, withMemory)
 	if r.WritePolicy != "read-only" && len(withMemory.BAN.Measurements) > 0 && withMemory.BAN.Verification.Measurement.Outcome != measurement.Error {
-		if episodeRecord, episodeErr := memory.RecordEpisode(ctx, seeded, episode, memory.Provenance{Source: "BAN memory experiment", ExperimentID: r.ExperimentID, CaseID: c.ID, TraceID: withMemory.TraceRunID, DatasetVersion: r.Dataset.Version, DatasetHash: r.Dataset.SHA256, GitCommit: gitCommit(), SourceClass: memory.MemoryGuidance, Authority: withMemory.BAN.Verification.Measurement.Authority, Independence: measurement.PartiallyIndependent, CorrelationGroup: c.ID}); episodeErr == nil {
+		provenance := episodeProvenance(r, c, withMemory)
+		if episodeRecord, episodeErr := memory.RecordEpisode(ctx, seeded, episode, provenance); episodeErr == nil {
 			row.EpisodeID = episodeRecord.ID
+			if r.Config.MemoryOnlineLearning {
+				if e = usefulLearned.Append(ctx, episodeRecord); e != nil {
+					return row, e
+				}
+				row.LearnedMemoryRecords = append(row.LearnedMemoryRecords, episodeRecord)
+			}
 			row.MemoryEvents = append(row.MemoryEvents, memory.UpdateEvent{RecordID: episodeRecord.ID, Action: "APPEND_EPISODE", Reason: "measured BAN condition outcome", NewStatus: episodeRecord.Status, At: episodeRecord.CreatedAt})
 			row.Metrics.EpisodicWrites++
-			events, _ := memory.Consolidate(ctx, seeded, r.Consolidation)
+			consolidationStore := memory.Store(seeded)
+			if r.Config.MemoryOnlineLearning {
+				consolidationStore = usefulLearned
+			}
+			events, _ := memory.Consolidate(ctx, consolidationStore, r.Consolidation)
 			row.Consolidations = append(row.Consolidations, events...)
 			for _, ev := range events {
 				if ev.CreatedRecordID != "" {
 					row.Metrics.ConsolidationEvents++
+					if record, ok, getErr := consolidationStore.Get(ctx, ev.CreatedRecordID); getErr == nil && ok {
+						row.LearnedMemoryRecords = append(row.LearnedMemoryRecords, record)
+						_ = seeded.Append(ctx, record)
+					}
 				}
 			}
 		}
 	}
+	misleadingEpisode := episodeFromPair(c, mis)
+	if r.WritePolicy != "read-only" && r.Config.MemoryOnlineLearning && len(mis.BAN.Measurements) > 0 && mis.BAN.Verification.Measurement.Outcome != measurement.Error {
+		if record, recordErr := memory.RecordEpisode(ctx, misStore, misleadingEpisode, episodeProvenance(r, c, mis)); recordErr == nil {
+			if e = misleadingLearned.Append(ctx, record); e != nil {
+				return row, e
+			}
+			row.MisleadingEpisodeID = record.ID
+			row.LearnedMisleadingRecords = append(row.LearnedMisleadingRecords, record)
+		}
+	}
 	row.FinalMemoryHash, _ = seeded.SnapshotHash(ctx)
 	row.MisleadingFinalMemoryHash, _ = misStore.SnapshotHash(ctx)
-	row.Metrics.MemoryLeverageBranches = cold.Graph.NodesCreated - withMemory.Graph.NodesCreated
-	row.Metrics.MemoryLeverageModelCalls = cold.BAN.ModelCalls - withMemory.BAN.ModelCalls
+	if cold.BAN.Verification.Measurement.Outcome != measurement.Error && withMemory.BAN.Verification.Measurement.Outcome != measurement.Error {
+		row.Metrics.LeverageComparable = true
+		row.Metrics.MemoryLeverageBranches = cold.Graph.NodesCreated - withMemory.Graph.NodesCreated
+		row.Metrics.MemoryLeverageModelCalls = cold.BAN.ModelCalls - withMemory.BAN.ModelCalls
+	}
 	classifyMemoryEffects(&row)
 	return row, nil
 }
@@ -298,7 +390,50 @@ func classifyMemoryEffects(row *MemoryCaseResult) {
 	}
 }
 func episodeFromPair(c MemoryCase, p PairedResult) memory.Episode {
-	return memory.Episode{Problem: c.Evaluation.Prompt, TaskSignature: c.Relationship, Category: c.Category, Strategies: []string{p.FinalWinnerID}, CandidateMeasurements: p.CandidateMeasurements, FinalMeasurements: p.FinalMeasurements, Outcome: string(p.BAN.Verification.Measurement.Outcome), FailureClassification: p.BAN.FailureCategory, Recovered: p.RecoverySuccessful, RecoveryEvents: []string{p.InitialWinnerID + "->" + p.FinalWinnerID}, FailedStrategies: []string{p.InitialWinnerID}, Latency: p.BAN.Latency, ModelCalls: p.BAN.ModelCalls, Timestamp: time.Now().UTC()}
+	useful := []string{}
+	routeTitle := strings.TrimSpace(p.SelectedRoute.Title)
+	for _, result := range p.FinalMeasurements {
+		for _, value := range []any{result.Observation, result.Expected} {
+			answer := strings.TrimSpace(fmt.Sprint(value))
+			if answer != "" && strings.Contains(strings.ToLower(routeTitle), strings.ToLower(answer)) {
+				routeTitle = ""
+			}
+		}
+	}
+	if routeTitle == "" {
+		routeTitle = strings.ReplaceAll(c.Category, "_", " ") + " verified method"
+	}
+	useful = append(useful, routeTitle)
+	feedback := make([]memory.GravityFeedback, 0, len(p.Memory.GravityWells))
+	for _, well := range p.Memory.GravityWells {
+		if well.ApplicationCount > 0 {
+			feedback = append(feedback, memory.GravityFeedback{WellID: well.ID, LastUsedAt: well.LastUsedAt, SuccessRate: well.SuccessRate, ApplicationCount: well.ApplicationCount, OutcomeCount: well.OutcomeCount})
+		}
+	}
+	return memory.Episode{Problem: c.Evaluation.Prompt, TaskSignature: c.Relationship, Category: c.Category, Strategies: []string{c.Category}, CandidateMeasurements: p.CandidateMeasurements, FinalMeasurements: p.FinalMeasurements, Outcome: string(p.BAN.Verification.Measurement.Outcome), FailureClassification: p.BAN.FailureCategory, Recovered: p.RecoverySuccessful, RecoveryEvents: []string{p.InitialWinnerID + "->" + p.FinalWinnerID}, UsefulBranches: useful, FailedStrategies: []string{p.InitialWinnerID}, Latency: p.BAN.Latency, ModelCalls: p.BAN.ModelCalls, Timestamp: time.Now().UTC(), GravityFeedback: feedback}
+}
+
+func episodeProvenance(r *MemoryRunner, c MemoryCase, pair PairedResult) memory.Provenance {
+	ids := []string{}
+	for _, result := range pair.FinalMeasurements {
+		if result.ID != "" {
+			ids = append(ids, result.ID)
+		}
+	}
+	return memory.Provenance{Source: "BAN memory experiment", ExperimentID: r.ExperimentID, CaseID: c.ID, TraceID: pair.TraceRunID, DatasetVersion: r.Dataset.Version, DatasetHash: r.Dataset.SHA256, GitCommit: gitCommit(), SourceClass: memory.MemoryGuidance, Authority: pair.BAN.Verification.Measurement.Authority, Independence: measurement.PartiallyIndependent, CorrelationGroup: c.ID, MeasurementIDs: ids}
+}
+
+func appendStore(ctx context.Context, destination *memory.MemoryStore, source memory.Store) error {
+	records, err := source.List(ctx)
+	if err != nil {
+		return err
+	}
+	for _, record := range records {
+		if err = destination.Append(ctx, record); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 func persistMemory(dir string, s *MemoryExperiment) error {
 	_, e := tr.WriteAtomic(dir, "memory-summary", s)

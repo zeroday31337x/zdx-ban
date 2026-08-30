@@ -30,10 +30,10 @@ func (p *pairedMock) GenerateStructured(_ context.Context, r model.GenerateReque
 	var v any
 	switch {
 	case contains(r.Prompt, "exactly 5"):
-		v = map[string]any{"branches": []map[string]any{{"title": "tempting", "hypothesis": "8", "reasoning_summary": "surface cue", "assumptions": []string{}}, {"title": "correct", "hypothesis": "7", "reasoning_summary": "calculation", "assumptions": []string{}}, {"title": "alt3", "hypothesis": "6", "reasoning_summary": "other", "assumptions": []string{}}, {"title": "alt4", "hypothesis": "9", "reasoning_summary": "other", "assumptions": []string{}}, {"title": "challenge", "hypothesis": "10", "reasoning_summary": "framing", "assumptions": []string{}}}}
+		v = map[string]any{"branches": []map[string]any{{"title": "tempting", "answer": "8", "reasoning_summary": "surface cue", "assumptions": []string{}}, {"title": "correct", "answer": "7", "reasoning_summary": "calculation", "assumptions": []string{}}, {"title": "alt3", "answer": "6", "reasoning_summary": "other", "assumptions": []string{}}, {"title": "alt4", "answer": "9", "reasoning_summary": "other", "assumptions": []string{}}, {"title": "challenge", "answer": "10", "reasoning_summary": "framing", "assumptions": []string{}}}}
 	case contains(r.Prompt, "exactly 2"):
 		p.eval++
-		v = map[string]any{"branches": []map[string]any{{"title": fmt.Sprintf("child-a-%d", p.eval), "hypothesis": "7", "reasoning_summary": "refined", "assumptions": []string{}}, {"title": fmt.Sprintf("child-b-%d", p.eval), "hypothesis": "11", "reasoning_summary": "refined", "assumptions": []string{}}}}
+		v = map[string]any{"branches": []map[string]any{{"title": fmt.Sprintf("child-a-%d", p.eval), "answer": "7", "reasoning_summary": "refined", "assumptions": []string{}}, {"title": fmt.Sprintf("child-b-%d", p.eval), "answer": "11", "reasoning_summary": "refined", "assumptions": []string{}}}}
 	case contains(r.Prompt, "skeptic"):
 		v = map[string]any{"skeptic": "could be wrong", "counterfactual": "check arithmetic"}
 	default:
@@ -98,6 +98,14 @@ func TestProviderFailureClassificationAndAccounting(t *testing.T) {
 				t.Fatalf("timeout accounting=%+v", row.BAN.Provider)
 			}
 		})
+	}
+}
+
+func TestExecutionErrorIsNotMalformedOrProviderFailure(t *testing.T) {
+	err := errors.New("insufficient distinct branches")
+	v := errorVerification(context.Background(), err)
+	if v.Outcome != ExecutionFailure || classifyBAN(err, &ban.ExecutionTrace{}) != string(inference.ExecutionError) {
+		t.Fatalf("execution error misclassified: outcome=%s category=%s", v.Outcome, classifyBAN(err, &ban.ExecutionTrace{}))
 	}
 }
 

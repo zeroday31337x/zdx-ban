@@ -1,0 +1,153 @@
+ZDX-BAN Pass 6.1 validation record
+Date: 2026-08-23 UTC
+
+Preflight
+
+- Starting branch: main
+- Starting HEAD: 9d1b62f977521f73b66844fd40017cdf02158967
+- Preserved pre-existing tracked deletion: codexPromptBan
+- Preserved pre-existing untracked artifacts: codexprompt, node_modules/, package.json, package-lock.json
+- Installed Go 1.26.0 because the VPS initially had no Go toolchain.
+- The checked-in bin/ban could not execute on this x86_64 VPS (exec format error), so validation built /tmp/zdx-ban-validation without overwriting the artifact.
+- Ollama was not started and no model weights or live provider calls were attempted.
+
+Runtime audit
+
+- The historical approximately 300-second failure was caused by the former whole-request http.Client.Timeout=5m. The recorded artifact error stated "Client.Timeout ... while reading body".
+- Experiment execution now uses internal/inference/ollama.Engine. Its HTTP client has no whole-request timeout; transport dial and TLS setup use the configured connection timeout.
+- Per-provider inference, per-case, and whole-run deadlines are context controlled and represented in RunConfig, which is configuration hashed.
+- The legacy internal/model.Ollama retains a client timeout for compatibility and tests, but production experiment construction uses internal/inference/ollama.New.
+
+Validation
+
+- gofmt changed-file check: PASS
+- go test ./internal/experiment ./internal/memory ./internal/model ./internal/inference/... ./internal/ban ./internal/modelstate ./internal/training ./internal/vm: PASS (provider tests rerun with loopback access)
+- go test ./...: PASS
+- go vet ./...: PASS
+- go build -o /tmp/zdx-ban-validation ./cmd/ban: PASS
+- /tmp/zdx-ban-validation experiment memory-smoke --dry-run --case-id memory-001: PASS
+- python3 -m py_compile ollama-harness.py thoughtCompiler.py: PASS
+- python3 -m unittest discover -v: no Python unit tests discovered
+- git diff --check: PASS
+
+Single-case dry-run envelope
+
+- cases=1
+- repetitions=1
+- conditions=4
+- provider call upper bound=46
+- inference deadline=15m
+- case deadline=1h
+- run deadline=5h
+- bounded upper envelope=1h
+- dataset SHA-256=1130b53f7a6a9e7757d96ef8b9984963c762ece977d2cb092d10dbc810edea10
+
+Correction made during validation
+
+- internal/modelstate.Identity had IdentityConfidence and IdentitySource sharing the identity_confidence JSON tag.
+- IdentitySource now uses identity_source and a regression test proves both provenance fields survive serialization.
+- This strengthens W0/W1/W2 provenance and does not change inference, memory isolation, verification, or authorization boundaries.
+
+Audit conclusions
+
+- Typed provider failure categories and root-error preservation are present.
+- Attempted, completed, failed, timed-out, successful response, token, partial-stream, and provider-duration telemetry are present.
+- ModelCalls retains successful-response semantics; ProviderAccounting records attempts including timeouts.
+- Provider failures create error measurements that remain unscored rather than reasoning inaccuracies.
+- Episode writes require a measured non-error outcome; provider-failure isolation has deterministic coverage.
+- Graph metrics distinguish proposals, accepted nodes, actual duplicates, provider evaluations, and pruning.
+- The case-id filter and execution-envelope warning are present.
+
+Live status
+
+- Live Ollama inference was not authorized by confirmation that Ollama is running.
+- The four-condition memory-001 gate was therefore not executed.
+- No conclusion about memory benefit or harm was drawn.
+
+Repeat validation and npm cleanup
+
+- Removed node_modules/, package.json, and package-lock.json after the user confirmed they came from an unrelated npm installation of the codex package and were not needed by BAN.
+- Re-ran go test -timeout 90s ./...: PASS.
+- Re-ran go vet ./...: PASS.
+- Re-ran the host-compatible build: PASS.
+- Re-ran the memory-001 single-case dry-run: PASS.
+- Re-ran deterministic Python syntax compilation: PASS.
+- Re-ran git diff --check: PASS.
+
+Live memory-001 gate
+
+- User explicitly authorized starting Ollama.
+- Exact model qwen2.5:1.5b was not initially installed; qwen2.5:3b was present but was not substituted.
+- Downloaded and verified qwen2.5:1.5b (Ollama ID 65ec06548149, 986 MB).
+- Experiment: BAN-EXPERIMENT-001-20260823-032754-732e1f6ff18a-MEMORY
+- Configuration hash: 7600a8db194185e4821f52637656fe41c8ca125142e7b36e68986c2b077b3689
+- BASELINE: SUPPORTED; expected/observed 45; 1 attempted and completed provider call; 2.523 s total; 49 tokens.
+- BAN_COLD: MODEL_OUTPUT_MALFORMED; completed stream contained unknown field framing_challenging_alternative; 1 attempted, 0 successful calls; 16.882 s; no measurement.
+- BAN_MEMORY: MODEL_OUTPUT_MALFORMED; completed streams included unknown fields goal/hardConstraintViolation and an evidence type mismatch; 6 attempts, 1 successful structured generation and 5 malformed completions; 39.881 s; no measurement.
+- BAN_MISLEADING_MEMORY: MODEL_OUTPUT_MALFORMED; completed streams included an evidence type mismatch and unknown hardConstraintViolation; 3 attempts, 1 successful structured generation and 2 malformed completions; 34.639 s; no measurement.
+- No provider timeouts or cancellations occurred. Streaming opened, progressed, and completed for every provider attempt.
+- BAN_MEMORY store hash remained ae840bc5... before and after failure.
+- BAN_MISLEADING_MEMORY store hash remained fbaa89a4... before and after failure.
+- The top-level summary initial/final hashes differ because the final value aggregates condition final hashes; condition-level records demonstrate that provider failures did not mutate either store.
+- Memory retrieval succeeded, but no BAN condition reached deterministic measurement. Memory effect remains UNKNOWN and no reasoning comparison is valid.
+- Remaining live blocker: qwen2.5:1.5b emits completed JSON that violates BAN's strict structured-output schemas.
+
+Schema-constrained output correction
+
+- Changed the Ollama structured request format from generic "json" mode to an exact JSON Schema derived from the destination Go type.
+- Generated object schemas require all declared fields and set additionalProperties=false.
+- Generated array schemas constrain element types, including evidence/contradictions/assumptions as arrays of strings.
+- Added explicit JSON tags for every Evaluation field and aligned the evaluator prompt to those snake_case names.
+- Updated the generator prompt to place framing challenges inside an ordinary branch and prohibit extra fields.
+- Preserved strict decoding; unknown fields and type mismatches are not silently accepted.
+- Added a provider regression test proving the exact schema is transmitted.
+- Focused tests, go test -timeout 90s ./..., go vet ./..., build, and git diff --check: PASS.
+
+Post-fix live memory-001 gate
+
+- Experiment: BAN-EXPERIMENT-001-20260823-034801-edaff3af8300-MEMORY
+- BASELINE: SUPPORTED in 2.422 s.
+- BAN_COLD: generated schema-valid output, but four of five proposals normalized as duplicates; execution stopped with insufficient distinct branches after one successful provider call.
+- BAN_MEMORY: advanced through five successful structured provider calls and five evaluations; a sixth structured response reached the 1,024-token cap and ended with incomplete JSON (unexpected EOF). No measurement was produced.
+- BAN_MISLEADING_MEMORY: advanced through four successful structured provider calls and four evaluations; a fifth structured response reached the 1,024-token cap and ended with incomplete JSON (unexpected EOF). No measurement was produced.
+- The former unknown-field and evidence-type failures did not recur.
+- No timeout or cancellation occurred, and both condition memory stores remained unchanged.
+- Remaining blocker: bound structured generation by operation-specific schemas/limits so expansion output cannot consume the full token allowance, and clarify insufficient-distinct-branch execution classification. Do not relax strict parsing.
+
+Bounded-schema and classification completion
+
+- Added operation-specific schemas with exact proposal counts, bounded array sizes, bounded strings, numeric score ranges, and no additional properties.
+- The final live gate was BAN-EXPERIMENT-001-20260823-040208-8b966ad652c1-MEMORY.
+- No malformed-output, provider timeout, or cancellation occurred in the final gate.
+- BASELINE: SUPPORTED, 1/1 successful provider call, 2.418 s.
+- BAN_MEMORY: SUPPORTED, 12/12 successful provider calls, 84.964 s, one formal measurement, recovery successful.
+- BAN_COLD and BAN_MISLEADING_MEMORY each stopped after one successful provider response because four of five proposals normalized as duplicates, leaving insufficient distinct branches. This is an execution/search outcome, not malformed model output or provider failure.
+- BAN_MEMORY legitimately appended a measured episode, so its condition hash changed with an attributable mutation. The misleading store remained unchanged on execution failure.
+- Removed the defective legacy string classifier whose binary-search expression treated nearly every sufficiently long error as malformed.
+- Added explicit execution_error outcome/category handling and a regression test proving insufficient distinct branches is EXECUTION_ERROR.
+- Final focused tests, go test -timeout 90s ./..., go vet ./..., build, and git diff --check: PASS.
+- The remaining single-case limitation is proposal deduplication for tasks where multiple reasoning approaches legitimately share the same exact final answer. No memory-effect claim is justified from one partially completed case.
+
+Search/report optimization pass
+
+- Nested memory measurement provenance now includes the actual memory dataset version and SHA-256.
+- Baseline verification/orchestration duration decomposition is populated.
+- Report labels distinguish potentially harmful records retrieved from measured harmful memory effects.
+- Memory leverage is calculated only for comparable completed cold/memory pairs.
+- Reasoning-path fingerprints now include title, hypothesis, reasoning summary, and assumptions; answer convergence is tracked separately.
+- Metrics now include answer convergences and bounded diversity regenerations.
+- When initial paths collapse below the retain bound, one retry requests only the number of missing paths.
+- Per-operation token budgets are configurable and configuration-hashed: proposal 1024, evaluation 384, challenge 256, final answer 256.
+- Deterministic graph coverage proves distinct paths may converge on one answer without being collapsed.
+- Focused/full tests, vet, build, dry-run, and git diff --check passed before live validation.
+
+Optimization live assessment
+
+- Gate BAN-EXPERIMENT-001-20260823-205412-ce7e384ee48f-MEMORY proved the bounded missing-path retry completed and cold advanced through full search; cold ended EXECUTION_ERROR/no candidate passed, while misleading memory completed SUPPORTED with authoritative override of stale guidance.
+- Gate BAN-EXPERIMENT-001-20260823-211704-6ea56aced958-MEMORY used proposal=1024, evaluation=384, challenge=192, final=256.
+- BASELINE completed SUPPORTED in 2.735 s.
+- BAN_COLD completed 11/11 provider calls, recorded two answer convergences and one diversity regeneration, then produced no verifier-supported candidate. It remained unscored EXECUTION_ERROR rather than a fabricated incorrect final answer.
+- BAN_MEMORY completed 10 structured calls, then its challenge call reached the 192-token cap and ended with unexpected EOF. Memory state remained unchanged.
+- BAN_MISLEADING_MEMORY completed SUPPORTED in 70.124 s with 9/9 provider calls, authoritative conflict handling, and recovery. Its measured episode write explains the condition hash change.
+- Based on the observed challenge cap, the configured challenge budget was corrected from 192 to 256 and deterministically revalidated; no further live run was launched.
+- The four-condition gate is not yet fully complete, so the 20-case smoke remains blocked and no memory-improvement claim is made.

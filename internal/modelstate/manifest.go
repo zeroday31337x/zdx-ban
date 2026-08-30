@@ -24,7 +24,8 @@ type Identity struct {
 	Hash                                                                                                *string     `json:"hash"`
 	Immutable                                                                                           bool        `json:"immutable"`
 	ArtifactHash, TokenizerConfigHash, Quantization, Architecture, ParameterCount, ContextConfiguration string      `json:",omitempty"`
-	IdentityConfidence, IdentitySource                                                                  string      `json:"identity_confidence,omitempty"`
+	IdentityConfidence                                                                                  string      `json:"identity_confidence,omitempty"`
+	IdentitySource                                                                                      string      `json:"identity_source,omitempty"`
 }
 type Manifest struct {
 	SchemaVersion     int       `json:"schema_version"`

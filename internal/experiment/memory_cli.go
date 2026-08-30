@@ -9,31 +9,38 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-	"zdx-ban/internal/ban"
 	"zdx-ban/internal/memory"
 	"zdx-ban/internal/model"
 )
 
-func MemoryCommand(action string, args []string, p model.Provider, modelName string) error {
+func MemoryCommand(action string, args []string, p model.Provider, modelName string, defaults CommandDefaults) error {
 	fs := flag.NewFlagSet("experiment "+action, flag.ContinueOnError)
 	datasetDefault := "datasets/ban-memory-experiment-001.jsonl"
 	if action == "memory-smoke" {
 		datasetDefault = "datasets/ban-memory-experiment-001-smoke.jsonl"
 	}
 	dataset := fs.String("dataset", datasetDefault, "memory experiment JSONL")
-	reps := fs.Int("repetitions", 1, "repetitions")
+	foundationPath := fs.String("foundation-memory", "datasets/foundation-memory-v1.jsonl", "versioned foundation memory JSONL")
+	reps := fs.Int("repetitions", defaults.Repetitions, "repetitions")
 	output := fs.String("output", "results", "result root")
 	dry := fs.Bool("dry-run", false, "validate without model calls")
 	resume := fs.String("resume", "", "experiment ID")
 	maxRecords := fs.Int("memory-records", 8, "working memory record bound")
 	maxChars := fs.Int("memory-chars", 6000, "working memory character bound")
 	writePolicy := fs.String("memory-write", "writable", "writable or read-only")
-	timeout := fs.Duration("timeout", 15*time.Minute, "legacy inference timeout")
-	inferenceTimeout := fs.Duration("inference-timeout", 15*time.Minute, "per provider inference deadline")
-	caseTimeout := fs.Duration("case-timeout", time.Hour, "whole case deadline")
-	runTimeout := fs.Duration("run-timeout", 5*time.Hour, "whole experiment deadline")
+	gravityRouter := fs.Bool("gravity-router", true, "route memory and branches using evidence-backed gravity wells")
+	onlineLearning := fs.Bool("online-memory-learning", true, "carry verified condition memory forward across prompts")
+	timeout := fs.Duration("timeout", defaults.Timeout, "legacy inference timeout")
+	inferenceTimeout := fs.Duration("inference-timeout", defaults.InferenceTimeout, "per provider inference deadline")
+	caseTimeout := fs.Duration("case-timeout", defaults.CaseTimeout, "whole case deadline")
+	runTimeout := fs.Duration("run-timeout", defaults.RunTimeout, "whole experiment deadline")
 	caseID := fs.String("case-id", "", "run only this case ID")
-	seed := fs.Int("seed", 42, "seed")
+	proposalTokens := fs.Int("proposal-max-tokens", defaults.ProposalMaxTokens, "per proposal-generation call limit")
+	evaluationTokens := fs.Int("evaluation-max-tokens", defaults.EvaluationMaxTokens, "per branch-evaluation call limit")
+	challengeTokens := fs.Int("challenge-max-tokens", defaults.ChallengeMaxTokens, "per challenge call limit")
+	finalTokens := fs.Int("final-max-tokens", defaults.FinalAnswerMaxTokens, "final-answer call limit")
+	temperature := fs.Float64("temperature", defaults.MemoryTemperature, "generation temperature")
+	seed := fs.Int("seed", defaults.Seed, "seed")
 	limit := fs.Int("limit", 0, "maximum cases; zero means all")
 	live := fs.Bool("live", false, "explicitly permit live provider calls")
 	if e := fs.Parse(args); e != nil {
@@ -41,6 +48,10 @@ func MemoryCommand(action string, args []string, p model.Provider, modelName str
 	}
 	registry := NewRegistry()
 	data, e := LoadMemoryDataset(*dataset, registry)
+	if e != nil {
+		return e
+	}
+	foundation, e := LoadFoundationMemory(*foundationPath)
 	if e != nil {
 		return e
 	}
@@ -65,10 +76,11 @@ func MemoryCommand(action string, args []string, p model.Provider, modelName str
 	retrieval := memory.DefaultRetrievalConfig()
 	retrieval.MaxRecords = *maxRecords
 	retrieval.MaxChars = *maxChars
-	cfg := RunConfig{Model: modelName, Provider: "ollama", Temperature: .2, Seed: seed, MaxTokens: 1024, Timeout: *timeout, InferenceTimeout: *inferenceTimeout, CaseTimeout: *caseTimeout, RunTimeout: *runTimeout, Streaming: true, Repetitions: *reps, BAN: ban.DefaultConfig(), RequireObjectiveVerification: true, MemoryEnabled: true, MemoryRetrieval: retrieval, MemoryConsolidation: memory.ConsolidationConfig{MinDistinctEpisodes: 2}, MemoryWritePolicy: *writePolicy}
+	retrieval.Gravity.Enabled = *gravityRouter
+	cfg := RunConfig{Model: modelName, Provider: defaults.Provider, Temperature: *temperature, Seed: seed, MaxTokens: defaults.MaxTokens, ProposalMaxTokens: *proposalTokens, EvaluationMaxTokens: *evaluationTokens, ChallengeMaxTokens: *challengeTokens, FinalAnswerMaxTokens: *finalTokens, Timeout: *timeout, InferenceTimeout: *inferenceTimeout, CaseTimeout: *caseTimeout, RunTimeout: *runTimeout, Streaming: true, Repetitions: *reps, BAN: defaults.BAN, RequireObjectiveVerification: true, MemoryEnabled: true, MemoryRetrieval: retrieval, MemoryConsolidation: memory.ConsolidationConfig{MinDistinctEpisodes: 2}, MemoryWritePolicy: *writePolicy, MemoryOnlineLearning: *onlineLearning}
 	cfg.CaseLimit = *limit
-	runner := MemoryRunner{Provider: p, Registry: registry, Dataset: data, Config: cfg, OutputRoot: *output, ExperimentID: *resume, Retrieval: retrieval, Consolidation: cfg.MemoryConsolidation, WritePolicy: *writePolicy}
-	banCalls := 1 + cfg.BAN.InitialBranches + cfg.BAN.RetainBranches + cfg.BAN.RetainBranches*2 + 2 + 1
+	runner := MemoryRunner{Provider: p, Registry: registry, Dataset: data, Config: cfg, OutputRoot: *output, ExperimentID: *resume, Retrieval: retrieval, Consolidation: cfg.MemoryConsolidation, WritePolicy: *writePolicy, Foundation: foundation}
+	banCalls := 1 + cfg.BAN.InitialBranches + cfg.BAN.RetainBranches + cfg.BAN.RetainBranches*2 + 2 + 1 + 1 + cfg.BAN.GravityRecoveryBranches
 	providerCallsUpper := len(data.Cases) * *reps * (1 + 3*banCalls)
 	providerEnvelope := time.Duration(providerCallsUpper) * *inferenceTimeout
 	caseEnvelope := time.Duration(len(data.Cases)**reps) * *caseTimeout
@@ -98,7 +110,7 @@ func MemoryCommand(action string, args []string, p model.Provider, modelName str
 	ctx, cancelRun := context.WithTimeout(signalCtx, *runTimeout)
 	defer cancelRun()
 	runner.Progress = func(x MemoryCaseResult, n, total int) {
-		fmt.Printf("[%02d/%02d] %s cold=%s memory=%s misleading=%s retrieved=%d\n", n, total, x.CaseID, outcomeLabel(x.Cold.Verification), outcomeLabel(x.WithMemory.Verification), outcomeLabel(x.Misleading.Verification), x.Metrics.RetrievalCount)
+		fmt.Printf("[%02d/%02d] %s cold=%s memory=%s misleading=%s retrieved=%d gravity=%.3f evidence=%d routed=%d\n", n, total, x.CaseID, outcomeLabel(x.Cold.Verification), outcomeLabel(x.WithMemory.Verification), outcomeLabel(x.Misleading.Verification), x.Metrics.RetrievalCount, x.Metrics.MaxGravityStrength, x.Metrics.GravityEvidence, x.Metrics.GravityRoutedBranches)
 	}
 	result, e := runner.Run(ctx, *resume != "")
 	fmt.Printf("memory experiment=%s cases=%d initial-memory=%s final-memory=%s\n", result.ExperimentID, len(result.Cases), result.InitialMemoryHash, result.FinalMemoryHash)

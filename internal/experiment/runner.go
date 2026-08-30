@@ -6,13 +6,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"sort"
 	"sync"
 	"time"
 	"zdx-ban/internal/ban"
@@ -233,6 +231,11 @@ func (r *Runner) runPair(ctx context.Context, c Case, rep int) PairedResult {
 				row.Baseline.FailureCategory = string(row.Baseline.Verification.Outcome)
 			}
 		}
+		row.Baseline.VerificationDuration = row.Baseline.Verification.Duration
+		row.Baseline.OrchestrationDuration = row.Baseline.Latency - row.Baseline.ProviderDuration - row.Baseline.VerificationDuration
+		if row.Baseline.OrchestrationDuration < 0 {
+			row.Baseline.OrchestrationDuration = 0
+		}
 		if row.Baseline.Verification.Measurement.ID != "" {
 			row.Baseline.Measurements = append(row.Baseline.Measurements, row.Baseline.Verification.Measurement)
 		}
@@ -243,13 +246,16 @@ func (r *Runner) runPair(ctx context.Context, c Case, rep int) PairedResult {
 	p = seededProvider{banTracker, seed}
 	e := ban.NewEngine(p, r.Config.BAN)
 	e.Temperature = r.Config.Temperature
-	e.MaxTokens = r.Config.MaxTokens
+	e.MaxTokens = tokenBudget(r.Config.FinalAnswerMaxTokens, r.Config.MaxTokens)
 	e.Generator.Temperature = r.Config.Temperature
-	e.Generator.MaxTokens = r.Config.MaxTokens
+	e.Generator.MaxTokens = tokenBudget(r.Config.ProposalMaxTokens, r.Config.MaxTokens)
 	e.Evaluator.Temperature = r.Config.Temperature
+	e.Evaluator.MaxTokens = tokenBudget(r.Config.EvaluationMaxTokens, r.Config.MaxTokens)
+	e.Evaluator.ChallengeMaxTokens = tokenBudget(r.Config.ChallengeMaxTokens, r.Config.MaxTokens)
 	e.Verifier = BranchVerifier{c, v}
 	e.TraceDir = ""
 	if r.MemoryRetrieval != nil {
+		e.Executor = ArithmeticExecutor{}
 		guide := memory.Guidance(*r.MemoryRetrieval)
 		e.Generator.MemoryGuide = guide
 		ids := []string{}
@@ -258,7 +264,19 @@ func (r *Runner) runPair(ctx context.Context, c Case, rep int) PairedResult {
 			ids = append(ids, x.Record.ID)
 			reasons[x.Record.ID] = x.Reason
 		}
-		e.Memory = ban.MemoryInteraction{Enabled: true, InitialSnapshotHash: r.MemoryRetrieval.SnapshotHash, RetrievedMemoryIDs: ids, RetrievalReasons: reasons, WorkingMemoryChars: r.MemoryRetrieval.ApproxChars, GuidanceHash: configHash(guide)}
+		for _, well := range r.MemoryRetrieval.GravityWells {
+			strength := well.BaseStrength
+			decayHalfLife := well.DecayHalfLife
+			if strength == 0 && well.Strength > 0 {
+				// Compatibility for retrieval snapshots written before wells kept
+				// their unmodulated evidence strength separately.
+				strength = well.Strength
+				decayHalfLife = 0
+			}
+			e.GravityWells = append(e.GravityWells, ban.GravityWell{ID: well.ID, Category: well.Category, Strength: strength, Repulsion: well.Repulsion, DecayHalfLife: decayHalfLife, LastUsedAt: well.LastUsedAt, SuccessRate: well.SuccessRate, ApplicationCount: well.ApplicationCount, OutcomeCount: well.OutcomeCount, SupportingEvidence: well.SupportingEvidence, FoundationAnchor: well.FoundationAnchor, Keywords: append([]string(nil), well.Keywords...)})
+		}
+		e.GravityWeight = r.Config.MemoryRetrieval.Gravity.Weight
+		e.Memory = ban.MemoryInteraction{Enabled: true, InitialSnapshotHash: r.MemoryRetrieval.SnapshotHash, RetrievedMemoryIDs: ids, RetrievalReasons: reasons, WorkingMemoryChars: r.MemoryRetrieval.ApproxChars, GuidanceHash: configHash(guide), GravityWells: append([]ban.GravityWell(nil), e.GravityWells...)}
 	}
 	result, bt, berr := e.Run(ctx, c.Prompt)
 	after = telemetry.Capture()
@@ -298,6 +316,9 @@ func (r *Runner) runPair(ctx context.Context, c Case, rep int) PairedResult {
 		return row
 	}
 	row.BAN.Answer = result.Answer
+	if result.Selected != nil {
+		row.SelectedRoute = BranchRoute{ID: result.Selected.ID, Title: result.Selected.Title, ReasoningSummary: result.Selected.ReasoningSummary, Assumptions: append([]string(nil), result.Selected.Assumptions...), GravityWellID: result.Selected.GravityWellID, InformationGravity: result.Selected.InformationGravity, GravityRepulsion: result.Selected.GravityRepulsion}
+	}
 	row.BAN.Verification = verify(v, ctx, c, result.Answer)
 	row.FinalMeasurements = append(row.FinalMeasurements, row.BAN.Verification.Measurement)
 	row.BAN.Measurements = append(row.BAN.Measurements, row.BAN.Verification.Measurement)
@@ -312,6 +333,13 @@ func (r *Runner) runPair(ctx context.Context, c Case, rep int) PairedResult {
 		row.BAN.OrchestrationDuration = 0
 	}
 	return row
+}
+
+func tokenBudget(specific, fallback int) int {
+	if specific > 0 {
+		return specific
+	}
+	return fallback
 }
 func (r *Runner) loadOrCreate(ctx context.Context, dir string, resume bool) (ResultFile, error) {
 	path := filepath.Join(dir, "summary.json")
@@ -430,16 +458,20 @@ func tokenPtr(r model.GenerateResponse) *int {
 }
 func errorVerification(ctx context.Context, err error) Verification {
 	m := measurement.Result{ID: fmt.Sprintf("error-%d", time.Now().UnixNano()), Outcome: measurement.Error, VerificationClass: measurement.Unverified, Authority: measurement.UnknownAuthority, Independence: measurement.UnknownIndependence, StartedAt: time.Now().UTC(), FinishedAt: time.Now().UTC(), Error: &measurement.MeasurementError{Code: string(inference.FailureCodeOf(err)), Message: err.Error()}}
-	if inference.FailureCodeOf(err) == inference.ModelOutputMalformed {
+	switch inference.FailureCodeOf(err) {
+	case inference.ModelOutputMalformed:
 		return Verification{Outcome: MalformedOutput, Details: err.Error(), Measurement: m}
-	}
-	if errors.Is(err, context.DeadlineExceeded) {
+	case inference.ProviderTimeout:
 		return Verification{Outcome: TimedOut, Details: err.Error(), Measurement: m}
-	}
-	if errors.Is(err, context.Canceled) || ctx.Err() != nil {
+	case inference.ProviderCancelled:
 		return Verification{Outcome: Interrupted, Details: err.Error(), Measurement: m}
+	case inference.VerificationError:
+		return Verification{Outcome: VerifierError, Details: err.Error(), Measurement: m}
+	case inference.NoVerifiedCandidate:
+		return Verification{Outcome: NoVerifiedCandidate, Details: err.Error(), Measurement: m}
+	default:
+		return Verification{Outcome: ProviderFailure, Details: err.Error(), Measurement: m}
 	}
-	return Verification{Outcome: ProviderFailure, Details: err.Error(), Measurement: m}
 }
 func initialVerification(ctx context.Context, t *ban.ExecutionTrace, v ObjectiveVerifier, c Case) Verification {
 	for _, n := range t.Nodes {
@@ -450,7 +482,7 @@ func initialVerification(ctx context.Context, t *ban.ExecutionTrace, v Objective
 	return Verification{Outcome: Incorrect, Details: "initial winner missing from trace"}
 }
 func graphMetrics(t *ban.ExecutionTrace) GraphMetrics {
-	g := GraphMetrics{CandidateProposals: t.Metrics.CandidateProposals, NodesCreated: len(t.Nodes), DuplicateProposals: t.Metrics.DuplicateProposals, DuplicatesDetected: t.Metrics.DuplicateProposals, BranchesPruned: t.Metrics.PrunedNodes, PrunedCandidates: t.Metrics.PrunedNodes, ProviderEvaluations: t.Metrics.ProviderEvaluations, PeakActiveBranches: t.Metrics.PeakActiveBranches}
+	g := GraphMetrics{CandidateProposals: t.Metrics.CandidateProposals, NodesCreated: len(t.Nodes), DuplicateProposals: t.Metrics.DuplicateProposals, DuplicatesDetected: t.Metrics.DuplicateProposals, AnswerConvergences: t.Metrics.AnswerConvergences, DiversityRegenerations: t.Metrics.DiversityRegenerations, BranchesPruned: t.Metrics.PrunedNodes, PrunedCandidates: t.Metrics.PrunedNodes, ProviderEvaluations: t.Metrics.ProviderEvaluations, PeakActiveBranches: t.Metrics.PeakActiveBranches, GravityRoutedBranches: t.Metrics.GravityRoutedBranches, GravityWellHits: t.Metrics.GravityWellHits, GravityRecoveryAttempts: t.Metrics.GravityRecoveryAttempts, GravityRecoveries: t.Metrics.GravityRecoveries}
 	for _, n := range t.Nodes {
 		if n.Depth > g.MaxDepthReached {
 			g.MaxDepthReached = n.Depth
@@ -463,19 +495,19 @@ func graphMetrics(t *ban.ExecutionTrace) GraphMetrics {
 	return g
 }
 func classifyBAN(err error, t *ban.ExecutionTrace) string {
-	if code := inference.FailureCodeOf(err); code != inference.ExecutionError {
+	if code := inference.FailureCodeOf(err); code != "" {
 		return string(code)
 	}
-	if stringsContains(err.Error(), "structured") || stringsContains(err.Error(), "JSON") {
-		return "model_output_malformed"
-	}
-	if stringsContains(err.Error(), "no candidate passed") {
-		if t != nil {
-			return "correct_branch_not_generated_or_preserved"
+	return string(inference.NoVerifiedCandidate)
+}
+
+func contains(s, q string) bool {
+	for i := 0; i+len(q) <= len(s); i++ {
+		if s[i:i+len(q)] == q {
+			return true
 		}
-		return "verification_failure"
 	}
-	return string(errorVerification(context.Background(), err).Outcome)
+	return false
 }
 func classifyFinal(v Verification, t *ban.ExecutionTrace) string {
 	if v.Outcome == MalformedOutput {
@@ -485,17 +517,6 @@ func classifyFinal(v Verification, t *ban.ExecutionTrace) string {
 		return "selected_branch_final_answer_incorrect"
 	}
 	return string(v.Outcome)
-}
-func stringsContains(s, q string) bool {
-	return len(s) >= len(q) && sort.SearchStrings([]string{s}, q) >= 0 || contains(s, q)
-}
-func contains(s, q string) bool {
-	for i := 0; i+len(q) <= len(s); i++ {
-		if s[i:i+len(q)] == q {
-			return true
-		}
-	}
-	return false
 }
 
 var _ = runtime.GOARCH

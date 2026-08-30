@@ -1,0 +1,23 @@
+{
+  "architectures": ["LlamaForCausalLM"],
+  "model_type": "llama",
+  "vocab_size": 0,
+  "hidden_size": 512,
+  "intermediate_size": 1376,
+  "num_hidden_layers": 12,
+  "num_attention_heads": 8,
+  "num_key_value_heads": 4,
+  "hidden_act": "silu",
+  "max_position_embeddings": 1024,
+  "initializer_range": 0.02,
+  "rms_norm_eps": 0.00001,
+  "rope_theta": 10000.0,
+  "attention_bias": false,
+  "attention_dropout": 0.0,
+  "mlp_bias": false,
+  "tie_word_embeddings": true,
+  "use_cache": true,
+  "bos_token_id": 0,
+  "eos_token_id": 0,
+  "pad_token_id": 0
+}

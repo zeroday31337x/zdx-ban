@@ -125,11 +125,21 @@ func addMeasurement(s *MeasurementSummary, m measurement.Result) {
 	s.Latency += m.Cost.Latency
 }
 func addGraph(a *GraphMetrics, b GraphMetrics) {
+	a.CandidateProposals += b.CandidateProposals
 	a.NodesCreated += b.NodesCreated
+	a.DuplicateProposals += b.DuplicateProposals
 	a.DuplicatesDetected += b.DuplicatesDetected
+	a.AnswerConvergences += b.AnswerConvergences
+	a.DiversityRegenerations += b.DiversityRegenerations
 	a.Convergences += b.Convergences
 	a.MultipleParentNodes += b.MultipleParentNodes
 	a.BranchesPruned += b.BranchesPruned
+	a.PrunedCandidates += b.PrunedCandidates
+	a.ProviderEvaluations += b.ProviderEvaluations
+	a.GravityRoutedBranches += b.GravityRoutedBranches
+	a.GravityWellHits += b.GravityWellHits
+	a.GravityRecoveryAttempts += b.GravityRecoveryAttempts
+	a.GravityRecoveries += b.GravityRecoveries
 	if b.MaxDepthReached > a.MaxDepthReached {
 		a.MaxDepthReached = b.MaxDepthReached
 	}

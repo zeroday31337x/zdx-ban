@@ -23,9 +23,9 @@ func (p *scriptedProvider) GenerateStructured(_ context.Context, r model.Generat
 	var v any
 	switch {
 	case strings.Contains(r.Prompt, "exactly 5"):
-		v = map[string]any{"branches": []map[string]any{{"title": "Obvious", "hypothesis": "wrong obvious cause", "reasoning_summary": "looks likely", "assumptions": []string{}}, {"title": "Minority", "hypothesis": "correct alternative", "reasoning_summary": "testable", "assumptions": []string{}}, {"title": "Third", "hypothesis": "third cause", "reasoning_summary": "third", "assumptions": []string{}}, {"title": "Fourth", "hypothesis": "fourth cause", "reasoning_summary": "fourth", "assumptions": []string{}}, {"title": "Framing", "hypothesis": "measurement error", "reasoning_summary": "challenge framing", "assumptions": []string{}}}}
+		v = map[string]any{"branches": []map[string]any{{"title": "Obvious", "answer": "wrong obvious cause", "reasoning_summary": "looks likely", "assumptions": []string{}}, {"title": "Minority", "answer": "correct alternative", "reasoning_summary": "testable", "assumptions": []string{}}, {"title": "Third", "answer": "third cause", "reasoning_summary": "third", "assumptions": []string{}}, {"title": "Fourth", "answer": "fourth cause", "reasoning_summary": "fourth", "assumptions": []string{}}, {"title": "Framing", "answer": "measurement error", "reasoning_summary": "challenge framing", "assumptions": []string{}}}}
 	case strings.Contains(r.Prompt, "exactly 2"):
-		v = map[string]any{"branches": []map[string]any{{"title": "Shared A", "hypothesis": "convergent refinement A", "reasoning_summary": "refined", "assumptions": []string{}}, {"title": "Shared B", "hypothesis": "convergent refinement B", "reasoning_summary": "refined", "assumptions": []string{}}}}
+		v = map[string]any{"branches": []map[string]any{{"title": "Shared A", "answer": "convergent refinement A", "reasoning_summary": "refined", "assumptions": []string{}}, {"title": "Shared B", "answer": "convergent refinement B", "reasoning_summary": "refined", "assumptions": []string{}}}}
 	case strings.Contains(r.Prompt, "skeptic"):
 		v = map[string]any{"skeptic": "hidden assumption", "counterfactual": "new contrary evidence"}
 	default:
@@ -71,6 +71,9 @@ func TestEngineRecoversAndConverges(t *testing.T) {
 	if res.Selected.Status != Selected || tr.ReasonForSwitch == "" {
 		t.Fatal("selection/reason missing")
 	}
+	if res.Answer != "correct alternative" {
+		t.Fatalf("verified candidate was regenerated or corrupted: %q", res.Answer)
+	}
 	if len(tr.Nodes) != 7 || tr.Metrics.ModelCalls == 0 {
 		t.Fatalf("trace nodes=%d calls=%d", len(tr.Nodes), tr.Metrics.ModelCalls)
 	}
@@ -84,4 +87,15 @@ func TestEngineRecoversAndConverges(t *testing.T) {
 		t.Fatalf("expected convergent nodes, got %d", parents)
 	}
 	_ = fmt.Sprintf("%v", tr)
+}
+
+func TestStructuredSchemasBoundGeneration(t *testing.T) {
+	branches := proposalSchema(2)["properties"].(map[string]any)["branches"].(map[string]any)
+	if branches["minItems"] != 2 || branches["maxItems"] != 2 {
+		t.Fatalf("proposal count is not exact: %#v", branches)
+	}
+	evidence := evaluationSchema()["properties"].(map[string]any)["evidence"].(map[string]any)
+	if evidence["maxItems"] != 8 || evidence["items"].(map[string]any)["type"] != "string" {
+		t.Fatalf("evidence is not bounded string data: %#v", evidence)
+	}
 }

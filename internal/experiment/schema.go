@@ -38,6 +38,10 @@ type RunConfig struct {
 	Temperature                  float64
 	Seed                         *int `json:"seed,omitempty"`
 	MaxTokens                    int
+	ProposalMaxTokens            int
+	EvaluationMaxTokens          int
+	ChallengeMaxTokens           int
+	FinalAnswerMaxTokens         int
 	Timeout                      time.Duration `json:"timeout"`
 	InferenceTimeout             time.Duration `json:"inferenceTimeout"`
 	CaseTimeout                  time.Duration `json:"caseTimeout"`
@@ -51,6 +55,27 @@ type RunConfig struct {
 	MemoryRetrieval              memory.RetrievalConfig
 	MemoryConsolidation          memory.ConsolidationConfig
 	MemoryWritePolicy            string
+	MemoryOnlineLearning         bool
+}
+
+// CommandDefaults supplies project-level defaults while CLI flags remain
+// authoritative for a specific, recorded experiment run.
+type CommandDefaults struct {
+	Provider             string
+	Temperature          float64
+	MemoryTemperature    float64
+	MaxTokens            int
+	ProposalMaxTokens    int
+	EvaluationMaxTokens  int
+	ChallengeMaxTokens   int
+	FinalAnswerMaxTokens int
+	Timeout              time.Duration
+	InferenceTimeout     time.Duration
+	CaseTimeout          time.Duration
+	RunTimeout           time.Duration
+	Repetitions          int
+	Seed                 int
+	BAN                  ban.Config
 }
 type Manifest struct {
 	Experiment, SchemaVersion, ExperimentID, DatasetVersion, DatasetPath, DatasetSHA256, GitCommit, GitRemote            string
@@ -65,16 +90,19 @@ type Manifest struct {
 type Outcome string
 
 const (
-	Pass            Outcome = "pass"
-	Incorrect       Outcome = "incorrect"
-	VerifierError   Outcome = "verifier_error"
-	Misconfigured   Outcome = "misconfigured"
-	Unsupported     Outcome = "unsupported"
-	TimedOut        Outcome = "timeout"
-	ProviderFailure Outcome = "provider_failure"
-	MalformedOutput Outcome = "malformed_output"
-	Interrupted     Outcome = "interrupted"
-	Unscored        Outcome = "unscored"
+	Pass                Outcome = "pass"
+	Incorrect           Outcome = "incorrect"
+	VerifierError       Outcome = "verifier_error"
+	Misconfigured       Outcome = "misconfigured"
+	Unsupported         Outcome = "unsupported"
+	TimedOut            Outcome = "timeout"
+	ProviderFailure     Outcome = "provider_failure"
+	NoVerifiedCandidate Outcome = "no_verified_candidate"
+	// ExecutionFailure is retained as a source-compatible alias.
+	ExecutionFailure Outcome = NoVerifiedCandidate
+	MalformedOutput  Outcome = "malformed_output"
+	Interrupted      Outcome = "interrupted"
+	Unscored         Outcome = "unscored"
 )
 
 type Verification struct {
@@ -105,7 +133,12 @@ type RunTelemetry struct {
 	GCBefore, GCAfter                                uint32
 	Duration, ModelLatency                           time.Duration
 }
-type GraphMetrics struct{ CandidateProposals, NodesCreated, DuplicateProposals, DuplicatesDetected, Convergences, MultipleParentNodes, BranchesPruned, PrunedCandidates, ProviderEvaluations, MaxDepthReached, PeakActiveBranches int }
+type GraphMetrics struct{ CandidateProposals, NodesCreated, DuplicateProposals, DuplicatesDetected, AnswerConvergences, DiversityRegenerations, Convergences, MultipleParentNodes, BranchesPruned, PrunedCandidates, ProviderEvaluations, MaxDepthReached, PeakActiveBranches, GravityRoutedBranches, GravityWellHits, GravityRecoveryAttempts, GravityRecoveries int }
+type BranchRoute struct {
+	ID, Title, ReasoningSummary, GravityWellID string
+	Assumptions                                []string
+	InformationGravity, GravityRepulsion       float64
+}
 type SideResult struct {
 	Answer                                                                                                               string               `json:"answer"`
 	Verification                                                                                                         Verification         `json:"verification"`
@@ -130,6 +163,7 @@ type PairedResult struct {
 	Graph                                    GraphMetrics
 	TraceRunID                               string
 	Memory                                   ban.MemoryInteraction
+	SelectedRoute                            BranchRoute
 	AttemptStartedAt, CompletedAt            time.Time
 	ConfigurationHash                        string
 }

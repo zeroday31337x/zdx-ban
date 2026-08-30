@@ -10,13 +10,14 @@ Subsystems live under `internal/model`, `internal/ban`, `internal/memory`, `inte
 
 ## Setup and use
 
-Install/start Ollama and select a model:
+Install/start Ollama, then edit the strict project-level [`ban.config`](ban.config)
+to select the model, endpoint, generation budgets, search bounds, and timeouts.
+The complete field and override contract is in
+[`CONFIGURATION.md`](CONFIGURATION.md).
 
 ```sh
-cp .env.example .env
-export BAN_MODEL=qwen2.5:1.5b
-export OLLAMA_BASE_URL=http://127.0.0.1:11434
 go build -o ./bin/ban ./cmd/ban
+./bin/ban config validate
 ```
 
 Run BAN, the same-model single-generation baseline, or the initial benchmark:
@@ -53,8 +54,20 @@ go build ./...
 
 Tests use provider mocks and `httptest.Server`; Ollama is not required. Generated text is untrusted, strictly decoded, size-bounded, and never executed as shell input.
 
+Optional, unvalidated W1 LoRA training infrastructure lives in
+[`training/slow_android`](training/slow_android/README.md). It never mutates W0,
+does not train W2, and cannot register or activate an adapter.
+
+The W0 raw-document corpus contract and streaming validator live in
+[`training/w0`](training/w0/README.md), together with an unvalidated pilot
+tokenizer/release builder and resumable full-weight trainer. No trained or
+accepted W0 is claimed.
+Ubuntu hosts can supervise the existing W1 worker with the disabled-by-default,
+cron-safe launcher in
+[`training/slow_ubuntu`](training/slow_ubuntu/README.md).
+
 ## Scientific discipline and limitations
 
-Baseline and BAN use the same configured model and relevant generation settings. The bundled dataset is a harness seed, not evidence that BAN improves accuracy. Current verification defaults to an explicit no-constraint accept verifier unless a deterministic domain verifier is injected. Semantic deduplication is normalized-text-only; telemetry uses portable Go runtime data; token counts depend on Ollama; no long-term memory, embeddings, learned verifier, GUI, database, model training, KV-cache manipulation, or PPS exists yet.
+Baseline and BAN use the same configured model and relevant generation settings. The bundled dataset is a harness seed, not evidence that BAN improves accuracy. Current verification defaults to an explicit no-constraint accept verifier unless a deterministic domain verifier is injected. Semantic deduplication is normalized-text-only; telemetry uses portable Go runtime data; token counts depend on Ollama; no learned verifier, GUI, database, native foundation-model training, KV-cache manipulation, or PPS exists yet. The W0 corpus tools validate data but do not train weights. The optional W1 worker is infrastructure only; no successful device training or validated adapter is claimed.
 
 The next experiment should introduce a fixed, objectively verifiable task set and compare paired seeded baseline/BAN runs, emphasizing forced recovery cases, final-selection accuracy, latency, tokens, and memory.

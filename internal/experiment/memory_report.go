@@ -76,12 +76,25 @@ func WriteMemoryReport(path string, r *MemoryExperiment) error {
 		metrics.ConsolidationEvents += x.Metrics.ConsolidationEvents
 		metrics.MemoryLeverageBranches += x.Metrics.MemoryLeverageBranches
 		metrics.MemoryLeverageModelCalls += x.Metrics.MemoryLeverageModelCalls
+		metrics.GravityWells += x.Metrics.GravityWells
+		metrics.GravityEvidence += x.Metrics.GravityEvidence
+		metrics.GravityRoutedBranches += x.Metrics.GravityRoutedBranches
+		if x.Metrics.MaxGravityStrength > metrics.MaxGravityStrength {
+			metrics.MaxGravityStrength = x.Metrics.MaxGravityStrength
+		}
 	}
 	b.WriteString("## Measurement outcomes\n\n")
 	for _, c := range []MemoryCondition{BaselineCondition, ColdCondition, MemoryConditionEnabled, MisleadingCondition} {
 		fmt.Fprintf(&b, "- %s: supported=%d contradicted=%d inconclusive=%d errors=%d\n", c, counts[c][measurement.Supported], counts[c][measurement.Contradicted], counts[c][measurement.Inconclusive], counts[c][measurement.Error])
 	}
-	fmt.Fprintf(&b, "\n## Memory behavior\n\nRetrievals: %d  \nRelevant hits: %d  \nHarmful retrievals: %d  \nMemory-induced errors: %d  \nContradiction events: %d  \nSupersessions: %d  \nEpisodic writes: %d  \nConsolidations: %d  \nMemory leverage (branches avoided): %d  \nMemory leverage (model calls avoided): %d\n\n", metrics.RetrievalCount, metrics.RelevantHits, metrics.HarmfulRetrievals, metrics.MemoryInducedErrors, metrics.ContradictionEvents, metrics.SupersessionEvents, metrics.EpisodicWrites, metrics.ConsolidationEvents, metrics.MemoryLeverageBranches, metrics.MemoryLeverageModelCalls)
+	fmt.Fprintf(&b, "\n## Memory behavior\n\nRetrieved records in memory condition: %d  \nRelevant hits: %d  \nPotentially harmful records retrieved: %d  \nMeasured memory-induced errors: %d  \nContradiction events: %d  \nSupersessions: %d  \nEpisodic writes: %d  \nConsolidations: %d  \nGravity wells routed: %d  \nVerified gravity evidence: %d  \nPeak gravity strength: %.3f  \nBranches routed by gravity: %d  \nMemory leverage (branches avoided; comparable completed pairs only): %d  \nMemory leverage (model calls avoided; comparable completed pairs only): %d\n\n", metrics.RetrievalCount, metrics.RelevantHits, metrics.HarmfulRetrievals, metrics.MemoryInducedErrors, metrics.ContradictionEvents, metrics.SupersessionEvents, metrics.EpisodicWrites, metrics.ConsolidationEvents, metrics.GravityWells, metrics.GravityEvidence, metrics.MaxGravityStrength, metrics.GravityRoutedBranches, metrics.MemoryLeverageBranches, metrics.MemoryLeverageModelCalls)
+	if len(r.Cases) > 0 {
+		b.WriteString("## Gravity trajectory\n\n")
+		for _, x := range r.Cases {
+			fmt.Fprintf(&b, "- %s: strength=%.3f evidence=%d wells=%d routed-branches=%d memory-outcome=%s\n", x.CaseID, x.Metrics.MaxGravityStrength, x.Metrics.GravityEvidence, x.Metrics.GravityWells, x.Metrics.GravityRoutedBranches, x.WithMemory.Verification.Measurement.Outcome)
+		}
+		b.WriteString("\n")
+	}
 	b.WriteString("## Interpretation\n\nThese are measurement-relative outcomes within a controlled memory intervention. Historical memory is guidance, not current evidence. No universal intelligence or causal claim follows without live paired results and review.\n")
 	return os.WriteFile(path, []byte(b.String()), 0644)
 }

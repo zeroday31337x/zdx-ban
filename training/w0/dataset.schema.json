@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zdx.local/schemas/w0-pretraining-record-v1.json",
+  "title": "ZDX W0 pretraining record",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "id",
+    "text",
+    "source",
+    "source_type",
+    "language",
+    "license",
+    "split",
+    "synthetic",
+    "content_sha256"
+  ],
+  "properties": {
+    "id": {"type": "string", "minLength": 1, "maxLength": 512},
+    "text": {"type": "string", "minLength": 1},
+    "source": {"type": "string", "minLength": 1, "maxLength": 1024},
+    "source_type": {"type": "string", "minLength": 1, "maxLength": 128},
+    "language": {"type": "string", "minLength": 2, "maxLength": 35},
+    "license": {"type": "string", "minLength": 1, "maxLength": 256},
+    "split": {"enum": ["train", "validation", "test"]},
+    "synthetic": {"type": "boolean"},
+    "content_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "generator": {"type": "string", "minLength": 1, "maxLength": 512},
+    "generation_prompt_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "generator_version": {"type": "string", "minLength": 1, "maxLength": 256}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"synthetic": {"const": true}}},
+      "then": {"required": ["generator", "generation_prompt_hash"]}
+    }
+  ]
+}

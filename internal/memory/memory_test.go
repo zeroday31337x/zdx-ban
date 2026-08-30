@@ -179,3 +179,27 @@ func TestSupersessionPreservesOldRecord(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+func TestContextTagsAreBoundedAndAnswerFree(t *testing.T) {
+	tags := ContextTags("Compute (17 × 8) − 6. Return only the number.", "arithmetic_constraints", nil)
+	if len(tags) == 0 || len(tags) > 5 {
+		t.Fatalf("tags=%v", tags)
+	}
+	for _, tag := range tags {
+		if tag == "17" || tag == "8" || tag == "6" || tag == "130" {
+			t.Fatalf("numeric leakage in tags=%v", tags)
+		}
+	}
+	if !containsTag(tags, "arithmetic") || !containsTag(tags, "numeric") {
+		t.Fatalf("missing arithmetic tags=%v", tags)
+	}
+}
+
+func containsTag(tags []string, want string) bool {
+	for _, tag := range tags {
+		if tag == want {
+			return true
+		}
+	}
+	return false
+}

@@ -9,11 +9,10 @@ import (
 	"zdx-ban/internal/memory"
 )
 
-func memoryCommand(args []string) error {
+func memoryCommand(args []string, path string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("memory requires inspect, stats, or reset")
 	}
-	path := env("BAN_MEMORY_FILE", "memory/memory.jsonl")
 	store, e := memory.OpenJSONL(path)
 	if e != nil {
 		return e

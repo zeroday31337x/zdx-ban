@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 	"zdx-ban/internal/inference"
 	"zdx-ban/internal/measurement"
@@ -15,20 +16,23 @@ import (
 )
 
 type Engine struct {
-	Provider    inference.Engine
-	Generator   Generator
-	Evaluator   Evaluator
-	Verifier    Verifier
-	Config      Config
-	TraceDir    string
-	Temperature float64
-	MaxTokens   int
-	Logf        func(string, ...any)
-	Memory      MemoryInteraction
+	Provider      inference.Engine
+	Generator     Generator
+	Evaluator     Evaluator
+	Verifier      Verifier
+	Config        Config
+	TraceDir      string
+	Temperature   float64
+	MaxTokens     int
+	Logf          func(string, ...any)
+	Memory        MemoryInteraction
+	GravityWells  []GravityWell
+	GravityWeight float64
+	Executor      CapabilityExecutor
 }
 
 func NewEngine(p inference.Engine, c Config) *Engine {
-	return &Engine{Provider: p, Generator: Generator{Provider: p, Temperature: .2, MaxTokens: 1024}, Evaluator: Evaluator{p, .1, 768}, Verifier: AcceptVerifier{}, Config: c, TraceDir: "traces", Temperature: .2, MaxTokens: 1024, Logf: func(string, ...any) {}}
+	return &Engine{Provider: p, Generator: Generator{Provider: p, Temperature: .2, MaxTokens: 1024}, Evaluator: Evaluator{Provider: p, Temperature: .1, MaxTokens: 384, ChallengeMaxTokens: 256}, Verifier: AcceptVerifier{}, Config: c, TraceDir: "traces", Temperature: .2, MaxTokens: 256, GravityWeight: .20, Logf: func(string, ...any) {}}
 }
 func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace, error) {
 	if goal == "" {
@@ -42,6 +46,7 @@ func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace,
 	defer func() {
 		t.Nodes = g.Nodes()
 		t.Edges = g.Edges()
+		t.Memory.GravityWells = cloneGravityWells(e.GravityWells)
 		t.FinishedAt = time.Now().UTC()
 		t.RuntimeFinish = telemetry.Capture()
 		t.Metrics.TotalNodes = len(t.Nodes)
@@ -77,6 +82,34 @@ func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace,
 		}
 		if !dup {
 			initial = append(initial, n)
+			if n.Metadata["answer_convergence_with"] != "" {
+				t.Metrics.AnswerConvergences++
+			}
+		}
+	}
+	if len(initial) < e.Config.RetainBranches {
+		missing := e.Config.RetainBranches - len(initial)
+		more, retryResp, retryErr := e.Generator.Generate(ctx, goal, missing, initial)
+		if retryErr != nil {
+			return Result{}, t, retryErr
+		}
+		addUsage(&t.Metrics, retryResp)
+		t.Metrics.DiversityRegenerations++
+		t.Metrics.CandidateProposals += len(more)
+		for _, p := range more {
+			s := NewState(fmt.Sprintf("b%02d", len(g.Nodes())+1), p, 0)
+			n, dup, addErr := g.AddNode(s)
+			if addErr != nil {
+				return Result{}, t, addErr
+			}
+			if dup {
+				t.Metrics.DuplicateProposals++
+				continue
+			}
+			initial = append(initial, n)
+			if n.Metadata["answer_convergence_with"] != "" {
+				t.Metrics.AnswerConvergences++
+			}
 		}
 	}
 	e.Logf("[BAN] Generated %d branches", len(initial))
@@ -132,6 +165,9 @@ func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace,
 			}
 			if !dup {
 				children = append(children, n)
+				if n.Metadata["answer_convergence_with"] != "" {
+					t.Metrics.AnswerConvergences++
+				}
 			}
 		}
 		parent.Status = Expanded
@@ -145,6 +181,20 @@ func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace,
 	candidates := append(retained, children...)
 	rank(candidates)
 	candidates = filterViable(candidates)
+	// A measured arithmetic well can route the strategy through a local
+	// deterministic executor. The model still supplies the strategy; the
+	// ordinary verifier remains the sole authority for acceptance.
+	if e.Executor != nil && hasArithmeticWell(e.GravityWells) {
+		if answer, execErr := e.Executor.Execute(ctx, goal, "arithmetic strategy"); execErr == nil && answer != "" {
+			state := NewState(fmt.Sprintf("b%02d", len(g.Nodes())+1), Proposal{Title: "deterministic arithmetic", Hypothesis: answer, ReasoningSummary: "verified arithmetic executor", Assumptions: []string{"explicit operation structure"}}, 0)
+			state.Metadata["capability_executor"] = "arithmetic"
+			if node, duplicate, addErr := g.AddNode(state); addErr == nil && !duplicate {
+				candidates = append(candidates, node)
+				t.Metrics.CandidateProposals++
+				node.CapabilityInvocations = append(node.CapabilityInvocations, CapabilityInvocation{Capability: "DETERMINISTIC_ARITHMETIC", Why: "arithmetic gravity well", At: time.Now().UTC()})
+			}
+		}
+	}
 	for _, s := range candidates[:min(2, len(candidates))] {
 		ch, r, er := e.Evaluator.Challenge(ctx, goal, s)
 		if er != nil {
@@ -167,6 +217,7 @@ func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace,
 				continue
 			}
 			s.Status = Failed
+			UpdateGravityOutcome(e.GravityWells, s, time.Now().UTC())
 			if s.ID == t.InitialTopBranch {
 				t.RecoveredFromWrongBranch = true
 				t.RecoveryDepth = s.Depth
@@ -175,8 +226,59 @@ func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace,
 			continue
 		}
 		s.Status = Verified
+		UpdateGravityOutcome(e.GravityWells, s, time.Now().UTC())
 		winner = s
 		break
+	}
+	if winner == nil && len(e.GravityWells) > 0 && e.Config.GravityRecoveryBranches > 0 {
+		t.Metrics.GravityRecoveryAttempts++
+		recoveryProposals, recoveryResponse, recoveryErr := e.Generator.Generate(ctx, goal, e.Config.GravityRecoveryBranches, candidates)
+		if recoveryErr != nil {
+			return Result{}, t, recoveryErr
+		}
+		addUsage(&t.Metrics, recoveryResponse)
+		t.Metrics.CandidateProposals += len(recoveryProposals)
+		recoveryStates := make([]*State, 0, len(recoveryProposals))
+		for _, proposal := range recoveryProposals {
+			state := NewState(fmt.Sprintf("b%02d", len(g.Nodes())+1), proposal, 1)
+			node, duplicate, addErr := g.AddNode(state)
+			if addErr != nil {
+				return Result{}, t, addErr
+			}
+			if duplicate {
+				t.Metrics.DuplicateProposals++
+				continue
+			}
+			for _, rejected := range candidates {
+				if edgeErr := g.AddEdge(rejected.ID, node.ID); edgeErr != nil {
+					return Result{}, t, edgeErr
+				}
+			}
+			recoveryStates = append(recoveryStates, node)
+		}
+		if len(recoveryStates) > 0 {
+			if evaluateErr := e.evaluate(ctx, goal, recoveryStates, &t.Metrics); evaluateErr != nil {
+				return Result{}, t, evaluateErr
+			}
+			rank(recoveryStates)
+			for _, state := range filterViable(recoveryStates) {
+				verification := e.Verifier.Verify(ctx, goal, state)
+				state.VerificationResults = append(state.VerificationResults, verification)
+				if !verification.Passed {
+					state.Status = Failed
+					UpdateGravityOutcome(e.GravityWells, state, time.Now().UTC())
+					continue
+				}
+				state.Status = Verified
+				UpdateGravityOutcome(e.GravityWells, state, time.Now().UTC())
+				winner = state
+				t.Metrics.GravityRecoveries++
+				t.RecoveredFromWrongBranch = true
+				t.RecoveryDepth = state.Depth
+				t.ReasonForSwitch = "gravity recovery regenerated after deterministic rejection"
+				break
+			}
+		}
 	}
 	if winner == nil {
 		return Result{}, t, errors.New("no candidate passed verification")
@@ -184,12 +286,9 @@ func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace,
 	winner.Status = Selected
 	t.SelectedBranch = winner.ID
 	t.RecoveredFromWrongBranch = t.RecoveredFromWrongBranch || winner.ID != t.InitialTopBranch
-	answerResp, err := e.Provider.Generate(ctx, inference.Request{Goal: goal, Prompt: fmt.Sprintf("Goal: %s\nSelected hypothesis: %s\nReasoning: %s\nProduce final concise answer.", goal, winner.Hypothesis, winner.ReasoningSummary), Temperature: e.Temperature, MaxTokens: e.MaxTokens})
-	if err != nil {
-		return Result{}, t, err
-	}
-	addUsage(&t.Metrics, answerResp)
-	result := Result{Answer: answerResp.Text, Selected: winner}
+	// The candidate has already passed the authoritative verifier. Return it
+	// verbatim; a second model generation could corrupt a correct answer.
+	result := Result{Answer: winner.Hypothesis, Selected: winner}
 	t.Nodes = g.Nodes()
 	for _, n := range t.Nodes {
 		t.MeasurementEvents = append(t.MeasurementEvents, n.Measurements...)
@@ -206,6 +305,7 @@ func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace,
 			t.Metrics.PrunedNodes++
 		}
 	}
+	t.Memory.GravityWells = cloneGravityWells(e.GravityWells)
 	if e.TraceDir != "" {
 		if _, err = tr.WriteAtomic(e.TraceDir, t.RunID, t); err != nil {
 			return result, t, err
@@ -228,6 +328,10 @@ func (e *Engine) evaluate(ctx context.Context, goal string, states []*State, m *
 	}
 	for i, p := range pairs {
 		ApplyEvaluation(states[i], p.E)
+		if ApplyGravity(states[i], e.GravityWells, e.GravityWeight) {
+			m.GravityRoutedBranches++
+			m.GravityWellHits++
+		}
 		addUsage(m, p.R)
 	}
 	return nil
@@ -248,4 +352,28 @@ func filterViable(s []*State) []*State {
 		}
 	}
 	return out
+}
+
+func hasArithmeticWell(wells []GravityWell) bool {
+	for _, well := range wells {
+		category := strings.ToLower(well.Category)
+		if strings.Contains(category, "arithmetic") || strings.Contains(category, "numeric") {
+			return true
+		}
+		for _, keyword := range well.Keywords {
+			keyword = strings.ToLower(keyword)
+			if keyword == "arithmetic" || keyword == "numeric" || keyword == "calculate" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func cloneGravityWells(wells []GravityWell) []GravityWell {
+	cloned := append([]GravityWell(nil), wells...)
+	for i := range cloned {
+		cloned[i].Keywords = append([]string(nil), cloned[i].Keywords...)
+	}
+	return cloned
 }

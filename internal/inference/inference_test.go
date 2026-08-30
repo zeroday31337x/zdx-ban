@@ -2,6 +2,7 @@ package inference_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,6 +12,35 @@ import (
 	"zdx-ban/internal/inference"
 	"zdx-ban/internal/inference/ollama"
 )
+
+func TestOllamaStructuredRequestUsesExactJSONSchema(t *testing.T) {
+	var request map[string]any
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Fatal(err)
+		}
+		fmt.Fprintln(w, `{"response":"{\"evidence\":[\"measured\"],\"passed\":true}","done":true}`)
+	}))
+	defer s.Close()
+	o := ollama.New(s.URL, "m", time.Second)
+	o.Retries = 0
+	var got struct {
+		Evidence []string `json:"evidence"`
+		Passed   bool     `json:"passed"`
+	}
+	if _, err := o.GenerateStructured(context.Background(), inference.Request{Prompt: "x"}, &got); err != nil {
+		t.Fatal(err)
+	}
+	format, ok := request["format"].(map[string]any)
+	if !ok || format["type"] != "object" || format["additionalProperties"] != false {
+		t.Fatalf("format is not an exact object schema: %#v", request["format"])
+	}
+	properties := format["properties"].(map[string]any)
+	evidence := properties["evidence"].(map[string]any)
+	if evidence["type"] != "array" || evidence["items"].(map[string]any)["type"] != "string" {
+		t.Fatalf("evidence schema=%#v", evidence)
+	}
+}
 
 func TestOllamaSatisfiesGenericEngineAndCapabilities(t *testing.T) {
 	var _ inference.Engine = ollama.New("http://invalid", "bin/ban", time.Second)

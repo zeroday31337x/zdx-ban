@@ -14,12 +14,13 @@ type Graph struct {
 	mu                 sync.RWMutex
 	nodes              map[string]*State
 	fingerprints       map[string]string
+	answerFingerprints map[string]string
 	edges              []Edge
 	maxDepth, maxNodes int
 }
 
 func NewGraph(depth, nodes int) *Graph {
-	return &Graph{nodes: map[string]*State{}, fingerprints: map[string]string{}, maxDepth: depth, maxNodes: nodes}
+	return &Graph{nodes: map[string]*State{}, fingerprints: map[string]string{}, answerFingerprints: map[string]string{}, maxDepth: depth, maxNodes: nodes}
 }
 func (g *Graph) AddNode(s *State) (*State, bool, error) {
 	g.mu.Lock()
@@ -38,6 +39,12 @@ func (g *Graph) AddNode(s *State) (*State, bool, error) {
 	}
 	g.nodes[s.ID] = s
 	g.fingerprints[Fingerprint(s)] = s.ID
+	answer := AnswerFingerprint(s)
+	if id, ok := g.answerFingerprints[answer]; ok && id != s.ID {
+		s.Metadata["answer_convergence_with"] = id
+	} else {
+		g.answerFingerprints[answer] = s.ID
+	}
 	return s, false, nil
 }
 func (g *Graph) AddEdge(from, to string) error {

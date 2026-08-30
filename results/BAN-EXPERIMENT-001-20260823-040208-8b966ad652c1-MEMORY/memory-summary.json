@@ -1,0 +1,3027 @@
+{
+  "Experiment": "BAN-MEMORY-EXPERIMENT-001",
+  "SchemaVersion": "0.4",
+  "TraceSchemaVersion": "0.3",
+  "MemorySchemaVersion": "0.1",
+  "ExperimentID": "BAN-EXPERIMENT-001-20260823-040208-8b966ad652c1-MEMORY",
+  "DatasetVersion": "ban-memory-exp-001-smoke-v2",
+  "DatasetHash": "1130b53f7a6a9e7757d96ef8b9984963c762ece977d2cb092d10dbc810edea10",
+  "StartingCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+  "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+  "GitDirty": true,
+  "Config": {
+    "Model": "qwen2.5:1.5b",
+    "Provider": "ollama",
+    "Temperature": 0.2,
+    "seed": 42,
+    "MaxTokens": 1024,
+    "timeout": 900000000000,
+    "inferenceTimeout": 900000000000,
+    "caseTimeout": 3600000000000,
+    "runTimeout": 18000000000000,
+    "streaming": true,
+    "Repetitions": 1,
+    "CaseLimit": 0,
+    "BAN": {
+      "InitialBranches": 5,
+      "RetainBranches": 2,
+      "MaxDepth": 2,
+      "MaxNodes": 20,
+      "MaxConcurrentModelCalls": 1,
+      "MaxConcurrentEvaluations": 1,
+      "MaxActiveBranches": 3
+    },
+    "RequireObjectiveVerification": true,
+    "MemoryEnabled": true,
+    "MemoryRetrieval": {
+      "MaxRecords": 8,
+      "MaxChars": 6000,
+      "MaxAge": 0,
+      "IncludeTiers": [
+        "TIER_1_FOUNDATION",
+        "TIER_2_DOMAIN",
+        "TIER_3_EPISODIC"
+      ],
+      "TokenWeight": 0.45,
+      "CategoryWeight": 0.2,
+      "TagWeight": 0.15,
+      "TierWeight": 0.1,
+      "RecencyWeight": 0.05,
+      "OutcomeWeight": 0.05
+    },
+    "MemoryConsolidation": {
+      "MinDistinctEpisodes": 2
+    },
+    "MemoryWritePolicy": "writable"
+  },
+  "ConditionOrder": [
+    "BASELINE",
+    "BAN_COLD",
+    "BAN_MEMORY",
+    "BAN_MISLEADING_MEMORY"
+  ],
+  "InitialMemoryHash": "ae840bc5c6e0b5f97dc2853fac01509419820397579a3ccb7c78ae091e18e033",
+  "FinalMemoryHash": "c9c760bcef0b29bea199f3aa9985c86e366846a2cc4ccb852abf3fda1182cfc1",
+  "Cases": [
+    {
+      "CaseID": "memory-001",
+      "Category": "arithmetic_constraints",
+      "Behavior": "USEFUL_MEMORY_LEVERAGE",
+      "Repetition": 1,
+      "RunID": "BAN-EXPERIMENT-001-20260823-040229-d403c3332e0a",
+      "Baseline": {
+        "answer": "45",
+        "verification": {
+          "outcome": "pass",
+          "passed": true,
+          "details": "SUPPORTED under FORMALLY_VERIFIED: 45",
+          "value": 45,
+          "duration": 324409,
+          "measurement": {
+            "ID": "arithmetic-001-1787457731277159122",
+            "ContractID": "contract-arithmetic-001",
+            "Claim": "candidate output satisfies benchmark case arithmetic-001",
+            "Outcome": "SUPPORTED",
+            "VerificationClass": "FORMALLY_VERIFIED",
+            "Observation": 45,
+            "Expected": 45,
+            "tolerance": {
+              "absolute": 0
+            },
+            "Evidence": [
+              {
+                "ID": "e-arithmetic-001-1787457731277167177",
+                "Source": "deterministic local numeric",
+                "Observation": 45,
+                "Relationship": "SUPPORTS",
+                "MeasurementID": "contract-arithmetic-001",
+                "Provenance": {
+                  "Implementation": "",
+                  "ImplementationVersion": "",
+                  "BenchmarkCase": "",
+                  "DatasetVersion": "",
+                  "DatasetHash": "",
+                  "FixtureVersion": "",
+                  "Runtime": "",
+                  "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+                  "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+                  "GitDirty": true,
+                  "Timestamp": "0001-01-01T00:00:00Z"
+                },
+                "Timestamp": "2026-08-23T04:02:11.277168459Z",
+                "Independent": true,
+                "correlationGroup": "contract-arithmetic-001"
+              }
+            ],
+            "Method": "deterministic local numeric comparison",
+            "Authority": "FORMAL",
+            "Independence": "INDEPENDENT",
+            "Repeatable": true,
+            "Repeatability": "DETERMINISTIC",
+            "Provenance": {
+              "Implementation": "zdx-ban/internal/experiment/numeric",
+              "ImplementationVersion": "0.4",
+              "BenchmarkCase": "arithmetic-001",
+              "DatasetVersion": "ban-memory-exp-001-smoke-v2-evaluation",
+              "DatasetHash": "",
+              "FixtureVersion": "",
+              "Runtime": "go1.26.0",
+              "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+              "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+              "GitDirty": true,
+              "Timestamp": "2026-08-23T04:02:11.277431282Z"
+            },
+            "StartedAt": "2026-08-23T04:02:11.277106873Z",
+            "FinishedAt": "2026-08-23T04:02:11.277431282Z",
+            "Cost": {
+              "Latency": 324409,
+              "HeapBytesBefore": 1062424,
+              "HeapBytesAfter": 1100744,
+              "ExternalAPICalls": 0,
+              "PaidInferenceCalls": 0,
+              "LocalMeasurementCalls": 1
+            }
+          }
+        },
+        "measurements": [
+          {
+            "ID": "arithmetic-001-1787457731277159122",
+            "ContractID": "contract-arithmetic-001",
+            "Claim": "candidate output satisfies benchmark case arithmetic-001",
+            "Outcome": "SUPPORTED",
+            "VerificationClass": "FORMALLY_VERIFIED",
+            "Observation": 45,
+            "Expected": 45,
+            "tolerance": {
+              "absolute": 0
+            },
+            "Evidence": [
+              {
+                "ID": "e-arithmetic-001-1787457731277167177",
+                "Source": "deterministic local numeric",
+                "Observation": 45,
+                "Relationship": "SUPPORTS",
+                "MeasurementID": "contract-arithmetic-001",
+                "Provenance": {
+                  "Implementation": "",
+                  "ImplementationVersion": "",
+                  "BenchmarkCase": "",
+                  "DatasetVersion": "",
+                  "DatasetHash": "",
+                  "FixtureVersion": "",
+                  "Runtime": "",
+                  "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+                  "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+                  "GitDirty": true,
+                  "Timestamp": "0001-01-01T00:00:00Z"
+                },
+                "Timestamp": "2026-08-23T04:02:11.277168459Z",
+                "Independent": true,
+                "correlationGroup": "contract-arithmetic-001"
+              }
+            ],
+            "Method": "deterministic local numeric comparison",
+            "Authority": "FORMAL",
+            "Independence": "INDEPENDENT",
+            "Repeatable": true,
+            "Repeatability": "DETERMINISTIC",
+            "Provenance": {
+              "Implementation": "zdx-ban/internal/experiment/numeric",
+              "ImplementationVersion": "0.4",
+              "BenchmarkCase": "arithmetic-001",
+              "DatasetVersion": "ban-memory-exp-001-smoke-v2-evaluation",
+              "DatasetHash": "",
+              "FixtureVersion": "",
+              "Runtime": "go1.26.0",
+              "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+              "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+              "GitDirty": true,
+              "Timestamp": "2026-08-23T04:02:11.277431282Z"
+            },
+            "StartedAt": "2026-08-23T04:02:11.277106873Z",
+            "FinishedAt": "2026-08-23T04:02:11.277431282Z",
+            "Cost": {
+              "Latency": 324409,
+              "HeapBytesBefore": 1062424,
+              "HeapBytesAfter": 1100744,
+              "ExternalAPICalls": 0,
+              "PaidInferenceCalls": 0,
+              "LocalMeasurementCalls": 1
+            }
+          }
+        ],
+        "StartedAt": "2026-08-23T04:02:08.858961342Z",
+        "FinishedAt": "2026-08-23T04:02:11.277103557Z",
+        "Latency": 2418142305,
+        "ProviderDuration": 2418071033,
+        "MemoryRetrievalDuration": 0,
+        "GraphSearchDuration": 0,
+        "VerificationDuration": 0,
+        "OrchestrationDuration": 0,
+        "modelCalls": 1,
+        "providerAccounting": {
+          "Attempted": 1,
+          "Completed": 1,
+          "Failed": 0,
+          "TimedOut": 0,
+          "SuccessfulResponses": 1,
+          "Calls": [
+            {
+              "Attempt": 1,
+              "StartedAt": "2026-08-23T04:02:08.858962113Z",
+              "FinishedAt": "2026-08-23T04:02:11.277033146Z",
+              "Duration": 2418071033,
+              "Completed": true,
+              "Failed": false,
+              "TimedOut": false,
+              "FailureCode": "",
+              "Error": "",
+              "PromptTokens": 46,
+              "CompletionTokens": 3,
+              "Runtime": {
+                "StartedAt": "2026-08-23T04:02:08.859020562Z",
+                "RequestInitiatedAt": "2026-08-23T04:02:08.85904049Z",
+                "HeadersReceivedAt": "2026-08-23T04:02:11.204504131Z",
+                "FirstContentAt": "2026-08-23T04:02:11.204547412Z",
+                "CompletedAt": "2026-08-23T04:02:11.277030842Z",
+                "FailedAt": "0001-01-01T00:00:00Z",
+                "TimedOutAt": "0001-01-01T00:00:00Z",
+                "CancelledAt": "0001-01-01T00:00:00Z",
+                "Duration": 2418010189,
+                "StreamOpened": true,
+                "StreamProgressed": true,
+                "StreamCompleted": true,
+                "Chunks": 3
+              }
+            }
+          ]
+        },
+        "tokens": 49,
+        "Telemetry": {
+          "Before": {
+            "architecture": "amd64",
+            "os": "linux",
+            "go_version": "go1.26.0",
+            "cpus": 4,
+            "goroutines": 3,
+            "heap_alloc": 925520,
+            "total_alloc": 925520,
+            "num_gc": 0,
+            "system_memory": 12540168,
+            "at": "2026-08-23T04:02:08.858960681Z"
+          },
+          "After": {
+            "architecture": "amd64",
+            "os": "linux",
+            "go_version": "go1.26.0",
+            "cpus": 4,
+            "goroutines": 5,
+            "heap_alloc": 1062056,
+            "total_alloc": 1062056,
+            "num_gc": 0,
+            "system_memory": 12540168,
+            "at": "2026-08-23T04:02:11.277103317Z"
+          },
+          "PeakHeapAlloc": 1062056,
+          "TotalAllocBefore": 925520,
+          "TotalAllocAfter": 1062056,
+          "GCBefore": 0,
+          "GCAfter": 0,
+          "Duration": 2418143858,
+          "ModelLatency": 2418010189
+        }
+      },
+      "Cold": {
+        "answer": "",
+        "verification": {
+          "outcome": "provider_failure",
+          "passed": false,
+          "details": "insufficient distinct branches",
+          "duration": 0,
+          "measurement": {
+            "ID": "error-1787457749830433167",
+            "ContractID": "",
+            "Claim": "",
+            "Outcome": "ERROR",
+            "VerificationClass": "UNVERIFIED",
+            "Observation": null,
+            "Expected": null,
+            "Evidence": null,
+            "Method": "",
+            "Authority": "UNKNOWN",
+            "Independence": "UNKNOWN",
+            "Repeatable": false,
+            "Repeatability": "",
+            "Provenance": {
+              "Implementation": "",
+              "ImplementationVersion": "",
+              "BenchmarkCase": "",
+              "DatasetVersion": "",
+              "DatasetHash": "",
+              "FixtureVersion": "",
+              "Runtime": "",
+              "GitCommit": "",
+              "GitRemote": "",
+              "GitDirty": false,
+              "Timestamp": "0001-01-01T00:00:00Z"
+            },
+            "StartedAt": "2026-08-23T04:02:29.830435452Z",
+            "FinishedAt": "2026-08-23T04:02:29.830435522Z",
+            "Cost": {
+              "Latency": 0,
+              "HeapBytesBefore": 0,
+              "HeapBytesAfter": 0,
+              "ExternalAPICalls": 0,
+              "PaidInferenceCalls": 0,
+              "LocalMeasurementCalls": 0
+            },
+            "error": {
+              "Code": "EXECUTION_ERROR",
+              "Message": "insufficient distinct branches",
+              "Retryable": false
+            }
+          }
+        },
+        "measurements": null,
+        "StartedAt": "2026-08-23T04:02:11.277523113Z",
+        "FinishedAt": "2026-08-23T04:02:29.830429721Z",
+        "Latency": 18552906709,
+        "ProviderDuration": 18552703517,
+        "MemoryRetrievalDuration": 0,
+        "GraphSearchDuration": 203192,
+        "VerificationDuration": 0,
+        "OrchestrationDuration": 0,
+        "modelCalls": 1,
+        "providerAccounting": {
+          "Attempted": 1,
+          "Completed": 1,
+          "Failed": 0,
+          "TimedOut": 0,
+          "SuccessfulResponses": 1,
+          "Calls": [
+            {
+              "Attempt": 1,
+              "StartedAt": "2026-08-23T04:02:11.277557888Z",
+              "FinishedAt": "2026-08-23T04:02:29.830261405Z",
+              "Duration": 18552703517,
+              "Completed": true,
+              "Failed": false,
+              "TimedOut": false,
+              "FailureCode": "",
+              "Error": "",
+              "PromptTokens": 141,
+              "CompletionTokens": 506,
+              "Runtime": {
+                "StartedAt": "2026-08-23T04:02:11.27760189Z",
+                "RequestInitiatedAt": "2026-08-23T04:02:11.277610196Z",
+                "HeadersReceivedAt": "2026-08-23T04:02:12.457486772Z",
+                "FirstContentAt": "2026-08-23T04:02:12.457523721Z",
+                "CompletedAt": "2026-08-23T04:02:29.830024773Z",
+                "FailedAt": "0001-01-01T00:00:00Z",
+                "TimedOutAt": "0001-01-01T00:00:00Z",
+                "CancelledAt": "0001-01-01T00:00:00Z",
+                "Duration": 18552422792,
+                "StreamOpened": true,
+                "StreamProgressed": true,
+                "StreamCompleted": true,
+                "Chunks": 506
+              }
+            }
+          ]
+        },
+        "tokens": 647,
+        "Telemetry": {
+          "Before": {
+            "architecture": "amd64",
+            "os": "linux",
+            "go_version": "go1.26.0",
+            "cpus": 4,
+            "goroutines": 5,
+            "heap_alloc": 1110920,
+            "total_alloc": 1110920,
+            "num_gc": 0,
+            "system_memory": 12540168,
+            "at": "2026-08-23T04:02:11.277522963Z"
+          },
+          "After": {
+            "architecture": "amd64",
+            "os": "linux",
+            "go_version": "go1.26.0",
+            "cpus": 4,
+            "goroutines": 5,
+            "heap_alloc": 1410288,
+            "total_alloc": 1410288,
+            "num_gc": 0,
+            "system_memory": 12802312,
+            "at": "2026-08-23T04:02:29.830429631Z"
+          },
+          "PeakHeapAlloc": 1410288,
+          "TotalAllocBefore": 1110920,
+          "TotalAllocAfter": 1410288,
+          "GCBefore": 0,
+          "GCAfter": 0,
+          "Duration": 18552908261,
+          "ModelLatency": 0
+        },
+        "failureCategory": "model_output_malformed"
+      },
+      "WithMemory": {
+        "answer": "45",
+        "verification": {
+          "outcome": "pass",
+          "passed": true,
+          "details": "SUPPORTED under FORMALLY_VERIFIED: 45",
+          "value": 45,
+          "duration": 45064,
+          "measurement": {
+            "ID": "arithmetic-001-1787457834801122119",
+            "ContractID": "contract-arithmetic-001",
+            "Claim": "candidate output satisfies benchmark case arithmetic-001",
+            "Outcome": "SUPPORTED",
+            "VerificationClass": "FORMALLY_VERIFIED",
+            "Observation": 45,
+            "Expected": 45,
+            "tolerance": {
+              "absolute": 0
+            },
+            "Evidence": [
+              {
+                "ID": "e-arithmetic-001-1787457834801126037",
+                "Source": "deterministic local numeric",
+                "Observation": 45,
+                "Relationship": "SUPPORTS",
+                "MeasurementID": "contract-arithmetic-001",
+                "Provenance": {
+                  "Implementation": "",
+                  "ImplementationVersion": "",
+                  "BenchmarkCase": "",
+                  "DatasetVersion": "",
+                  "DatasetHash": "",
+                  "FixtureVersion": "",
+                  "Runtime": "",
+                  "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+                  "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+                  "GitDirty": true,
+                  "Timestamp": "0001-01-01T00:00:00Z"
+                },
+                "Timestamp": "2026-08-23T04:03:54.801126728Z",
+                "Independent": true,
+                "correlationGroup": "contract-arithmetic-001"
+              }
+            ],
+            "Method": "deterministic local numeric comparison",
+            "Authority": "FORMAL",
+            "Independence": "INDEPENDENT",
+            "Repeatable": true,
+            "Repeatability": "DETERMINISTIC",
+            "Provenance": {
+              "Implementation": "zdx-ban/internal/experiment/numeric",
+              "ImplementationVersion": "0.4",
+              "BenchmarkCase": "arithmetic-001",
+              "DatasetVersion": "ban-memory-exp-001-smoke-v2-evaluation",
+              "DatasetHash": "",
+              "FixtureVersion": "",
+              "Runtime": "go1.26.0",
+              "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+              "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+              "GitDirty": true,
+              "Timestamp": "2026-08-23T04:03:54.801142638Z"
+            },
+            "StartedAt": "2026-08-23T04:03:54.801097574Z",
+            "FinishedAt": "2026-08-23T04:03:54.801142638Z",
+            "Cost": {
+              "Latency": 45064,
+              "HeapBytesBefore": 834936,
+              "HeapBytesAfter": 835672,
+              "ExternalAPICalls": 0,
+              "PaidInferenceCalls": 0,
+              "LocalMeasurementCalls": 1
+            }
+          }
+        },
+        "measurements": [
+          {
+            "ID": "arithmetic-001-1787457834801122119",
+            "ContractID": "contract-arithmetic-001",
+            "Claim": "candidate output satisfies benchmark case arithmetic-001",
+            "Outcome": "SUPPORTED",
+            "VerificationClass": "FORMALLY_VERIFIED",
+            "Observation": 45,
+            "Expected": 45,
+            "tolerance": {
+              "absolute": 0
+            },
+            "Evidence": [
+              {
+                "ID": "e-arithmetic-001-1787457834801126037",
+                "Source": "deterministic local numeric",
+                "Observation": 45,
+                "Relationship": "SUPPORTS",
+                "MeasurementID": "contract-arithmetic-001",
+                "Provenance": {
+                  "Implementation": "",
+                  "ImplementationVersion": "",
+                  "BenchmarkCase": "",
+                  "DatasetVersion": "",
+                  "DatasetHash": "",
+                  "FixtureVersion": "",
+                  "Runtime": "",
+                  "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+                  "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+                  "GitDirty": true,
+                  "Timestamp": "0001-01-01T00:00:00Z"
+                },
+                "Timestamp": "2026-08-23T04:03:54.801126728Z",
+                "Independent": true,
+                "correlationGroup": "contract-arithmetic-001"
+              }
+            ],
+            "Method": "deterministic local numeric comparison",
+            "Authority": "FORMAL",
+            "Independence": "INDEPENDENT",
+            "Repeatable": true,
+            "Repeatability": "DETERMINISTIC",
+            "Provenance": {
+              "Implementation": "zdx-ban/internal/experiment/numeric",
+              "ImplementationVersion": "0.4",
+              "BenchmarkCase": "arithmetic-001",
+              "DatasetVersion": "ban-memory-exp-001-smoke-v2-evaluation",
+              "DatasetHash": "",
+              "FixtureVersion": "",
+              "Runtime": "go1.26.0",
+              "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+              "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+              "GitDirty": true,
+              "Timestamp": "2026-08-23T04:03:54.801142638Z"
+            },
+            "StartedAt": "2026-08-23T04:03:54.801097574Z",
+            "FinishedAt": "2026-08-23T04:03:54.801142638Z",
+            "Cost": {
+              "Latency": 45064,
+              "HeapBytesBefore": 834936,
+              "HeapBytesAfter": 835672,
+              "ExternalAPICalls": 0,
+              "PaidInferenceCalls": 0,
+              "LocalMeasurementCalls": 1
+            }
+          }
+        ],
+        "StartedAt": "2026-08-23T04:02:29.836835978Z",
+        "FinishedAt": "2026-08-23T04:03:54.80098834Z",
+        "Latency": 84964152492,
+        "ProviderDuration": 84962865361,
+        "MemoryRetrievalDuration": 27833,
+        "GraphSearchDuration": 1287131,
+        "VerificationDuration": 45064,
+        "OrchestrationDuration": 1242067,
+        "modelCalls": 12,
+        "providerAccounting": {
+          "Attempted": 12,
+          "Completed": 12,
+          "Failed": 0,
+          "TimedOut": 0,
+          "SuccessfulResponses": 12,
+          "Calls": [
+            {
+              "Attempt": 1,
+              "StartedAt": "2026-08-23T04:02:29.836904426Z",
+              "FinishedAt": "2026-08-23T04:02:49.118296998Z",
+              "Duration": 19281392572,
+              "Completed": true,
+              "Failed": false,
+              "TimedOut": false,
+              "FailureCode": "",
+              "Error": "",
+              "PromptTokens": 228,
+              "CompletionTokens": 517,
+              "Runtime": {
+                "StartedAt": "2026-08-23T04:02:29.836937658Z",
+                "RequestInitiatedAt": "2026-08-23T04:02:29.836956724Z",
+                "HeadersReceivedAt": "2026-08-23T04:02:31.709516777Z",
+                "FirstContentAt": "2026-08-23T04:02:31.709540722Z",
+                "CompletedAt": "2026-08-23T04:02:49.118206107Z",
+                "FailedAt": "0001-01-01T00:00:00Z",
+                "TimedOutAt": "0001-01-01T00:00:00Z",
+                "CancelledAt": "0001-01-01T00:00:00Z",
+                "Duration": 19281268199,
+                "StreamOpened": true,
+                "StreamProgressed": true,
+                "StreamCompleted": true,
+                "Chunks": 517
+              }
+            },
+            {
+              "Attempt": 2,
+              "StartedAt": "2026-08-23T04:02:49.118513573Z",
+              "FinishedAt": "2026-08-23T04:02:55.059596473Z",
+              "Duration": 5941082900,
+              "Completed": true,
+              "Failed": false,
+              "TimedOut": false,
+              "FailureCode": "",
+              "Error": "",
+              "PromptTokens": 149,
+              "CompletionTokens": 147,
+              "Runtime": {
+                "StartedAt": "2026-08-23T04:02:49.118607239Z",
+                "RequestInitiatedAt": "2026-08-23T04:02:49.118617468Z",
+                "HeadersReceivedAt": "2026-08-23T04:02:50.248411936Z",
+                "FirstContentAt": "2026-08-23T04:02:50.248436872Z",
+                "CompletedAt": "2026-08-23T04:02:55.059518026Z",
+                "FailedAt": "0001-01-01T00:00:00Z",
+                "TimedOutAt": "0001-01-01T00:00:00Z",
+                "CancelledAt": "0001-01-01T00:00:00Z",
+                "Duration": 5940910697,
+                "StreamOpened": true,
+                "StreamProgressed": true,
+                "StreamCompleted": true,
+                "Chunks": 147
+              }
+            },
+            {
+              "Attempt": 3,
+              "StartedAt": "2026-08-23T04:02:55.059615448Z",
+              "FinishedAt": "2026-08-23T04:03:00.838300698Z",
+              "Duration": 5778685250,
+              "Completed": true,
+              "Failed": false,
+              "TimedOut": false,
+              "FailureCode": "",
+              "Error": "",
+              "PromptTokens": 146,
+              "CompletionTokens": 148,
+              "Runtime": {
+                "StartedAt": "2026-08-23T04:02:55.0596647Z",
+                "RequestInitiatedAt": "2026-08-23T04:02:55.059671503Z",
+                "HeadersReceivedAt": "2026-08-23T04:02:56.01250013Z",
+                "FirstContentAt": "2026-08-23T04:02:56.012546988Z",
+                "CompletedAt": "2026-08-23T04:03:00.838259822Z",
+                "FailedAt": "0001-01-01T00:00:00Z",
+                "TimedOutAt": "0001-01-01T00:00:00Z",
+                "CancelledAt": "0001-01-01T00:00:00Z",
+                "Duration": 5778595032,
+                "StreamOpened": true,
+                "StreamProgressed": true,
+                "StreamCompleted": true,
+                "Chunks": 148
+              }
+            },
+            {
+              "Attempt": 4,
+              "StartedAt": "2026-08-23T04:03:00.838331937Z",
+              "FinishedAt": "2026-08-23T04:03:06.751962688Z",
+              "Duration": 5913630751,
+              "Completed": true,
+              "Failed": false,
+              "TimedOut": false,
+              "FailureCode": "",
+              "Error": "",
+              "PromptTokens": 144,
+              "CompletionTokens": 146,
+              "Runtime": {
+                "StartedAt": "2026-08-23T04:03:00.838416946Z",
+                "RequestInitiatedAt": "2026-08-23T04:03:00.838427286Z",
+                "HeadersReceivedAt": "2026-08-23T04:03:01.864514342Z",
+                "FirstContentAt": "2026-08-23T04:03:01.864545261Z",
+                "CompletedAt": "2026-08-23T04:03:06.751939695Z",
+                "FailedAt": "0001-01-01T00:00:00Z",
+                "TimedOutAt": "0001-01-01T00:00:00Z",
+                "CancelledAt": "0001-01-01T00:00:00Z",
+                "Duration": 5913522587,
+                "StreamOpened": true,
+                "StreamProgressed": true,
+                "StreamCompleted": true,
+                "Chunks": 146
+              }
+            },
+            {
+              "Attempt": 5,
+              "StartedAt": "2026-08-23T04:03:06.752044912Z",
+              "FinishedAt": "2026-08-23T04:03:13.928363667Z",
+              "Duration": 7176318755,
+              "Completed": true,
+              "Failed": false,
+              "TimedOut": false,
+              "FailureCode": "",
+              "Error": "",
+              "PromptTokens": 252,
+              "CompletionTokens": 157,
+              "Runtime": {
+                "StartedAt": "2026-08-23T04:03:06.75209774Z",
+                "RequestInitiatedAt": "2026-08-23T04:03:06.752105044Z",
+                "HeadersReceivedAt": "2026-08-23T04:03:08.793620998Z",
+                "FirstContentAt": "2026-08-23T04:03:08.793647698Z",
+                "CompletedAt": "2026-08-23T04:03:13.928305939Z",
+                "FailedAt": "0001-01-01T00:00:00Z",
+                "TimedOutAt": "0001-01-01T00:00:00Z",
+                "CancelledAt": "0001-01-01T00:00:00Z",
+                "Duration": 7176208100,
+                "StreamOpened": true,
+                "StreamProgressed": true,
+                "StreamCompleted": true,
+                "Chunks": 157
+              }
+            },
+            {
+              "Attempt": 6,
+              "StartedAt": "2026-08-23T04:03:13.928467521Z",
+              "FinishedAt": "2026-08-23T04:03:30.393661854Z",
+              "Duration": 16465194333,
+              "Completed": true,
+              "Failed": false,
+              "TimedOut": false,
+              "FailureCode": "",
+              "Error": "",
+              "PromptTokens": 249,
+              "CompletionTokens": 440,
+              "Runtime": {
+                "StartedAt": "2026-08-23T04:03:13.928517886Z",
+                "RequestInitiatedAt": "2026-08-23T04:03:13.928532454Z",
+                "HeadersReceivedAt": "2026-08-23T04:03:14.998492681Z",
+                "FirstContentAt": "2026-08-23T04:03:14.998610561Z",
+                "CompletedAt": "2026-08-23T04:03:30.393585721Z",
+                "FailedAt": "0001-01-01T00:00:00Z",
+                "TimedOutAt": "0001-01-01T00:00:00Z",
+                "CancelledAt": "0001-01-01T00:00:00Z",
+                "Duration": 16465067736,
+                "StreamOpened": true,
+                "StreamProgressed": true,
+                "StreamCompleted": true,
+                "Chunks": 440
+              }
+            },
+            {
+              "Attempt": 7,
+              "StartedAt": "2026-08-23T04:03:30.393812638Z",
+              "FinishedAt": "2026-08-23T04:03:36.739951118Z",
+              "Duration": 6346138480,
+              "Completed": true,
+              "Failed": false,
+              "TimedOut": false,
+              "FailureCode": "",
+              "Error": "",
+              "PromptTokens": 149,
+              "CompletionTokens": 151,
+              "Runtime": {
+                "StartedAt": "2026-08-23T04:03:30.39389388Z",
+                "RequestInitiatedAt": "2026-08-23T04:03:30.393901703Z",
+                "HeadersReceivedAt": "2026-08-23T04:03:31.538174064Z",
+                "FirstContentAt": "2026-08-23T04:03:31.538212616Z",
+                "CompletedAt": "2026-08-23T04:03:36.739911183Z",
+                "FailedAt": "0001-01-01T00:00:00Z",
+                "TimedOutAt": "0001-01-01T00:00:00Z",
+                "CancelledAt": "0001-01-01T00:00:00Z",
+                "Duration": 6346017213,
+                "StreamOpened": true,
+                "StreamProgressed": true,
+                "StreamCompleted": true,
+                "Chunks": 151
+              }
+            },
+            {
+              "Attempt": 8,
+              "StartedAt": "2026-08-23T04:03:36.739977377Z",
+              "FinishedAt": "2026-08-23T04:03:43.109130917Z",
+              "Duration": 6369153540,
+              "Completed": true,
+              "Failed": false,
+              "TimedOut": false,
+              "FailureCode": "",
+              "Error": "",
+              "PromptTokens": 159,
+              "CompletionTokens": 154,
+              "Runtime": {
+                "StartedAt": "2026-08-23T04:03:36.74002685Z",
+                "RequestInitiatedAt": "2026-08-23T04:03:36.740035696Z",
+                "HeadersReceivedAt": "2026-08-23T04:03:37.926683643Z",
+                "FirstContentAt": "2026-08-23T04:03:37.926717356Z",
+                "CompletedAt": "2026-08-23T04:03:43.10904693Z",
+                "FailedAt": "0001-01-01T00:00:00Z",
+                "TimedOutAt": "0001-01-01T00:00:00Z",
+                "CancelledAt": "0001-01-01T00:00:00Z",
+                "Duration": 6369019890,
+                "StreamOpened": true,
+                "StreamProgressed": true,
+                "StreamCompleted": true,
+                "Chunks": 154
+              }
+            },
+            {
+              "Attempt": 9,
+              "StartedAt": "2026-08-23T04:03:43.109245883Z",
+              "FinishedAt": "2026-08-23T04:03:49.427303077Z",
+              "Duration": 6318057194,
+              "Completed": true,
+              "Failed": false,
+              "TimedOut": false,
+              "FailureCode": "",
+              "Error": "",
+              "PromptTokens": 151,
+              "CompletionTokens": 151,
+              "Runtime": {
+                "StartedAt": "2026-08-23T04:03:43.10935177Z",
+                "RequestInitiatedAt": "2026-08-23T04:03:43.109360547Z",
+                "HeadersReceivedAt": "2026-08-23T04:03:44.263971639Z",
+                "FirstContentAt": "2026-08-23T04:03:44.264001174Z",
+                "CompletedAt": "2026-08-23T04:03:49.427267931Z",
+                "FailedAt": "0001-01-01T00:00:00Z",
+                "TimedOutAt": "0001-01-01T00:00:00Z",
+                "CancelledAt": "0001-01-01T00:00:00Z",
+                "Duration": 6317916049,
+                "StreamOpened": true,
+                "StreamProgressed": true,
+                "StreamCompleted": true,
+                "Chunks": 151
+              }
+            },
+            {
+              "Attempt": 10,
+              "StartedAt": "2026-08-23T04:03:49.427339324Z",
+              "FinishedAt": "2026-08-23T04:03:51.692612103Z",
+              "Duration": 2265272779,
+              "Completed": true,
+              "Failed": false,
+              "TimedOut": false,
+              "FailureCode": "",
+              "Error": "",
+              "PromptTokens": 81,
+              "CompletionTokens": 56,
+              "Runtime": {
+                "StartedAt": "2026-08-23T04:03:49.427389207Z",
+                "RequestInitiatedAt": "2026-08-23T04:03:49.427399607Z",
+                "HeadersReceivedAt": "2026-08-23T04:03:49.853513874Z",
+                "FirstContentAt": "2026-08-23T04:03:49.853580158Z",
+                "CompletedAt": "2026-08-23T04:03:51.692532745Z",
+                "FailedAt": "0001-01-01T00:00:00Z",
+                "TimedOutAt": "0001-01-01T00:00:00Z",
+                "CancelledAt": "0001-01-01T00:00:00Z",
+                "Duration": 2265143448,
+                "StreamOpened": true,
+                "StreamProgressed": true,
+                "StreamCompleted": true,
+                "Chunks": 56
+              }
+            },
+            {
+              "Attempt": 11,
+              "StartedAt": "2026-08-23T04:03:51.692644264Z",
+              "FinishedAt": "2026-08-23T04:03:53.746356027Z",
+              "Duration": 2053711763,
+              "Completed": true,
+              "Failed": false,
+              "TimedOut": false,
+              "FailureCode": "",
+              "Error": "",
+              "PromptTokens": 78,
+              "CompletionTokens": 52,
+              "Runtime": {
+                "StartedAt": "2026-08-23T04:03:51.69269558Z",
+                "RequestInitiatedAt": "2026-08-23T04:03:51.692706291Z",
+                "HeadersReceivedAt": "2026-08-23T04:03:51.976514834Z",
+                "FirstContentAt": "2026-08-23T04:03:51.976590125Z",
+                "CompletedAt": "2026-08-23T04:03:53.746341199Z",
+                "FailedAt": "0001-01-01T00:00:00Z",
+                "TimedOutAt": "0001-01-01T00:00:00Z",
+                "CancelledAt": "0001-01-01T00:00:00Z",
+                "Duration": 2053645148,
+                "StreamOpened": true,
+                "StreamProgressed": true,
+                "StreamCompleted": true,
+                "Chunks": 52
+              }
+            },
+            {
+              "Attempt": 12,
+              "StartedAt": "2026-08-23T04:03:53.746590666Z",
+              "FinishedAt": "2026-08-23T04:03:54.80081771Z",
+              "Duration": 1054227044,
+              "Completed": true,
+              "Failed": false,
+              "TimedOut": false,
+              "FailureCode": "",
+              "Error": "",
+              "PromptTokens": 130,
+              "CompletionTokens": 3,
+              "Runtime": {
+                "StartedAt": "2026-08-23T04:03:53.746616024Z",
+                "RequestInitiatedAt": "2026-08-23T04:03:53.746627264Z",
+                "HeadersReceivedAt": "2026-08-23T04:03:54.726198061Z",
+                "FirstContentAt": "2026-08-23T04:03:54.726255639Z",
+                "CompletedAt": "2026-08-23T04:03:54.800814824Z",
+                "FailedAt": "0001-01-01T00:00:00Z",
+                "TimedOutAt": "0001-01-01T00:00:00Z",
+                "CancelledAt": "0001-01-01T00:00:00Z",
+                "Duration": 1054198701,
+                "StreamOpened": true,
+                "StreamProgressed": true,
+                "StreamCompleted": true,
+                "Chunks": 3
+              }
+            }
+          ]
+        },
+        "tokens": 4038,
+        "Telemetry": {
+          "Before": {
+            "architecture": "amd64",
+            "os": "linux",
+            "go_version": "go1.26.0",
+            "cpus": 4,
+            "goroutines": 5,
+            "heap_alloc": 1566240,
+            "total_alloc": 1566240,
+            "num_gc": 0,
+            "system_memory": 12802312,
+            "at": "2026-08-23T04:02:29.836835877Z"
+          },
+          "After": {
+            "architecture": "amd64",
+            "os": "linux",
+            "go_version": "go1.26.0",
+            "cpus": 4,
+            "goroutines": 5,
+            "heap_alloc": 825912,
+            "total_alloc": 3402608,
+            "num_gc": 1,
+            "system_memory": 17856776,
+            "at": "2026-08-23T04:03:54.800987819Z"
+          },
+          "PeakHeapAlloc": 1566240,
+          "TotalAllocBefore": 1566240,
+          "TotalAllocAfter": 3402608,
+          "GCBefore": 0,
+          "GCAfter": 1,
+          "Duration": 84964159375,
+          "ModelLatency": 0
+        }
+      },
+      "Misleading": {
+        "answer": "",
+        "verification": {
+          "outcome": "provider_failure",
+          "passed": false,
+          "details": "insufficient distinct branches",
+          "duration": 0,
+          "measurement": {
+            "ID": "error-1787457859539071047",
+            "ContractID": "",
+            "Claim": "",
+            "Outcome": "ERROR",
+            "VerificationClass": "UNVERIFIED",
+            "Observation": null,
+            "Expected": null,
+            "Evidence": null,
+            "Method": "",
+            "Authority": "UNKNOWN",
+            "Independence": "UNKNOWN",
+            "Repeatable": false,
+            "Repeatability": "",
+            "Provenance": {
+              "Implementation": "",
+              "ImplementationVersion": "",
+              "BenchmarkCase": "",
+              "DatasetVersion": "",
+              "DatasetHash": "",
+              "FixtureVersion": "",
+              "Runtime": "",
+              "GitCommit": "",
+              "GitRemote": "",
+              "GitDirty": false,
+              "Timestamp": "0001-01-01T00:00:00Z"
+            },
+            "StartedAt": "2026-08-23T04:04:19.539072579Z",
+            "FinishedAt": "2026-08-23T04:04:19.539072709Z",
+            "Cost": {
+              "Latency": 0,
+              "HeapBytesBefore": 0,
+              "HeapBytesAfter": 0,
+              "ExternalAPICalls": 0,
+              "PaidInferenceCalls": 0,
+              "LocalMeasurementCalls": 0
+            },
+            "error": {
+              "Code": "EXECUTION_ERROR",
+              "Message": "insufficient distinct branches",
+              "Retryable": false
+            }
+          }
+        },
+        "measurements": null,
+        "StartedAt": "2026-08-23T04:03:54.808994482Z",
+        "FinishedAt": "2026-08-23T04:04:19.539068021Z",
+        "Latency": 24730073628,
+        "ProviderDuration": 24729856121,
+        "MemoryRetrievalDuration": 82354,
+        "GraphSearchDuration": 217507,
+        "VerificationDuration": 0,
+        "OrchestrationDuration": 0,
+        "modelCalls": 1,
+        "providerAccounting": {
+          "Attempted": 1,
+          "Completed": 1,
+          "Failed": 0,
+          "TimedOut": 0,
+          "SuccessfulResponses": 1,
+          "Calls": [
+            {
+              "Attempt": 1,
+              "StartedAt": "2026-08-23T04:03:54.809058572Z",
+              "FinishedAt": "2026-08-23T04:04:19.538914693Z",
+              "Duration": 24729856121,
+              "Completed": true,
+              "Failed": false,
+              "TimedOut": false,
+              "FailureCode": "",
+              "Error": "",
+              "PromptTokens": 282,
+              "CompletionTokens": 596,
+              "Runtime": {
+                "StartedAt": "2026-08-23T04:03:54.809093047Z",
+                "RequestInitiatedAt": "2026-08-23T04:03:54.809103867Z",
+                "HeadersReceivedAt": "2026-08-23T04:03:57.446840494Z",
+                "FirstContentAt": "2026-08-23T04:03:57.446868697Z",
+                "CompletedAt": "2026-08-23T04:04:19.538835605Z",
+                "FailedAt": "0001-01-01T00:00:00Z",
+                "TimedOutAt": "0001-01-01T00:00:00Z",
+                "CancelledAt": "0001-01-01T00:00:00Z",
+                "Duration": 24729742468,
+                "StreamOpened": true,
+                "StreamProgressed": true,
+                "StreamCompleted": true,
+                "Chunks": 596
+              }
+            }
+          ]
+        },
+        "tokens": 878,
+        "Telemetry": {
+          "Before": {
+            "architecture": "amd64",
+            "os": "linux",
+            "go_version": "go1.26.0",
+            "cpus": 4,
+            "goroutines": 5,
+            "heap_alloc": 1007088,
+            "total_alloc": 3583784,
+            "num_gc": 1,
+            "system_memory": 18118920,
+            "at": "2026-08-23T04:03:54.808994402Z"
+          },
+          "After": {
+            "architecture": "amd64",
+            "os": "linux",
+            "go_version": "go1.26.0",
+            "cpus": 4,
+            "goroutines": 5,
+            "heap_alloc": 1369304,
+            "total_alloc": 3946000,
+            "num_gc": 1,
+            "system_memory": 18118920,
+            "at": "2026-08-23T04:04:19.53906782Z"
+          },
+          "PeakHeapAlloc": 1369304,
+          "TotalAllocBefore": 3583784,
+          "TotalAllocAfter": 3946000,
+          "GCBefore": 1,
+          "GCAfter": 1,
+          "Duration": 24730074670,
+          "ModelLatency": 0
+        },
+        "failureCategory": "model_output_malformed"
+      },
+      "ColdPair": {
+        "CaseID": "arithmetic-001",
+        "Category": "arithmetic_constraints",
+        "Repetition": 1,
+        "Seed": 42,
+        "Baseline": {
+          "answer": "45",
+          "verification": {
+            "outcome": "pass",
+            "passed": true,
+            "details": "SUPPORTED under FORMALLY_VERIFIED: 45",
+            "value": 45,
+            "duration": 324409,
+            "measurement": {
+              "ID": "arithmetic-001-1787457731277159122",
+              "ContractID": "contract-arithmetic-001",
+              "Claim": "candidate output satisfies benchmark case arithmetic-001",
+              "Outcome": "SUPPORTED",
+              "VerificationClass": "FORMALLY_VERIFIED",
+              "Observation": 45,
+              "Expected": 45,
+              "tolerance": {
+                "absolute": 0
+              },
+              "Evidence": [
+                {
+                  "ID": "e-arithmetic-001-1787457731277167177",
+                  "Source": "deterministic local numeric",
+                  "Observation": 45,
+                  "Relationship": "SUPPORTS",
+                  "MeasurementID": "contract-arithmetic-001",
+                  "Provenance": {
+                    "Implementation": "",
+                    "ImplementationVersion": "",
+                    "BenchmarkCase": "",
+                    "DatasetVersion": "",
+                    "DatasetHash": "",
+                    "FixtureVersion": "",
+                    "Runtime": "",
+                    "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+                    "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+                    "GitDirty": true,
+                    "Timestamp": "0001-01-01T00:00:00Z"
+                  },
+                  "Timestamp": "2026-08-23T04:02:11.277168459Z",
+                  "Independent": true,
+                  "correlationGroup": "contract-arithmetic-001"
+                }
+              ],
+              "Method": "deterministic local numeric comparison",
+              "Authority": "FORMAL",
+              "Independence": "INDEPENDENT",
+              "Repeatable": true,
+              "Repeatability": "DETERMINISTIC",
+              "Provenance": {
+                "Implementation": "zdx-ban/internal/experiment/numeric",
+                "ImplementationVersion": "0.4",
+                "BenchmarkCase": "arithmetic-001",
+                "DatasetVersion": "ban-memory-exp-001-smoke-v2-evaluation",
+                "DatasetHash": "",
+                "FixtureVersion": "",
+                "Runtime": "go1.26.0",
+                "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+                "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+                "GitDirty": true,
+                "Timestamp": "2026-08-23T04:02:11.277431282Z"
+              },
+              "StartedAt": "2026-08-23T04:02:11.277106873Z",
+              "FinishedAt": "2026-08-23T04:02:11.277431282Z",
+              "Cost": {
+                "Latency": 324409,
+                "HeapBytesBefore": 1062424,
+                "HeapBytesAfter": 1100744,
+                "ExternalAPICalls": 0,
+                "PaidInferenceCalls": 0,
+                "LocalMeasurementCalls": 1
+              }
+            }
+          },
+          "measurements": [
+            {
+              "ID": "arithmetic-001-1787457731277159122",
+              "ContractID": "contract-arithmetic-001",
+              "Claim": "candidate output satisfies benchmark case arithmetic-001",
+              "Outcome": "SUPPORTED",
+              "VerificationClass": "FORMALLY_VERIFIED",
+              "Observation": 45,
+              "Expected": 45,
+              "tolerance": {
+                "absolute": 0
+              },
+              "Evidence": [
+                {
+                  "ID": "e-arithmetic-001-1787457731277167177",
+                  "Source": "deterministic local numeric",
+                  "Observation": 45,
+                  "Relationship": "SUPPORTS",
+                  "MeasurementID": "contract-arithmetic-001",
+                  "Provenance": {
+                    "Implementation": "",
+                    "ImplementationVersion": "",
+                    "BenchmarkCase": "",
+                    "DatasetVersion": "",
+                    "DatasetHash": "",
+                    "FixtureVersion": "",
+                    "Runtime": "",
+                    "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+                    "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+                    "GitDirty": true,
+                    "Timestamp": "0001-01-01T00:00:00Z"
+                  },
+                  "Timestamp": "2026-08-23T04:02:11.277168459Z",
+                  "Independent": true,
+                  "correlationGroup": "contract-arithmetic-001"
+                }
+              ],
+              "Method": "deterministic local numeric comparison",
+              "Authority": "FORMAL",
+              "Independence": "INDEPENDENT",
+              "Repeatable": true,
+              "Repeatability": "DETERMINISTIC",
+              "Provenance": {
+                "Implementation": "zdx-ban/internal/experiment/numeric",
+                "ImplementationVersion": "0.4",
+                "BenchmarkCase": "arithmetic-001",
+                "DatasetVersion": "ban-memory-exp-001-smoke-v2-evaluation",
+                "DatasetHash": "",
+                "FixtureVersion": "",
+                "Runtime": "go1.26.0",
+                "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+                "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+                "GitDirty": true,
+                "Timestamp": "2026-08-23T04:02:11.277431282Z"
+              },
+              "StartedAt": "2026-08-23T04:02:11.277106873Z",
+              "FinishedAt": "2026-08-23T04:02:11.277431282Z",
+              "Cost": {
+                "Latency": 324409,
+                "HeapBytesBefore": 1062424,
+                "HeapBytesAfter": 1100744,
+                "ExternalAPICalls": 0,
+                "PaidInferenceCalls": 0,
+                "LocalMeasurementCalls": 1
+              }
+            }
+          ],
+          "StartedAt": "2026-08-23T04:02:08.858961342Z",
+          "FinishedAt": "2026-08-23T04:02:11.277103557Z",
+          "Latency": 2418142305,
+          "ProviderDuration": 2418071033,
+          "MemoryRetrievalDuration": 0,
+          "GraphSearchDuration": 0,
+          "VerificationDuration": 0,
+          "OrchestrationDuration": 0,
+          "modelCalls": 1,
+          "providerAccounting": {
+            "Attempted": 1,
+            "Completed": 1,
+            "Failed": 0,
+            "TimedOut": 0,
+            "SuccessfulResponses": 1,
+            "Calls": [
+              {
+                "Attempt": 1,
+                "StartedAt": "2026-08-23T04:02:08.858962113Z",
+                "FinishedAt": "2026-08-23T04:02:11.277033146Z",
+                "Duration": 2418071033,
+                "Completed": true,
+                "Failed": false,
+                "TimedOut": false,
+                "FailureCode": "",
+                "Error": "",
+                "PromptTokens": 46,
+                "CompletionTokens": 3,
+                "Runtime": {
+                  "StartedAt": "2026-08-23T04:02:08.859020562Z",
+                  "RequestInitiatedAt": "2026-08-23T04:02:08.85904049Z",
+                  "HeadersReceivedAt": "2026-08-23T04:02:11.204504131Z",
+                  "FirstContentAt": "2026-08-23T04:02:11.204547412Z",
+                  "CompletedAt": "2026-08-23T04:02:11.277030842Z",
+                  "FailedAt": "0001-01-01T00:00:00Z",
+                  "TimedOutAt": "0001-01-01T00:00:00Z",
+                  "CancelledAt": "0001-01-01T00:00:00Z",
+                  "Duration": 2418010189,
+                  "StreamOpened": true,
+                  "StreamProgressed": true,
+                  "StreamCompleted": true,
+                  "Chunks": 3
+                }
+              }
+            ]
+          },
+          "tokens": 49,
+          "Telemetry": {
+            "Before": {
+              "architecture": "amd64",
+              "os": "linux",
+              "go_version": "go1.26.0",
+              "cpus": 4,
+              "goroutines": 3,
+              "heap_alloc": 925520,
+              "total_alloc": 925520,
+              "num_gc": 0,
+              "system_memory": 12540168,
+              "at": "2026-08-23T04:02:08.858960681Z"
+            },
+            "After": {
+              "architecture": "amd64",
+              "os": "linux",
+              "go_version": "go1.26.0",
+              "cpus": 4,
+              "goroutines": 5,
+              "heap_alloc": 1062056,
+              "total_alloc": 1062056,
+              "num_gc": 0,
+              "system_memory": 12540168,
+              "at": "2026-08-23T04:02:11.277103317Z"
+            },
+            "PeakHeapAlloc": 1062056,
+            "TotalAllocBefore": 925520,
+            "TotalAllocAfter": 1062056,
+            "GCBefore": 0,
+            "GCAfter": 0,
+            "Duration": 2418143858,
+            "ModelLatency": 2418010189
+          }
+        },
+        "BAN": {
+          "answer": "",
+          "verification": {
+            "outcome": "provider_failure",
+            "passed": false,
+            "details": "insufficient distinct branches",
+            "duration": 0,
+            "measurement": {
+              "ID": "error-1787457749830433167",
+              "ContractID": "",
+              "Claim": "",
+              "Outcome": "ERROR",
+              "VerificationClass": "UNVERIFIED",
+              "Observation": null,
+              "Expected": null,
+              "Evidence": null,
+              "Method": "",
+              "Authority": "UNKNOWN",
+              "Independence": "UNKNOWN",
+              "Repeatable": false,
+              "Repeatability": "",
+              "Provenance": {
+                "Implementation": "",
+                "ImplementationVersion": "",
+                "BenchmarkCase": "",
+                "DatasetVersion": "",
+                "DatasetHash": "",
+                "FixtureVersion": "",
+                "Runtime": "",
+                "GitCommit": "",
+                "GitRemote": "",
+                "GitDirty": false,
+                "Timestamp": "0001-01-01T00:00:00Z"
+              },
+              "StartedAt": "2026-08-23T04:02:29.830435452Z",
+              "FinishedAt": "2026-08-23T04:02:29.830435522Z",
+              "Cost": {
+                "Latency": 0,
+                "HeapBytesBefore": 0,
+                "HeapBytesAfter": 0,
+                "ExternalAPICalls": 0,
+                "PaidInferenceCalls": 0,
+                "LocalMeasurementCalls": 0
+              },
+              "error": {
+                "Code": "EXECUTION_ERROR",
+                "Message": "insufficient distinct branches",
+                "Retryable": false
+              }
+            }
+          },
+          "measurements": null,
+          "StartedAt": "2026-08-23T04:02:11.277523113Z",
+          "FinishedAt": "2026-08-23T04:02:29.830429721Z",
+          "Latency": 18552906709,
+          "ProviderDuration": 18552703517,
+          "MemoryRetrievalDuration": 0,
+          "GraphSearchDuration": 203192,
+          "VerificationDuration": 0,
+          "OrchestrationDuration": 0,
+          "modelCalls": 1,
+          "providerAccounting": {
+            "Attempted": 1,
+            "Completed": 1,
+            "Failed": 0,
+            "TimedOut": 0,
+            "SuccessfulResponses": 1,
+            "Calls": [
+              {
+                "Attempt": 1,
+                "StartedAt": "2026-08-23T04:02:11.277557888Z",
+                "FinishedAt": "2026-08-23T04:02:29.830261405Z",
+                "Duration": 18552703517,
+                "Completed": true,
+                "Failed": false,
+                "TimedOut": false,
+                "FailureCode": "",
+                "Error": "",
+                "PromptTokens": 141,
+                "CompletionTokens": 506,
+                "Runtime": {
+                  "StartedAt": "2026-08-23T04:02:11.27760189Z",
+                  "RequestInitiatedAt": "2026-08-23T04:02:11.277610196Z",
+                  "HeadersReceivedAt": "2026-08-23T04:02:12.457486772Z",
+                  "FirstContentAt": "2026-08-23T04:02:12.457523721Z",
+                  "CompletedAt": "2026-08-23T04:02:29.830024773Z",
+                  "FailedAt": "0001-01-01T00:00:00Z",
+                  "TimedOutAt": "0001-01-01T00:00:00Z",
+                  "CancelledAt": "0001-01-01T00:00:00Z",
+                  "Duration": 18552422792,
+                  "StreamOpened": true,
+                  "StreamProgressed": true,
+                  "StreamCompleted": true,
+                  "Chunks": 506
+                }
+              }
+            ]
+          },
+          "tokens": 647,
+          "Telemetry": {
+            "Before": {
+              "architecture": "amd64",
+              "os": "linux",
+              "go_version": "go1.26.0",
+              "cpus": 4,
+              "goroutines": 5,
+              "heap_alloc": 1110920,
+              "total_alloc": 1110920,
+              "num_gc": 0,
+              "system_memory": 12540168,
+              "at": "2026-08-23T04:02:11.277522963Z"
+            },
+            "After": {
+              "architecture": "amd64",
+              "os": "linux",
+              "go_version": "go1.26.0",
+              "cpus": 4,
+              "goroutines": 5,
+              "heap_alloc": 1410288,
+              "total_alloc": 1410288,
+              "num_gc": 0,
+              "system_memory": 12802312,
+              "at": "2026-08-23T04:02:29.830429631Z"
+            },
+            "PeakHeapAlloc": 1410288,
+            "TotalAllocBefore": 1110920,
+            "TotalAllocAfter": 1410288,
+            "GCBefore": 0,
+            "GCAfter": 0,
+            "Duration": 18552908261,
+            "ModelLatency": 0
+          },
+          "failureCategory": "model_output_malformed"
+        },
+        "BANInitial": {
+          "outcome": "incorrect",
+          "passed": false,
+          "details": "initial winner missing from trace",
+          "duration": 0,
+          "measurement": {
+            "ID": "",
+            "ContractID": "",
+            "Claim": "",
+            "Outcome": "",
+            "VerificationClass": "",
+            "Observation": null,
+            "Expected": null,
+            "Evidence": null,
+            "Method": "",
+            "Authority": "",
+            "Independence": "",
+            "Repeatable": false,
+            "Repeatability": "",
+            "Provenance": {
+              "Implementation": "",
+              "ImplementationVersion": "",
+              "BenchmarkCase": "",
+              "DatasetVersion": "",
+              "DatasetHash": "",
+              "FixtureVersion": "",
+              "Runtime": "",
+              "GitCommit": "",
+              "GitRemote": "",
+              "GitDirty": false,
+              "Timestamp": "0001-01-01T00:00:00Z"
+            },
+            "StartedAt": "0001-01-01T00:00:00Z",
+            "FinishedAt": "0001-01-01T00:00:00Z",
+            "Cost": {
+              "Latency": 0,
+              "HeapBytesBefore": 0,
+              "HeapBytesAfter": 0,
+              "ExternalAPICalls": 0,
+              "PaidInferenceCalls": 0,
+              "LocalMeasurementCalls": 0
+            }
+          }
+        },
+        "CandidateMeasurements": null,
+        "FinalMeasurements": null,
+        "InitialWinnerID": "",
+        "FinalWinnerID": "",
+        "RecoveryAttempted": false,
+        "RecoverySuccessful": false,
+        "Graph": {
+          "CandidateProposals": 5,
+          "NodesCreated": 1,
+          "DuplicateProposals": 4,
+          "DuplicatesDetected": 4,
+          "Convergences": 0,
+          "MultipleParentNodes": 0,
+          "BranchesPruned": 0,
+          "PrunedCandidates": 0,
+          "ProviderEvaluations": 1,
+          "MaxDepthReached": 0,
+          "PeakActiveBranches": 0
+        },
+        "TraceRunID": "70a3df66d9520827",
+        "Memory": {
+          "Enabled": false,
+          "InitialSnapshotHash": "",
+          "RetrievedMemoryIDs": null,
+          "RetrievalReasons": null,
+          "WorkingMemoryChars": 0,
+          "GuidanceHash": "",
+          "Events": null
+        },
+        "AttemptStartedAt": "2026-08-23T04:02:08.858462848Z",
+        "CompletedAt": "2026-08-23T04:02:29.830446603Z",
+        "ConfigurationHash": "7600a8db194185e4821f52637656fe41c8ca125142e7b36e68986c2b077b3689"
+      },
+      "MemoryPair": {
+        "CaseID": "arithmetic-001",
+        "Category": "arithmetic_constraints",
+        "Repetition": 1,
+        "Seed": 42,
+        "Baseline": {
+          "answer": "",
+          "verification": {
+            "outcome": "",
+            "passed": false,
+            "details": "",
+            "duration": 0,
+            "measurement": {
+              "ID": "",
+              "ContractID": "",
+              "Claim": "",
+              "Outcome": "",
+              "VerificationClass": "",
+              "Observation": null,
+              "Expected": null,
+              "Evidence": null,
+              "Method": "",
+              "Authority": "",
+              "Independence": "",
+              "Repeatable": false,
+              "Repeatability": "",
+              "Provenance": {
+                "Implementation": "",
+                "ImplementationVersion": "",
+                "BenchmarkCase": "",
+                "DatasetVersion": "",
+                "DatasetHash": "",
+                "FixtureVersion": "",
+                "Runtime": "",
+                "GitCommit": "",
+                "GitRemote": "",
+                "GitDirty": false,
+                "Timestamp": "0001-01-01T00:00:00Z"
+              },
+              "StartedAt": "0001-01-01T00:00:00Z",
+              "FinishedAt": "0001-01-01T00:00:00Z",
+              "Cost": {
+                "Latency": 0,
+                "HeapBytesBefore": 0,
+                "HeapBytesAfter": 0,
+                "ExternalAPICalls": 0,
+                "PaidInferenceCalls": 0,
+                "LocalMeasurementCalls": 0
+              }
+            }
+          },
+          "measurements": null,
+          "StartedAt": "0001-01-01T00:00:00Z",
+          "FinishedAt": "0001-01-01T00:00:00Z",
+          "Latency": 0,
+          "ProviderDuration": 0,
+          "MemoryRetrievalDuration": 0,
+          "GraphSearchDuration": 0,
+          "VerificationDuration": 0,
+          "OrchestrationDuration": 0,
+          "modelCalls": 0,
+          "providerAccounting": {
+            "Attempted": 0,
+            "Completed": 0,
+            "Failed": 0,
+            "TimedOut": 0,
+            "SuccessfulResponses": 0,
+            "Calls": null
+          },
+          "Telemetry": {
+            "Before": {
+              "architecture": "",
+              "os": "",
+              "go_version": "",
+              "cpus": 0,
+              "goroutines": 0,
+              "heap_alloc": 0,
+              "total_alloc": 0,
+              "num_gc": 0,
+              "system_memory": 0,
+              "at": "0001-01-01T00:00:00Z"
+            },
+            "After": {
+              "architecture": "",
+              "os": "",
+              "go_version": "",
+              "cpus": 0,
+              "goroutines": 0,
+              "heap_alloc": 0,
+              "total_alloc": 0,
+              "num_gc": 0,
+              "system_memory": 0,
+              "at": "0001-01-01T00:00:00Z"
+            },
+            "PeakHeapAlloc": 0,
+            "TotalAllocBefore": 0,
+            "TotalAllocAfter": 0,
+            "GCBefore": 0,
+            "GCAfter": 0,
+            "Duration": 0,
+            "ModelLatency": 0
+          }
+        },
+        "BAN": {
+          "answer": "45",
+          "verification": {
+            "outcome": "pass",
+            "passed": true,
+            "details": "SUPPORTED under FORMALLY_VERIFIED: 45",
+            "value": 45,
+            "duration": 45064,
+            "measurement": {
+              "ID": "arithmetic-001-1787457834801122119",
+              "ContractID": "contract-arithmetic-001",
+              "Claim": "candidate output satisfies benchmark case arithmetic-001",
+              "Outcome": "SUPPORTED",
+              "VerificationClass": "FORMALLY_VERIFIED",
+              "Observation": 45,
+              "Expected": 45,
+              "tolerance": {
+                "absolute": 0
+              },
+              "Evidence": [
+                {
+                  "ID": "e-arithmetic-001-1787457834801126037",
+                  "Source": "deterministic local numeric",
+                  "Observation": 45,
+                  "Relationship": "SUPPORTS",
+                  "MeasurementID": "contract-arithmetic-001",
+                  "Provenance": {
+                    "Implementation": "",
+                    "ImplementationVersion": "",
+                    "BenchmarkCase": "",
+                    "DatasetVersion": "",
+                    "DatasetHash": "",
+                    "FixtureVersion": "",
+                    "Runtime": "",
+                    "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+                    "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+                    "GitDirty": true,
+                    "Timestamp": "0001-01-01T00:00:00Z"
+                  },
+                  "Timestamp": "2026-08-23T04:03:54.801126728Z",
+                  "Independent": true,
+                  "correlationGroup": "contract-arithmetic-001"
+                }
+              ],
+              "Method": "deterministic local numeric comparison",
+              "Authority": "FORMAL",
+              "Independence": "INDEPENDENT",
+              "Repeatable": true,
+              "Repeatability": "DETERMINISTIC",
+              "Provenance": {
+                "Implementation": "zdx-ban/internal/experiment/numeric",
+                "ImplementationVersion": "0.4",
+                "BenchmarkCase": "arithmetic-001",
+                "DatasetVersion": "ban-memory-exp-001-smoke-v2-evaluation",
+                "DatasetHash": "",
+                "FixtureVersion": "",
+                "Runtime": "go1.26.0",
+                "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+                "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+                "GitDirty": true,
+                "Timestamp": "2026-08-23T04:03:54.801142638Z"
+              },
+              "StartedAt": "2026-08-23T04:03:54.801097574Z",
+              "FinishedAt": "2026-08-23T04:03:54.801142638Z",
+              "Cost": {
+                "Latency": 45064,
+                "HeapBytesBefore": 834936,
+                "HeapBytesAfter": 835672,
+                "ExternalAPICalls": 0,
+                "PaidInferenceCalls": 0,
+                "LocalMeasurementCalls": 1
+              }
+            }
+          },
+          "measurements": [
+            {
+              "ID": "arithmetic-001-1787457834801122119",
+              "ContractID": "contract-arithmetic-001",
+              "Claim": "candidate output satisfies benchmark case arithmetic-001",
+              "Outcome": "SUPPORTED",
+              "VerificationClass": "FORMALLY_VERIFIED",
+              "Observation": 45,
+              "Expected": 45,
+              "tolerance": {
+                "absolute": 0
+              },
+              "Evidence": [
+                {
+                  "ID": "e-arithmetic-001-1787457834801126037",
+                  "Source": "deterministic local numeric",
+                  "Observation": 45,
+                  "Relationship": "SUPPORTS",
+                  "MeasurementID": "contract-arithmetic-001",
+                  "Provenance": {
+                    "Implementation": "",
+                    "ImplementationVersion": "",
+                    "BenchmarkCase": "",
+                    "DatasetVersion": "",
+                    "DatasetHash": "",
+                    "FixtureVersion": "",
+                    "Runtime": "",
+                    "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+                    "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+                    "GitDirty": true,
+                    "Timestamp": "0001-01-01T00:00:00Z"
+                  },
+                  "Timestamp": "2026-08-23T04:03:54.801126728Z",
+                  "Independent": true,
+                  "correlationGroup": "contract-arithmetic-001"
+                }
+              ],
+              "Method": "deterministic local numeric comparison",
+              "Authority": "FORMAL",
+              "Independence": "INDEPENDENT",
+              "Repeatable": true,
+              "Repeatability": "DETERMINISTIC",
+              "Provenance": {
+                "Implementation": "zdx-ban/internal/experiment/numeric",
+                "ImplementationVersion": "0.4",
+                "BenchmarkCase": "arithmetic-001",
+                "DatasetVersion": "ban-memory-exp-001-smoke-v2-evaluation",
+                "DatasetHash": "",
+                "FixtureVersion": "",
+                "Runtime": "go1.26.0",
+                "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+                "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+                "GitDirty": true,
+                "Timestamp": "2026-08-23T04:03:54.801142638Z"
+              },
+              "StartedAt": "2026-08-23T04:03:54.801097574Z",
+              "FinishedAt": "2026-08-23T04:03:54.801142638Z",
+              "Cost": {
+                "Latency": 45064,
+                "HeapBytesBefore": 834936,
+                "HeapBytesAfter": 835672,
+                "ExternalAPICalls": 0,
+                "PaidInferenceCalls": 0,
+                "LocalMeasurementCalls": 1
+              }
+            }
+          ],
+          "StartedAt": "2026-08-23T04:02:29.836835978Z",
+          "FinishedAt": "2026-08-23T04:03:54.80098834Z",
+          "Latency": 84964152492,
+          "ProviderDuration": 84962865361,
+          "MemoryRetrievalDuration": 0,
+          "GraphSearchDuration": 1287131,
+          "VerificationDuration": 45064,
+          "OrchestrationDuration": 1242067,
+          "modelCalls": 12,
+          "providerAccounting": {
+            "Attempted": 12,
+            "Completed": 12,
+            "Failed": 0,
+            "TimedOut": 0,
+            "SuccessfulResponses": 12,
+            "Calls": [
+              {
+                "Attempt": 1,
+                "StartedAt": "2026-08-23T04:02:29.836904426Z",
+                "FinishedAt": "2026-08-23T04:02:49.118296998Z",
+                "Duration": 19281392572,
+                "Completed": true,
+                "Failed": false,
+                "TimedOut": false,
+                "FailureCode": "",
+                "Error": "",
+                "PromptTokens": 228,
+                "CompletionTokens": 517,
+                "Runtime": {
+                  "StartedAt": "2026-08-23T04:02:29.836937658Z",
+                  "RequestInitiatedAt": "2026-08-23T04:02:29.836956724Z",
+                  "HeadersReceivedAt": "2026-08-23T04:02:31.709516777Z",
+                  "FirstContentAt": "2026-08-23T04:02:31.709540722Z",
+                  "CompletedAt": "2026-08-23T04:02:49.118206107Z",
+                  "FailedAt": "0001-01-01T00:00:00Z",
+                  "TimedOutAt": "0001-01-01T00:00:00Z",
+                  "CancelledAt": "0001-01-01T00:00:00Z",
+                  "Duration": 19281268199,
+                  "StreamOpened": true,
+                  "StreamProgressed": true,
+                  "StreamCompleted": true,
+                  "Chunks": 517
+                }
+              },
+              {
+                "Attempt": 2,
+                "StartedAt": "2026-08-23T04:02:49.118513573Z",
+                "FinishedAt": "2026-08-23T04:02:55.059596473Z",
+                "Duration": 5941082900,
+                "Completed": true,
+                "Failed": false,
+                "TimedOut": false,
+                "FailureCode": "",
+                "Error": "",
+                "PromptTokens": 149,
+                "CompletionTokens": 147,
+                "Runtime": {
+                  "StartedAt": "2026-08-23T04:02:49.118607239Z",
+                  "RequestInitiatedAt": "2026-08-23T04:02:49.118617468Z",
+                  "HeadersReceivedAt": "2026-08-23T04:02:50.248411936Z",
+                  "FirstContentAt": "2026-08-23T04:02:50.248436872Z",
+                  "CompletedAt": "2026-08-23T04:02:55.059518026Z",
+                  "FailedAt": "0001-01-01T00:00:00Z",
+                  "TimedOutAt": "0001-01-01T00:00:00Z",
+                  "CancelledAt": "0001-01-01T00:00:00Z",
+                  "Duration": 5940910697,
+                  "StreamOpened": true,
+                  "StreamProgressed": true,
+                  "StreamCompleted": true,
+                  "Chunks": 147
+                }
+              },
+              {
+                "Attempt": 3,
+                "StartedAt": "2026-08-23T04:02:55.059615448Z",
+                "FinishedAt": "2026-08-23T04:03:00.838300698Z",
+                "Duration": 5778685250,
+                "Completed": true,
+                "Failed": false,
+                "TimedOut": false,
+                "FailureCode": "",
+                "Error": "",
+                "PromptTokens": 146,
+                "CompletionTokens": 148,
+                "Runtime": {
+                  "StartedAt": "2026-08-23T04:02:55.0596647Z",
+                  "RequestInitiatedAt": "2026-08-23T04:02:55.059671503Z",
+                  "HeadersReceivedAt": "2026-08-23T04:02:56.01250013Z",
+                  "FirstContentAt": "2026-08-23T04:02:56.012546988Z",
+                  "CompletedAt": "2026-08-23T04:03:00.838259822Z",
+                  "FailedAt": "0001-01-01T00:00:00Z",
+                  "TimedOutAt": "0001-01-01T00:00:00Z",
+                  "CancelledAt": "0001-01-01T00:00:00Z",
+                  "Duration": 5778595032,
+                  "StreamOpened": true,
+                  "StreamProgressed": true,
+                  "StreamCompleted": true,
+                  "Chunks": 148
+                }
+              },
+              {
+                "Attempt": 4,
+                "StartedAt": "2026-08-23T04:03:00.838331937Z",
+                "FinishedAt": "2026-08-23T04:03:06.751962688Z",
+                "Duration": 5913630751,
+                "Completed": true,
+                "Failed": false,
+                "TimedOut": false,
+                "FailureCode": "",
+                "Error": "",
+                "PromptTokens": 144,
+                "CompletionTokens": 146,
+                "Runtime": {
+                  "StartedAt": "2026-08-23T04:03:00.838416946Z",
+                  "RequestInitiatedAt": "2026-08-23T04:03:00.838427286Z",
+                  "HeadersReceivedAt": "2026-08-23T04:03:01.864514342Z",
+                  "FirstContentAt": "2026-08-23T04:03:01.864545261Z",
+                  "CompletedAt": "2026-08-23T04:03:06.751939695Z",
+                  "FailedAt": "0001-01-01T00:00:00Z",
+                  "TimedOutAt": "0001-01-01T00:00:00Z",
+                  "CancelledAt": "0001-01-01T00:00:00Z",
+                  "Duration": 5913522587,
+                  "StreamOpened": true,
+                  "StreamProgressed": true,
+                  "StreamCompleted": true,
+                  "Chunks": 146
+                }
+              },
+              {
+                "Attempt": 5,
+                "StartedAt": "2026-08-23T04:03:06.752044912Z",
+                "FinishedAt": "2026-08-23T04:03:13.928363667Z",
+                "Duration": 7176318755,
+                "Completed": true,
+                "Failed": false,
+                "TimedOut": false,
+                "FailureCode": "",
+                "Error": "",
+                "PromptTokens": 252,
+                "CompletionTokens": 157,
+                "Runtime": {
+                  "StartedAt": "2026-08-23T04:03:06.75209774Z",
+                  "RequestInitiatedAt": "2026-08-23T04:03:06.752105044Z",
+                  "HeadersReceivedAt": "2026-08-23T04:03:08.793620998Z",
+                  "FirstContentAt": "2026-08-23T04:03:08.793647698Z",
+                  "CompletedAt": "2026-08-23T04:03:13.928305939Z",
+                  "FailedAt": "0001-01-01T00:00:00Z",
+                  "TimedOutAt": "0001-01-01T00:00:00Z",
+                  "CancelledAt": "0001-01-01T00:00:00Z",
+                  "Duration": 7176208100,
+                  "StreamOpened": true,
+                  "StreamProgressed": true,
+                  "StreamCompleted": true,
+                  "Chunks": 157
+                }
+              },
+              {
+                "Attempt": 6,
+                "StartedAt": "2026-08-23T04:03:13.928467521Z",
+                "FinishedAt": "2026-08-23T04:03:30.393661854Z",
+                "Duration": 16465194333,
+                "Completed": true,
+                "Failed": false,
+                "TimedOut": false,
+                "FailureCode": "",
+                "Error": "",
+                "PromptTokens": 249,
+                "CompletionTokens": 440,
+                "Runtime": {
+                  "StartedAt": "2026-08-23T04:03:13.928517886Z",
+                  "RequestInitiatedAt": "2026-08-23T04:03:13.928532454Z",
+                  "HeadersReceivedAt": "2026-08-23T04:03:14.998492681Z",
+                  "FirstContentAt": "2026-08-23T04:03:14.998610561Z",
+                  "CompletedAt": "2026-08-23T04:03:30.393585721Z",
+                  "FailedAt": "0001-01-01T00:00:00Z",
+                  "TimedOutAt": "0001-01-01T00:00:00Z",
+                  "CancelledAt": "0001-01-01T00:00:00Z",
+                  "Duration": 16465067736,
+                  "StreamOpened": true,
+                  "StreamProgressed": true,
+                  "StreamCompleted": true,
+                  "Chunks": 440
+                }
+              },
+              {
+                "Attempt": 7,
+                "StartedAt": "2026-08-23T04:03:30.393812638Z",
+                "FinishedAt": "2026-08-23T04:03:36.739951118Z",
+                "Duration": 6346138480,
+                "Completed": true,
+                "Failed": false,
+                "TimedOut": false,
+                "FailureCode": "",
+                "Error": "",
+                "PromptTokens": 149,
+                "CompletionTokens": 151,
+                "Runtime": {
+                  "StartedAt": "2026-08-23T04:03:30.39389388Z",
+                  "RequestInitiatedAt": "2026-08-23T04:03:30.393901703Z",
+                  "HeadersReceivedAt": "2026-08-23T04:03:31.538174064Z",
+                  "FirstContentAt": "2026-08-23T04:03:31.538212616Z",
+                  "CompletedAt": "2026-08-23T04:03:36.739911183Z",
+                  "FailedAt": "0001-01-01T00:00:00Z",
+                  "TimedOutAt": "0001-01-01T00:00:00Z",
+                  "CancelledAt": "0001-01-01T00:00:00Z",
+                  "Duration": 6346017213,
+                  "StreamOpened": true,
+                  "StreamProgressed": true,
+                  "StreamCompleted": true,
+                  "Chunks": 151
+                }
+              },
+              {
+                "Attempt": 8,
+                "StartedAt": "2026-08-23T04:03:36.739977377Z",
+                "FinishedAt": "2026-08-23T04:03:43.109130917Z",
+                "Duration": 6369153540,
+                "Completed": true,
+                "Failed": false,
+                "TimedOut": false,
+                "FailureCode": "",
+                "Error": "",
+                "PromptTokens": 159,
+                "CompletionTokens": 154,
+                "Runtime": {
+                  "StartedAt": "2026-08-23T04:03:36.74002685Z",
+                  "RequestInitiatedAt": "2026-08-23T04:03:36.740035696Z",
+                  "HeadersReceivedAt": "2026-08-23T04:03:37.926683643Z",
+                  "FirstContentAt": "2026-08-23T04:03:37.926717356Z",
+                  "CompletedAt": "2026-08-23T04:03:43.10904693Z",
+                  "FailedAt": "0001-01-01T00:00:00Z",
+                  "TimedOutAt": "0001-01-01T00:00:00Z",
+                  "CancelledAt": "0001-01-01T00:00:00Z",
+                  "Duration": 6369019890,
+                  "StreamOpened": true,
+                  "StreamProgressed": true,
+                  "StreamCompleted": true,
+                  "Chunks": 154
+                }
+              },
+              {
+                "Attempt": 9,
+                "StartedAt": "2026-08-23T04:03:43.109245883Z",
+                "FinishedAt": "2026-08-23T04:03:49.427303077Z",
+                "Duration": 6318057194,
+                "Completed": true,
+                "Failed": false,
+                "TimedOut": false,
+                "FailureCode": "",
+                "Error": "",
+                "PromptTokens": 151,
+                "CompletionTokens": 151,
+                "Runtime": {
+                  "StartedAt": "2026-08-23T04:03:43.10935177Z",
+                  "RequestInitiatedAt": "2026-08-23T04:03:43.109360547Z",
+                  "HeadersReceivedAt": "2026-08-23T04:03:44.263971639Z",
+                  "FirstContentAt": "2026-08-23T04:03:44.264001174Z",
+                  "CompletedAt": "2026-08-23T04:03:49.427267931Z",
+                  "FailedAt": "0001-01-01T00:00:00Z",
+                  "TimedOutAt": "0001-01-01T00:00:00Z",
+                  "CancelledAt": "0001-01-01T00:00:00Z",
+                  "Duration": 6317916049,
+                  "StreamOpened": true,
+                  "StreamProgressed": true,
+                  "StreamCompleted": true,
+                  "Chunks": 151
+                }
+              },
+              {
+                "Attempt": 10,
+                "StartedAt": "2026-08-23T04:03:49.427339324Z",
+                "FinishedAt": "2026-08-23T04:03:51.692612103Z",
+                "Duration": 2265272779,
+                "Completed": true,
+                "Failed": false,
+                "TimedOut": false,
+                "FailureCode": "",
+                "Error": "",
+                "PromptTokens": 81,
+                "CompletionTokens": 56,
+                "Runtime": {
+                  "StartedAt": "2026-08-23T04:03:49.427389207Z",
+                  "RequestInitiatedAt": "2026-08-23T04:03:49.427399607Z",
+                  "HeadersReceivedAt": "2026-08-23T04:03:49.853513874Z",
+                  "FirstContentAt": "2026-08-23T04:03:49.853580158Z",
+                  "CompletedAt": "2026-08-23T04:03:51.692532745Z",
+                  "FailedAt": "0001-01-01T00:00:00Z",
+                  "TimedOutAt": "0001-01-01T00:00:00Z",
+                  "CancelledAt": "0001-01-01T00:00:00Z",
+                  "Duration": 2265143448,
+                  "StreamOpened": true,
+                  "StreamProgressed": true,
+                  "StreamCompleted": true,
+                  "Chunks": 56
+                }
+              },
+              {
+                "Attempt": 11,
+                "StartedAt": "2026-08-23T04:03:51.692644264Z",
+                "FinishedAt": "2026-08-23T04:03:53.746356027Z",
+                "Duration": 2053711763,
+                "Completed": true,
+                "Failed": false,
+                "TimedOut": false,
+                "FailureCode": "",
+                "Error": "",
+                "PromptTokens": 78,
+                "CompletionTokens": 52,
+                "Runtime": {
+                  "StartedAt": "2026-08-23T04:03:51.69269558Z",
+                  "RequestInitiatedAt": "2026-08-23T04:03:51.692706291Z",
+                  "HeadersReceivedAt": "2026-08-23T04:03:51.976514834Z",
+                  "FirstContentAt": "2026-08-23T04:03:51.976590125Z",
+                  "CompletedAt": "2026-08-23T04:03:53.746341199Z",
+                  "FailedAt": "0001-01-01T00:00:00Z",
+                  "TimedOutAt": "0001-01-01T00:00:00Z",
+                  "CancelledAt": "0001-01-01T00:00:00Z",
+                  "Duration": 2053645148,
+                  "StreamOpened": true,
+                  "StreamProgressed": true,
+                  "StreamCompleted": true,
+                  "Chunks": 52
+                }
+              },
+              {
+                "Attempt": 12,
+                "StartedAt": "2026-08-23T04:03:53.746590666Z",
+                "FinishedAt": "2026-08-23T04:03:54.80081771Z",
+                "Duration": 1054227044,
+                "Completed": true,
+                "Failed": false,
+                "TimedOut": false,
+                "FailureCode": "",
+                "Error": "",
+                "PromptTokens": 130,
+                "CompletionTokens": 3,
+                "Runtime": {
+                  "StartedAt": "2026-08-23T04:03:53.746616024Z",
+                  "RequestInitiatedAt": "2026-08-23T04:03:53.746627264Z",
+                  "HeadersReceivedAt": "2026-08-23T04:03:54.726198061Z",
+                  "FirstContentAt": "2026-08-23T04:03:54.726255639Z",
+                  "CompletedAt": "2026-08-23T04:03:54.800814824Z",
+                  "FailedAt": "0001-01-01T00:00:00Z",
+                  "TimedOutAt": "0001-01-01T00:00:00Z",
+                  "CancelledAt": "0001-01-01T00:00:00Z",
+                  "Duration": 1054198701,
+                  "StreamOpened": true,
+                  "StreamProgressed": true,
+                  "StreamCompleted": true,
+                  "Chunks": 3
+                }
+              }
+            ]
+          },
+          "tokens": 4038,
+          "Telemetry": {
+            "Before": {
+              "architecture": "amd64",
+              "os": "linux",
+              "go_version": "go1.26.0",
+              "cpus": 4,
+              "goroutines": 5,
+              "heap_alloc": 1566240,
+              "total_alloc": 1566240,
+              "num_gc": 0,
+              "system_memory": 12802312,
+              "at": "2026-08-23T04:02:29.836835877Z"
+            },
+            "After": {
+              "architecture": "amd64",
+              "os": "linux",
+              "go_version": "go1.26.0",
+              "cpus": 4,
+              "goroutines": 5,
+              "heap_alloc": 825912,
+              "total_alloc": 3402608,
+              "num_gc": 1,
+              "system_memory": 17856776,
+              "at": "2026-08-23T04:03:54.800987819Z"
+            },
+            "PeakHeapAlloc": 1566240,
+            "TotalAllocBefore": 1566240,
+            "TotalAllocAfter": 3402608,
+            "GCBefore": 0,
+            "GCAfter": 1,
+            "Duration": 84964159375,
+            "ModelLatency": 0
+          }
+        },
+        "BANInitial": {
+          "outcome": "incorrect",
+          "passed": false,
+          "details": "CONTRADICTED under FORMALLY_VERIFIED: 5",
+          "value": 5,
+          "duration": 64991,
+          "measurement": {
+            "ID": "arithmetic-001-1787457834801036980",
+            "ContractID": "contract-arithmetic-001",
+            "Claim": "candidate output satisfies benchmark case arithmetic-001",
+            "Outcome": "CONTRADICTED",
+            "VerificationClass": "FORMALLY_VERIFIED",
+            "Observation": 5,
+            "Expected": 45,
+            "tolerance": {
+              "absolute": 0
+            },
+            "Evidence": [
+              {
+                "ID": "e-arithmetic-001-1787457834801045346",
+                "Source": "deterministic local numeric",
+                "Observation": 5,
+                "Relationship": "CONTRADICTS",
+                "MeasurementID": "contract-arithmetic-001",
+                "Provenance": {
+                  "Implementation": "",
+                  "ImplementationVersion": "",
+                  "BenchmarkCase": "",
+                  "DatasetVersion": "",
+                  "DatasetHash": "",
+                  "FixtureVersion": "",
+                  "Runtime": "",
+                  "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+                  "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+                  "GitDirty": true,
+                  "Timestamp": "0001-01-01T00:00:00Z"
+                },
+                "Timestamp": "2026-08-23T04:03:54.801046428Z",
+                "Independent": true,
+                "correlationGroup": "contract-arithmetic-001"
+              }
+            ],
+            "Method": "deterministic local numeric comparison",
+            "Authority": "FORMAL",
+            "Independence": "INDEPENDENT",
+            "Repeatable": true,
+            "Repeatability": "DETERMINISTIC",
+            "Provenance": {
+              "Implementation": "zdx-ban/internal/experiment/numeric",
+              "ImplementationVersion": "0.4",
+              "BenchmarkCase": "arithmetic-001",
+              "DatasetVersion": "ban-memory-exp-001-smoke-v2-evaluation",
+              "DatasetHash": "",
+              "FixtureVersion": "",
+              "Runtime": "go1.26.0",
+              "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+              "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+              "GitDirty": true,
+              "Timestamp": "2026-08-23T04:03:54.801063991Z"
+            },
+            "StartedAt": "2026-08-23T04:03:54.800999Z",
+            "FinishedAt": "2026-08-23T04:03:54.801063991Z",
+            "Cost": {
+              "Latency": 64991,
+              "HeapBytesBefore": 830024,
+              "HeapBytesAfter": 830776,
+              "ExternalAPICalls": 0,
+              "PaidInferenceCalls": 0,
+              "LocalMeasurementCalls": 1
+            }
+          }
+        },
+        "CandidateMeasurements": [
+          {
+            "ID": "arithmetic-001-1787457834801036980",
+            "ContractID": "contract-arithmetic-001",
+            "Claim": "candidate output satisfies benchmark case arithmetic-001",
+            "Outcome": "CONTRADICTED",
+            "VerificationClass": "FORMALLY_VERIFIED",
+            "Observation": 5,
+            "Expected": 45,
+            "tolerance": {
+              "absolute": 0
+            },
+            "Evidence": [
+              {
+                "ID": "e-arithmetic-001-1787457834801045346",
+                "Source": "deterministic local numeric",
+                "Observation": 5,
+                "Relationship": "CONTRADICTS",
+                "MeasurementID": "contract-arithmetic-001",
+                "Provenance": {
+                  "Implementation": "",
+                  "ImplementationVersion": "",
+                  "BenchmarkCase": "",
+                  "DatasetVersion": "",
+                  "DatasetHash": "",
+                  "FixtureVersion": "",
+                  "Runtime": "",
+                  "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+                  "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+                  "GitDirty": true,
+                  "Timestamp": "0001-01-01T00:00:00Z"
+                },
+                "Timestamp": "2026-08-23T04:03:54.801046428Z",
+                "Independent": true,
+                "correlationGroup": "contract-arithmetic-001"
+              }
+            ],
+            "Method": "deterministic local numeric comparison",
+            "Authority": "FORMAL",
+            "Independence": "INDEPENDENT",
+            "Repeatable": true,
+            "Repeatability": "DETERMINISTIC",
+            "Provenance": {
+              "Implementation": "zdx-ban/internal/experiment/numeric",
+              "ImplementationVersion": "0.4",
+              "BenchmarkCase": "arithmetic-001",
+              "DatasetVersion": "ban-memory-exp-001-smoke-v2-evaluation",
+              "DatasetHash": "",
+              "FixtureVersion": "",
+              "Runtime": "go1.26.0",
+              "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+              "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+              "GitDirty": true,
+              "Timestamp": "2026-08-23T04:03:54.801063991Z"
+            },
+            "StartedAt": "2026-08-23T04:03:54.800999Z",
+            "FinishedAt": "2026-08-23T04:03:54.801063991Z",
+            "Cost": {
+              "Latency": 64991,
+              "HeapBytesBefore": 830024,
+              "HeapBytesAfter": 830776,
+              "ExternalAPICalls": 0,
+              "PaidInferenceCalls": 0,
+              "LocalMeasurementCalls": 1
+            }
+          },
+          {
+            "ID": "arithmetic-001-1787457833746472765",
+            "ContractID": "contract-arithmetic-001",
+            "Claim": "candidate output satisfies benchmark case arithmetic-001",
+            "Outcome": "CONTRADICTED",
+            "VerificationClass": "FORMALLY_VERIFIED",
+            "Observation": 5,
+            "Expected": 45,
+            "tolerance": {
+              "absolute": 0
+            },
+            "Evidence": [
+              {
+                "ID": "e-arithmetic-001-1787457833746478345",
+                "Source": "deterministic local numeric",
+                "Observation": 5,
+                "Relationship": "CONTRADICTS",
+                "MeasurementID": "contract-arithmetic-001",
+                "Provenance": {
+                  "Implementation": "",
+                  "ImplementationVersion": "",
+                  "BenchmarkCase": "",
+                  "DatasetVersion": "",
+                  "DatasetHash": "",
+                  "FixtureVersion": "",
+                  "Runtime": "",
+                  "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+                  "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+                  "GitDirty": true,
+                  "Timestamp": "0001-01-01T00:00:00Z"
+                },
+                "Timestamp": "2026-08-23T04:03:53.746479026Z",
+                "Independent": true,
+                "correlationGroup": "contract-arithmetic-001"
+              }
+            ],
+            "Method": "deterministic local numeric comparison",
+            "Authority": "FORMAL",
+            "Independence": "INDEPENDENT",
+            "Repeatable": true,
+            "Repeatability": "DETERMINISTIC",
+            "Provenance": {
+              "Implementation": "zdx-ban/internal/experiment/numeric",
+              "ImplementationVersion": "0.4",
+              "BenchmarkCase": "arithmetic-001",
+              "DatasetVersion": "ban-memory-exp-001-smoke-v2-evaluation",
+              "DatasetHash": "",
+              "FixtureVersion": "",
+              "Runtime": "go1.26.0",
+              "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+              "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+              "GitDirty": true,
+              "Timestamp": "2026-08-23T04:03:53.746492302Z"
+            },
+            "StartedAt": "2026-08-23T04:03:53.746361006Z",
+            "FinishedAt": "2026-08-23T04:03:53.746492302Z",
+            "Cost": {
+              "Latency": 131296,
+              "HeapBytesBefore": 703176,
+              "HeapBytesAfter": 741512,
+              "ExternalAPICalls": 0,
+              "PaidInferenceCalls": 0,
+              "LocalMeasurementCalls": 1
+            }
+          },
+          {
+            "ID": "arithmetic-001-1787457833746538568",
+            "ContractID": "contract-arithmetic-001",
+            "Claim": "candidate output satisfies benchmark case arithmetic-001",
+            "Outcome": "INCONCLUSIVE",
+            "VerificationClass": "FORMALLY_VERIFIED",
+            "Observation": null,
+            "Expected": 45,
+            "tolerance": {
+              "absolute": 0
+            },
+            "Evidence": null,
+            "Method": "deterministic local numeric comparison",
+            "Authority": "FORMAL",
+            "Independence": "INDEPENDENT",
+            "Repeatable": true,
+            "Repeatability": "DETERMINISTIC",
+            "Provenance": {
+              "Implementation": "zdx-ban/internal/experiment/numeric",
+              "ImplementationVersion": "0.4",
+              "BenchmarkCase": "arithmetic-001",
+              "DatasetVersion": "ban-memory-exp-001-smoke-v2-evaluation",
+              "DatasetHash": "",
+              "FixtureVersion": "",
+              "Runtime": "go1.26.0",
+              "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+              "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+              "GitDirty": true,
+              "Timestamp": "2026-08-23T04:03:53.746548597Z"
+            },
+            "StartedAt": "2026-08-23T04:03:53.746504464Z",
+            "FinishedAt": "2026-08-23T04:03:53.746548597Z",
+            "Cost": {
+              "Latency": 44133,
+              "HeapBytesBefore": 742944,
+              "HeapBytesAfter": 743088,
+              "ExternalAPICalls": 0,
+              "PaidInferenceCalls": 0,
+              "LocalMeasurementCalls": 1
+            },
+            "error": {
+              "Code": "OBSERVATION_UNPARSEABLE",
+              "Message": "no numeric observation",
+              "Retryable": false
+            }
+          },
+          {
+            "ID": "arithmetic-001-1787457833746567443",
+            "ContractID": "contract-arithmetic-001",
+            "Claim": "candidate output satisfies benchmark case arithmetic-001",
+            "Outcome": "SUPPORTED",
+            "VerificationClass": "FORMALLY_VERIFIED",
+            "Observation": 45,
+            "Expected": 45,
+            "tolerance": {
+              "absolute": 0
+            },
+            "Evidence": [
+              {
+                "ID": "e-arithmetic-001-1787457833746569516",
+                "Source": "deterministic local numeric",
+                "Observation": 45,
+                "Relationship": "SUPPORTS",
+                "MeasurementID": "contract-arithmetic-001",
+                "Provenance": {
+                  "Implementation": "",
+                  "ImplementationVersion": "",
+                  "BenchmarkCase": "",
+                  "DatasetVersion": "",
+                  "DatasetHash": "",
+                  "FixtureVersion": "",
+                  "Runtime": "",
+                  "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+                  "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+                  "GitDirty": true,
+                  "Timestamp": "0001-01-01T00:00:00Z"
+                },
+                "Timestamp": "2026-08-23T04:03:53.746569827Z",
+                "Independent": true,
+                "correlationGroup": "contract-arithmetic-001"
+              }
+            ],
+            "Method": "deterministic local numeric comparison",
+            "Authority": "FORMAL",
+            "Independence": "INDEPENDENT",
+            "Repeatable": true,
+            "Repeatability": "DETERMINISTIC",
+            "Provenance": {
+              "Implementation": "zdx-ban/internal/experiment/numeric",
+              "ImplementationVersion": "0.4",
+              "BenchmarkCase": "arithmetic-001",
+              "DatasetVersion": "ban-memory-exp-001-smoke-v2-evaluation",
+              "DatasetHash": "",
+              "FixtureVersion": "",
+              "Runtime": "go1.26.0",
+              "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+              "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+              "GitDirty": true,
+              "Timestamp": "2026-08-23T04:03:53.746578383Z"
+            },
+            "StartedAt": "2026-08-23T04:03:53.746555931Z",
+            "FinishedAt": "2026-08-23T04:03:53.746578383Z",
+            "Cost": {
+              "Latency": 22452,
+              "HeapBytesBefore": 744544,
+              "HeapBytesAfter": 745280,
+              "ExternalAPICalls": 0,
+              "PaidInferenceCalls": 0,
+              "LocalMeasurementCalls": 1
+            }
+          }
+        ],
+        "FinalMeasurements": [
+          {
+            "ID": "arithmetic-001-1787457834801122119",
+            "ContractID": "contract-arithmetic-001",
+            "Claim": "candidate output satisfies benchmark case arithmetic-001",
+            "Outcome": "SUPPORTED",
+            "VerificationClass": "FORMALLY_VERIFIED",
+            "Observation": 45,
+            "Expected": 45,
+            "tolerance": {
+              "absolute": 0
+            },
+            "Evidence": [
+              {
+                "ID": "e-arithmetic-001-1787457834801126037",
+                "Source": "deterministic local numeric",
+                "Observation": 45,
+                "Relationship": "SUPPORTS",
+                "MeasurementID": "contract-arithmetic-001",
+                "Provenance": {
+                  "Implementation": "",
+                  "ImplementationVersion": "",
+                  "BenchmarkCase": "",
+                  "DatasetVersion": "",
+                  "DatasetHash": "",
+                  "FixtureVersion": "",
+                  "Runtime": "",
+                  "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+                  "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+                  "GitDirty": true,
+                  "Timestamp": "0001-01-01T00:00:00Z"
+                },
+                "Timestamp": "2026-08-23T04:03:54.801126728Z",
+                "Independent": true,
+                "correlationGroup": "contract-arithmetic-001"
+              }
+            ],
+            "Method": "deterministic local numeric comparison",
+            "Authority": "FORMAL",
+            "Independence": "INDEPENDENT",
+            "Repeatable": true,
+            "Repeatability": "DETERMINISTIC",
+            "Provenance": {
+              "Implementation": "zdx-ban/internal/experiment/numeric",
+              "ImplementationVersion": "0.4",
+              "BenchmarkCase": "arithmetic-001",
+              "DatasetVersion": "ban-memory-exp-001-smoke-v2-evaluation",
+              "DatasetHash": "",
+              "FixtureVersion": "",
+              "Runtime": "go1.26.0",
+              "GitCommit": "9d1b62f977521f73b66844fd40017cdf02158967",
+              "GitRemote": "https://github.com/zeroday31337x/zdx-ban",
+              "GitDirty": true,
+              "Timestamp": "2026-08-23T04:03:54.801142638Z"
+            },
+            "StartedAt": "2026-08-23T04:03:54.801097574Z",
+            "FinishedAt": "2026-08-23T04:03:54.801142638Z",
+            "Cost": {
+              "Latency": 45064,
+              "HeapBytesBefore": 834936,
+              "HeapBytesAfter": 835672,
+              "ExternalAPICalls": 0,
+              "PaidInferenceCalls": 0,
+              "LocalMeasurementCalls": 1
+            }
+          }
+        ],
+        "InitialWinnerID": "b01",
+        "FinalWinnerID": "b03",
+        "RecoveryAttempted": true,
+        "RecoverySuccessful": true,
+        "Graph": {
+          "CandidateProposals": 9,
+          "NodesCreated": 6,
+          "DuplicateProposals": 3,
+          "DuplicatesDetected": 3,
+          "Convergences": 0,
+          "MultipleParentNodes": 0,
+          "BranchesPruned": 0,
+          "PrunedCandidates": 0,
+          "ProviderEvaluations": 12,
+          "MaxDepthReached": 1,
+          "PeakActiveBranches": 3
+        },
+        "TraceRunID": "dc5ef51e6d19598a",
+        "Memory": {
+          "Enabled": true,
+          "InitialSnapshotHash": "ae840bc5c6e0b5f97dc2853fac01509419820397579a3ccb7c78ae091e18e033",
+          "RetrievedMemoryIDs": [
+            "memory-good-001"
+          ],
+          "RetrievalReasons": {
+            "memory-good-001": {
+              "CategoryMatch": true,
+              "StrategyMatch": false,
+              "Supported": true,
+              "FailureRelevant": false,
+              "TokenOverlap": 0.15789473684210525,
+              "TagMatches": [
+                "arithmetic"
+              ],
+              "Tier": "TIER_3_EPISODIC",
+              "Recency": 0.00004833447051262679,
+              "Score": 0.521055048302473
+            }
+          },
+          "WorkingMemoryChars": 146,
+          "GuidanceHash": "7cdae3283b095bee780c3b58c15f88ca9758aa219ecd13a3a627487c5230ea01",
+          "Events": null
+        },
+        "AttemptStartedAt": "2026-08-23T04:02:29.836599285Z",
+        "CompletedAt": "2026-08-23T04:03:54.801149531Z",
+        "ConfigurationHash": "7600a8db194185e4821f52637656fe41c8ca125142e7b36e68986c2b077b3689"
+      },
+      "MisleadingPair": {
+        "CaseID": "arithmetic-001",
+        "Category": "arithmetic_constraints",
+        "Repetition": 1,
+        "Seed": 42,
+        "Baseline": {
+          "answer": "",
+          "verification": {
+            "outcome": "",
+            "passed": false,
+            "details": "",
+            "duration": 0,
+            "measurement": {
+              "ID": "",
+              "ContractID": "",
+              "Claim": "",
+              "Outcome": "",
+              "VerificationClass": "",
+              "Observation": null,
+              "Expected": null,
+              "Evidence": null,
+              "Method": "",
+              "Authority": "",
+              "Independence": "",
+              "Repeatable": false,
+              "Repeatability": "",
+              "Provenance": {
+                "Implementation": "",
+                "ImplementationVersion": "",
+                "BenchmarkCase": "",
+                "DatasetVersion": "",
+                "DatasetHash": "",
+                "FixtureVersion": "",
+                "Runtime": "",
+                "GitCommit": "",
+                "GitRemote": "",
+                "GitDirty": false,
+                "Timestamp": "0001-01-01T00:00:00Z"
+              },
+              "StartedAt": "0001-01-01T00:00:00Z",
+              "FinishedAt": "0001-01-01T00:00:00Z",
+              "Cost": {
+                "Latency": 0,
+                "HeapBytesBefore": 0,
+                "HeapBytesAfter": 0,
+                "ExternalAPICalls": 0,
+                "PaidInferenceCalls": 0,
+                "LocalMeasurementCalls": 0
+              }
+            }
+          },
+          "measurements": null,
+          "StartedAt": "0001-01-01T00:00:00Z",
+          "FinishedAt": "0001-01-01T00:00:00Z",
+          "Latency": 0,
+          "ProviderDuration": 0,
+          "MemoryRetrievalDuration": 0,
+          "GraphSearchDuration": 0,
+          "VerificationDuration": 0,
+          "OrchestrationDuration": 0,
+          "modelCalls": 0,
+          "providerAccounting": {
+            "Attempted": 0,
+            "Completed": 0,
+            "Failed": 0,
+            "TimedOut": 0,
+            "SuccessfulResponses": 0,
+            "Calls": null
+          },
+          "Telemetry": {
+            "Before": {
+              "architecture": "",
+              "os": "",
+              "go_version": "",
+              "cpus": 0,
+              "goroutines": 0,
+              "heap_alloc": 0,
+              "total_alloc": 0,
+              "num_gc": 0,
+              "system_memory": 0,
+              "at": "0001-01-01T00:00:00Z"
+            },
+            "After": {
+              "architecture": "",
+              "os": "",
+              "go_version": "",
+              "cpus": 0,
+              "goroutines": 0,
+              "heap_alloc": 0,
+              "total_alloc": 0,
+              "num_gc": 0,
+              "system_memory": 0,
+              "at": "0001-01-01T00:00:00Z"
+            },
+            "PeakHeapAlloc": 0,
+            "TotalAllocBefore": 0,
+            "TotalAllocAfter": 0,
+            "GCBefore": 0,
+            "GCAfter": 0,
+            "Duration": 0,
+            "ModelLatency": 0
+          }
+        },
+        "BAN": {
+          "answer": "",
+          "verification": {
+            "outcome": "provider_failure",
+            "passed": false,
+            "details": "insufficient distinct branches",
+            "duration": 0,
+            "measurement": {
+              "ID": "error-1787457859539071047",
+              "ContractID": "",
+              "Claim": "",
+              "Outcome": "ERROR",
+              "VerificationClass": "UNVERIFIED",
+              "Observation": null,
+              "Expected": null,
+              "Evidence": null,
+              "Method": "",
+              "Authority": "UNKNOWN",
+              "Independence": "UNKNOWN",
+              "Repeatable": false,
+              "Repeatability": "",
+              "Provenance": {
+                "Implementation": "",
+                "ImplementationVersion": "",
+                "BenchmarkCase": "",
+                "DatasetVersion": "",
+                "DatasetHash": "",
+                "FixtureVersion": "",
+                "Runtime": "",
+                "GitCommit": "",
+                "GitRemote": "",
+                "GitDirty": false,
+                "Timestamp": "0001-01-01T00:00:00Z"
+              },
+              "StartedAt": "2026-08-23T04:04:19.539072579Z",
+              "FinishedAt": "2026-08-23T04:04:19.539072709Z",
+              "Cost": {
+                "Latency": 0,
+                "HeapBytesBefore": 0,
+                "HeapBytesAfter": 0,
+                "ExternalAPICalls": 0,
+                "PaidInferenceCalls": 0,
+                "LocalMeasurementCalls": 0
+              },
+              "error": {
+                "Code": "EXECUTION_ERROR",
+                "Message": "insufficient distinct branches",
+                "Retryable": false
+              }
+            }
+          },
+          "measurements": null,
+          "StartedAt": "2026-08-23T04:03:54.808994482Z",
+          "FinishedAt": "2026-08-23T04:04:19.539068021Z",
+          "Latency": 24730073628,
+          "ProviderDuration": 24729856121,
+          "MemoryRetrievalDuration": 0,
+          "GraphSearchDuration": 217507,
+          "VerificationDuration": 0,
+          "OrchestrationDuration": 0,
+          "modelCalls": 1,
+          "providerAccounting": {
+            "Attempted": 1,
+            "Completed": 1,
+            "Failed": 0,
+            "TimedOut": 0,
+            "SuccessfulResponses": 1,
+            "Calls": [
+              {
+                "Attempt": 1,
+                "StartedAt": "2026-08-23T04:03:54.809058572Z",
+                "FinishedAt": "2026-08-23T04:04:19.538914693Z",
+                "Duration": 24729856121,
+                "Completed": true,
+                "Failed": false,
+                "TimedOut": false,
+                "FailureCode": "",
+                "Error": "",
+                "PromptTokens": 282,
+                "CompletionTokens": 596,
+                "Runtime": {
+                  "StartedAt": "2026-08-23T04:03:54.809093047Z",
+                  "RequestInitiatedAt": "2026-08-23T04:03:54.809103867Z",
+                  "HeadersReceivedAt": "2026-08-23T04:03:57.446840494Z",
+                  "FirstContentAt": "2026-08-23T04:03:57.446868697Z",
+                  "CompletedAt": "2026-08-23T04:04:19.538835605Z",
+                  "FailedAt": "0001-01-01T00:00:00Z",
+                  "TimedOutAt": "0001-01-01T00:00:00Z",
+                  "CancelledAt": "0001-01-01T00:00:00Z",
+                  "Duration": 24729742468,
+                  "StreamOpened": true,
+                  "StreamProgressed": true,
+                  "StreamCompleted": true,
+                  "Chunks": 596
+                }
+              }
+            ]
+          },
+          "tokens": 878,
+          "Telemetry": {
+            "Before": {
+              "architecture": "amd64",
+              "os": "linux",
+              "go_version": "go1.26.0",
+              "cpus": 4,
+              "goroutines": 5,
+              "heap_alloc": 1007088,
+              "total_alloc": 3583784,
+              "num_gc": 1,
+              "system_memory": 18118920,
+              "at": "2026-08-23T04:03:54.808994402Z"
+            },
+            "After": {
+              "architecture": "amd64",
+              "os": "linux",
+              "go_version": "go1.26.0",
+              "cpus": 4,
+              "goroutines": 5,
+              "heap_alloc": 1369304,
+              "total_alloc": 3946000,
+              "num_gc": 1,
+              "system_memory": 18118920,
+              "at": "2026-08-23T04:04:19.53906782Z"
+            },
+            "PeakHeapAlloc": 1369304,
+            "TotalAllocBefore": 3583784,
+            "TotalAllocAfter": 3946000,
+            "GCBefore": 1,
+            "GCAfter": 1,
+            "Duration": 24730074670,
+            "ModelLatency": 0
+          },
+          "failureCategory": "model_output_malformed"
+        },
+        "BANInitial": {
+          "outcome": "incorrect",
+          "passed": false,
+          "details": "initial winner missing from trace",
+          "duration": 0,
+          "measurement": {
+            "ID": "",
+            "ContractID": "",
+            "Claim": "",
+            "Outcome": "",
+            "VerificationClass": "",
+            "Observation": null,
+            "Expected": null,
+            "Evidence": null,
+            "Method": "",
+            "Authority": "",
+            "Independence": "",
+            "Repeatable": false,
+            "Repeatability": "",
+            "Provenance": {
+              "Implementation": "",
+              "ImplementationVersion": "",
+              "BenchmarkCase": "",
+              "DatasetVersion": "",
+              "DatasetHash": "",
+              "FixtureVersion": "",
+              "Runtime": "",
+              "GitCommit": "",
+              "GitRemote": "",
+              "GitDirty": false,
+              "Timestamp": "0001-01-01T00:00:00Z"
+            },
+            "StartedAt": "0001-01-01T00:00:00Z",
+            "FinishedAt": "0001-01-01T00:00:00Z",
+            "Cost": {
+              "Latency": 0,
+              "HeapBytesBefore": 0,
+              "HeapBytesAfter": 0,
+              "ExternalAPICalls": 0,
+              "PaidInferenceCalls": 0,
+              "LocalMeasurementCalls": 0
+            }
+          }
+        },
+        "CandidateMeasurements": null,
+        "FinalMeasurements": null,
+        "InitialWinnerID": "",
+        "FinalWinnerID": "",
+        "RecoveryAttempted": false,
+        "RecoverySuccessful": false,
+        "Graph": {
+          "CandidateProposals": 5,
+          "NodesCreated": 1,
+          "DuplicateProposals": 4,
+          "DuplicatesDetected": 4,
+          "Convergences": 0,
+          "MultipleParentNodes": 0,
+          "BranchesPruned": 0,
+          "PrunedCandidates": 0,
+          "ProviderEvaluations": 1,
+          "MaxDepthReached": 0,
+          "PeakActiveBranches": 0
+        },
+        "TraceRunID": "cf4a3d11ef80c761",
+        "Memory": {
+          "Enabled": true,
+          "InitialSnapshotHash": "fbaa89a408adcacd59391a3cf5e2040cf009edf6056529209971441dc0b83133",
+          "RetrievedMemoryIDs": [
+            "memory-good-001",
+            "memory-bad-001"
+          ],
+          "RetrievalReasons": {
+            "memory-bad-001": {
+              "CategoryMatch": true,
+              "StrategyMatch": false,
+              "Supported": false,
+              "FailureRelevant": true,
+              "TokenOverlap": 0.05555555555555555,
+              "TagMatches": [
+                "arithmetic"
+              ],
+              "Tier": "TIER_2_DOMAIN",
+              "Recency": 0.00004833447051262679,
+              "Score": 0.5050024167235256
+            },
+            "memory-good-001": {
+              "CategoryMatch": true,
+              "StrategyMatch": false,
+              "Supported": true,
+              "FailureRelevant": false,
+              "TokenOverlap": 0.15789473684210525,
+              "TagMatches": [
+                "arithmetic"
+              ],
+              "Tier": "TIER_3_EPISODIC",
+              "Recency": 0.00004833447051262679,
+              "Score": 0.521055048302473
+            }
+          },
+          "WorkingMemoryChars": 279,
+          "GuidanceHash": "88297121d9ee986906055256f60844940837da39efc77084f1bffb01497f883d",
+          "Events": null
+        },
+        "AttemptStartedAt": "2026-08-23T04:03:54.808880679Z",
+        "CompletedAt": "2026-08-23T04:04:19.539079562Z",
+        "ConfigurationHash": "7600a8db194185e4821f52637656fe41c8ca125142e7b36e68986c2b077b3689"
+      },
+      "InitialMemoryHash": "ae840bc5c6e0b5f97dc2853fac01509419820397579a3ccb7c78ae091e18e033",
+      "FinalMemoryHash": "1733dcda1d05a7c4894a0865b85e1b700908ebe8cabcdc90208f3591109924e7",
+      "MisleadingInitialMemoryHash": "fbaa89a408adcacd59391a3cf5e2040cf009edf6056529209971441dc0b83133",
+      "MisleadingFinalMemoryHash": "fbaa89a408adcacd59391a3cf5e2040cf009edf6056529209971441dc0b83133",
+      "MemoryRetrievalDuration": 27833,
+      "MisleadingRetrievalDuration": 82354,
+      "Metrics": {
+        "RetrievalCount": 1,
+        "RelevantHits": 1,
+        "RetrievedUnused": 0,
+        "HarmfulRetrievals": 1,
+        "MemoryInducedErrors": 0,
+        "ContradictionEvents": 0,
+        "SupersessionEvents": 0,
+        "WorkingMemoryChars": 146,
+        "EpisodicWrites": 1,
+        "ConsolidationEvents": 0,
+        "MemoryLeverageBranches": -5,
+        "MemoryLeverageModelCalls": -11
+      },
+      "MemoryAttribution": {
+        "MemoryRetrieved": true,
+        "MemoryIDs": [
+          "memory-good-001"
+        ],
+        "MemoryRelevance": {
+          "memory-good-001": 0.521055048302473
+        },
+        "MemoryUsed": false,
+        "MemoryRejected": null,
+        "MemoryConflicted": null,
+        "MemoryConflictResolution": "",
+        "MemoryEffect": "UNKNOWN",
+        "EvidenceOverride": false,
+        "ObservableBasis": "retrieval events plus measured cold/memory outcome delta; use is a behavioral proxy, not chain-of-thought"
+      },
+      "MisleadingAttribution": {
+        "MemoryRetrieved": true,
+        "MemoryIDs": [
+          "memory-good-001",
+          "memory-bad-001"
+        ],
+        "MemoryRelevance": {
+          "memory-bad-001": 0.5050024167235256,
+          "memory-good-001": 0.521055048302473
+        },
+        "MemoryUsed": false,
+        "MemoryRejected": null,
+        "MemoryConflicted": null,
+        "MemoryConflictResolution": "",
+        "MemoryEffect": "UNKNOWN",
+        "EvidenceOverride": false,
+        "ObservableBasis": "retrieval, current measurement, recovery, and condition delta"
+      },
+      "MemoryEvents": [
+        {
+          "RecordID": "episode-b13a41e350297ab7",
+          "Action": "APPEND_EPISODE",
+          "Reason": "measured BAN condition outcome",
+          "MeasurementID": "",
+          "PreviousStatus": "",
+          "NewStatus": "SUPPORTED",
+          "At": "2026-08-23T04:04:19.539085303Z"
+        }
+      ],
+      "EpisodeID": "episode-b13a41e350297ab7",
+      "Consolidations": [
+        {
+          "Pattern": "arithmetic_constraints-strategy",
+          "ContributingEpisodeIDs": [
+            "memory-good-001"
+          ],
+          "CreatedRecordID": "",
+          "SkippedReason": "insufficient distinct correlation groups",
+          "At": "2026-08-23T04:04:19.54199911Z"
+        },
+        {
+          "Pattern": "b03",
+          "ContributingEpisodeIDs": [
+            "episode-b13a41e350297ab7"
+          ],
+          "CreatedRecordID": "",
+          "SkippedReason": "insufficient distinct correlation groups",
+          "At": "2026-08-23T04:04:19.542000332Z"
+        }
+      ],
+      "CompletedAt": "2026-08-23T04:02:29.830454207Z"
+    }
+  ],
+  "StartedAt": "2026-08-23T04:02:08.852348559Z",
+  "finishedAt": "2026-08-23T04:04:19.548147524Z"
+}

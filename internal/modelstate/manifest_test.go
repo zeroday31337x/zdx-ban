@@ -1,6 +1,9 @@
 package modelstate
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+)
 
 func ptr(s string) *string { return &s }
 func TestManifestConfigurationsAndW0Protection(t *testing.T) {
@@ -25,5 +28,23 @@ func TestConditionUnavailableDoesNotFallback(t *testing.T) {
 	a := DeclaredW0("qwen2.5:1.5b", "bin/ban").Availability(BANFull, true, true, true)
 	if a.Available || len(a.Missing) != 2 {
 		t.Fatalf("unexpected availability: %+v", a)
+	}
+}
+
+func TestIdentityProvenanceUsesDistinctJSONFields(t *testing.T) {
+	b, err := json.Marshal(DeclaredW0("qwen2.5:1.5b", "bin/ban"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got map[string]any
+	if err := json.Unmarshal(b, &got); err != nil {
+		t.Fatal(err)
+	}
+	foundation := got["foundation"].(map[string]any)
+	if foundation["identity_confidence"] != "DECLARED" {
+		t.Fatalf("identity confidence missing: %s", b)
+	}
+	if foundation["identity_source"] == "" {
+		t.Fatalf("identity source missing: %s", b)
 	}
 }

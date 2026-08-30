@@ -46,3 +46,19 @@ func TestGraphLimits(t *testing.T) {
 		t.Fatal("depth ignored")
 	}
 }
+
+func TestDistinctPathsMayConvergeOnSameAnswer(t *testing.T) {
+	g := NewGraph(1, 5)
+	a := NewState("a", Proposal{Title: "Direct", Hypothesis: "45", ReasoningSummary: "multiply then add"}, 0)
+	b := NewState("b", Proposal{Title: "Algebra", Hypothesis: "45", ReasoningSummary: "solve symbolically"}, 0)
+	if _, dup, err := g.AddNode(a); err != nil || dup {
+		t.Fatalf("first path: dup=%v err=%v", dup, err)
+	}
+	got, dup, err := g.AddNode(b)
+	if err != nil || dup {
+		t.Fatalf("distinct path collapsed: dup=%v err=%v", dup, err)
+	}
+	if got.Metadata["answer_convergence_with"] != "a" {
+		t.Fatalf("answer convergence not recorded: %#v", got.Metadata)
+	}
+}

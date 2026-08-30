@@ -1,0 +1,27 @@
+{
+  "state": "KNOWN_IMPROVEMENT",
+  "recorded_at": "2026-08-25T00:00:00Z",
+  "temperature": 0.1,
+  "model": "qwen2.5:1.5b",
+  "memory": {
+    "context_tags_max": 5,
+    "whole_store_tag_retrieval": true,
+    "structured_references": true,
+    "evidence_backed_gravity": true,
+    "answer_leakage_guard": true,
+    "online_learning": true
+  },
+  "capabilities": {
+    "deterministic_arithmetic_executor": true,
+    "verifier_remains_acceptance_authority": true
+  },
+  "evidence": {
+    "experiment": "BAN-EXPERIMENT-001-20260824-234347-9a55eb4b117e-MEMORY",
+    "baseline_supported": 1,
+    "ban_cold_supported": 3,
+    "ban_memory_supported": 5,
+    "ban_misleading_memory_supported": 5,
+    "provider_failures": 0,
+    "timeouts": 0
+  }
+}

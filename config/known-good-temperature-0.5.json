@@ -1,0 +1,32 @@
+{
+  "state": "KNOWN_GOOD_CONFIG",
+  "temperature": 0.5,
+  "model": "qwen2.5:1.5b",
+  "purpose": "higher-diversity generation with memory-anchored branch selection",
+  "memory": {
+    "context_tags_max": 5,
+    "whole_store_tag_retrieval": true,
+    "structured_references": true,
+    "evidence_backed_gravity": true,
+    "answer_leakage_guard": true,
+    "online_learning": true
+  },
+  "capabilities": {
+    "deterministic_arithmetic_executor": true,
+    "verifier_remains_acceptance_authority": true
+  },
+  "validation": {
+    "required_cases": 5,
+    "required_conditions": 4,
+    "provider_failures_allowed": 0,
+    "timeouts_allowed": 0,
+    "status": "PASSED_SMOKE_VALIDATION",
+    "experiment": "BAN-EXPERIMENT-001-20260825-040013-39115e0dbec0-MEMORY",
+    "baseline_supported": 1,
+    "ban_cold_supported": 3,
+    "ban_memory_supported": 5,
+    "ban_misleading_memory_supported": 5,
+    "provider_failures": 0,
+    "timeouts": 0
+  }
+}

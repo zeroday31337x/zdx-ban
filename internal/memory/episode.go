@@ -22,6 +22,7 @@ func RecordEpisode(ctx context.Context, s Store, e Episode, p Provenance) (Recor
 	p.SourceClass = MemoryGuidance
 	p.CreatedAt = e.Timestamp
 	r := NewRecord(id, Episodic, EpisodeKind, "Experience: "+e.TaskSignature, string(b), p)
+	r.RelatedMeasurementIDs = append([]string(nil), p.MeasurementIDs...)
 	r.Category = e.Category
 	r.Tags = append([]string{"episode"}, e.Strategies...)
 	if len(e.Strategies) > 0 {

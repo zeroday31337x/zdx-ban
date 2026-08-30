@@ -44,6 +44,7 @@ const (
 )
 
 type MemoryAttribution struct {
+	ContextTags              []string
 	MemoryRetrieved          bool
 	MemoryIDs                []string
 	MemoryRelevance          map[string]float64

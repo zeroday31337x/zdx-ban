@@ -19,7 +19,10 @@ const (
 	ProviderResponseError   FailureCode = "PROVIDER_RESPONSE_ERROR"
 	ModelOutputMalformed    FailureCode = "MODEL_OUTPUT_MALFORMED"
 	VerificationError       FailureCode = "VERIFICATION_ERROR"
-	ExecutionError          FailureCode = "EXECUTION_ERROR"
+	NoVerifiedCandidate     FailureCode = "NO_VERIFIED_CANDIDATE"
+	// ExecutionError is retained as a source-compatible alias. The emitted
+	// value now accurately describes deterministic candidate exhaustion.
+	ExecutionError FailureCode = NoVerifiedCandidate
 )
 
 type Failure struct {
@@ -107,6 +110,7 @@ type Request struct {
 	MaxTokens             int                   `json:"max_tokens,omitempty"`
 	ModelStateRequirement string                `json:"model_state_requirement,omitempty"`
 	Trace                 map[string]string     `json:"trace,omitempty"`
+	StructuredSchema      map[string]any        `json:"-"`
 }
 
 type ToolCall struct {

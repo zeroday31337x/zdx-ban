@@ -36,6 +36,60 @@ type MemoryDataset struct {
 	Cases                 []MemoryCase
 }
 
+// FoundationAnchors provide low-level, answer-free structure for a cold model.
+// They are deliberately weaker than one independently measured organic well.
+func FoundationAnchors(categories []string) []SeedMemory {
+	seen := map[string]bool{}
+	var out []SeedMemory
+	for _, category := range categories {
+		if seen[category] {
+			continue
+		}
+		seen[category] = true
+		var title, content string
+		switch category {
+		case "arithmetic_constraints":
+			title, content = "Foundation arithmetic method", "Preserve explicit operation structure, compute grouped operations before outer operations, then submit a concise candidate for independent verification."
+		case "logic_deduction":
+			title, content = "Foundation logic method", "Translate each statement into explicit constraints, test consistent assignments, and submit a candidate for independent verification."
+		case "structured_transformation":
+			title, content = "Foundation structure method", "Preserve the requested schema and transform only the specified fields, then validate the complete structure independently."
+		case "coding_debugging":
+			title, content = "Foundation debugging method", "Reproduce the failure, isolate the smallest causal change, and validate the proposed fix with an independent check."
+		case "forced_recovery":
+			title, content = "Foundation recovery method", "Treat the first attractive route as provisional, generate an independent alternative, and verify the final candidate before acceptance."
+		default:
+			continue
+		}
+		out = append(out, SeedMemory{ID: "foundation-" + category, Title: title, Content: content, Category: category, StrategyType: category + "-foundation", Tier: memory.Foundation, Kind: memory.StructuralRule, Status: memory.Active, SourceClass: memory.MemoryGuidance})
+	}
+	return out
+}
+
+func LoadFoundationMemory(path string) ([]SeedMemory, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	var out []SeedMemory
+	scan := bufio.NewScanner(f)
+	for scan.Scan() {
+		var seed SeedMemory
+		if err := json.Unmarshal(scan.Bytes(), &seed); err != nil {
+			return nil, err
+		}
+		if seed.ID == "" || seed.Category == "" || seed.Content == "" || seed.Tier != memory.Foundation || seed.Kind != memory.StructuralRule {
+			return nil, fmt.Errorf("invalid foundation memory record %q", seed.ID)
+		}
+		out = append(out, seed)
+	}
+	if err := scan.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func LoadMemoryDataset(path string, registry *Registry) (MemoryDataset, error) {
 	f, e := os.Open(path)
 	if e != nil {
@@ -100,6 +154,10 @@ func LoadMemoryDataset(path string, registry *Registry) (MemoryDataset, error) {
 		return d, e
 	}
 	d.SHA256 = hex.EncodeToString(h.Sum(nil))
+	for i := range d.Cases {
+		d.Cases[i].Evaluation.Measurement.Contract.Provenance.DatasetVersion = d.Version
+		d.Cases[i].Evaluation.Measurement.Contract.Provenance.DatasetHash = d.SHA256
+	}
 	if len(d.Cases) == 0 {
 		return d, fmt.Errorf("empty memory dataset")
 	}
@@ -120,6 +178,9 @@ func SeedStore(ctx context.Context, seeds []SeedMemory, readOnly bool) (*memory.
 		r.Status = x.Status
 		r.Tags = x.Tags
 		r.Metadata = map[string]any{"readOnly": readOnly}
+		if x.Tier == memory.Foundation && x.SourceClass == memory.MemoryGuidance {
+			r.Metadata["foundationAnchor"] = true
+		}
 		if e := s.Append(ctx, r); e != nil {
 			return nil, e
 		}
