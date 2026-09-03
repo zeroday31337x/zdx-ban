@@ -1,5 +1,29 @@
 # Development status
 
+## Training-candidate recording from live runs
+
+Every `ban run` now writes an observational `traces/<run-id>.candidates.jsonl`
+alongside its trace (`internal/cognitive.CandidatesFromBANTrace`, wired from
+`cmd/ban/main.go`). Previously only the `ban runtime smoke` demo path (a fake
+VM executor) produced `internal/training.Candidate` records, and the real
+search engine's output never reached the training-candidate model at all.
+
+This closes the "real run -> candidate" gap. The "candidate -> trainable W1
+dataset" gap is now also closed at the conversion-tool level:
+`./bin/ban training w1-dataset [-out DIR] <candidates.jsonl...>`
+(`internal/training.WriteW1Dataset`) extracts `{"instruction", "output"}`
+pairs from one or more recorded candidate files into `w1-training.jsonl`,
+filtered to `Target == W1Candidate`. It still does not write `w1-release.json`
+or bind a W0 hash — a human must assemble the rest of the release and review
+the dataset before training. Eligibility classification stays deliberately
+conservative — a node is `W1Candidate`/`W1_ELIGIBLE` only when a real
+deterministic verifier recorded an authoritative `SUPPORTED` measurement for
+it; the default accept verifier leaves every node `MemoryOnly`/`RECORDED`, so
+an ordinary `ban run` never produces anything `w1-dataset` will pick up.
+Nothing here trains or promotes a W1 release automatically, and `W2` remains
+unimplemented beyond its type-level placeholders in `internal/modelstate` and
+`internal/training`.
+
 ## W1 slow-training worker
 
 The optional RAM-aware W1 LoRA worker is implemented under

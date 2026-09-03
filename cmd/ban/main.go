@@ -7,9 +7,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"zdx-ban/internal/appconfig"
 	"zdx-ban/internal/ban"
 	"zdx-ban/internal/benchmark"
+	"zdx-ban/internal/cognitive"
 	"zdx-ban/internal/experiment"
+	"zdx-ban/internal/modelstate"
+	"zdx-ban/internal/training"
 )
 
 func main() {
@@ -118,5 +122,29 @@ func run() error {
 	}
 	fmt.Println("\n" + result.Answer)
 	fmt.Printf("\ntrace: %s\n", filepath.Join(config.Runtime.TraceDir, tr.RunID+".json"))
+	writeTrainingCandidates(config, tr)
 	return nil
+}
+
+// writeTrainingCandidates records an observational training-candidate JSONL
+// file alongside the run's trace. It is a side artifact, not core BAN
+// functionality: a failure here is reported but never fails the run.
+func writeTrainingCandidates(config appconfig.Config, tr *ban.ExecutionTrace) {
+	if config.Runtime.TraceDir == "" || tr == nil {
+		return
+	}
+	modelStateID, err := modelstate.DeclaredW0(config.Model.FoundationID, config.Model.Name).ID()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "ban: warning: could not compute model-state id for training candidates:", err)
+		return
+	}
+	candidates := cognitive.CandidatesFromBANTrace(tr, modelStateID)
+	path, err := training.WriteCandidatesJSONL(config.Runtime.TraceDir, tr.RunID, candidates)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "ban: warning: could not write training candidates:", err)
+		return
+	}
+	if path != "" {
+		fmt.Printf("candidates: %s\n", path)
+	}
 }

@@ -31,6 +31,8 @@ Run BAN, the same-model single-generation baseline, or the initial benchmark:
 
 Complete traces are stored in `traces/<run-id>.json`. They contain configuration, model information, runtime telemetry, every node and edge, component scores, verification results, initial/final winners, recovery fields, call/token counts, latency, and result. A temporary trace is renamed only after a complete synchronized write.
 
+Every run also writes an observational `traces/<run-id>.candidates.jsonl`, one `internal/training.Candidate` record per graph node (`internal/cognitive.CandidatesFromBANTrace`). This never affects search or selection and never auto-promotes anything: a node is classified `W1Candidate`/`W1_ELIGIBLE` only when the run's own deterministic verifier recorded an authoritative `SUPPORTED` measurement for it — the default no-constraint accept verifier leaves every node `MemoryOnly`/`RECORDED`. It is a recording of what happened, not a judgment that anything should be trained on.
+
 ## Memory-grounded intelligence
 
 See [MEMORY.md](MEMORY.md) for tiered memory and epistemic safeguards, and [EXPERIMENTS.md](EXPERIMENTS.md) for Pass 5 isolated conditions, durable raw JSONL, report regeneration, inspection, and comparisons.

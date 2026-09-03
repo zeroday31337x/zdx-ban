@@ -23,8 +23,14 @@ W2 design, training, validation, rollback, and activation remain separate work.
 - Select a parameter budget that fits measured training compute; do not infer a
   1B-1.5B full-pretraining capability from streamed dataset loading.
 - Build, review, and freeze a provenance-preserving corpus release using the
-  `training/w0` contract; add near-duplicate, PII/secret, license, safety,
-  quality, and benchmark-contamination gates beyond the structural validator.
+  `training/w0` contract. `training/w0/validate_dataset.py` now also gates
+  near-duplicate text (opt-in `--near-duplicate`, MinHash/LSH over word
+  shingles), high-precision PII/secrets (on by default, `--allow-pii` to
+  disable), and an operator-supplied license allow-list (opt-in
+  `--license-allow`) — all unit-tested but not yet run against a real corpus.
+  Safety, quality/language classification, per-source caps, and contamination
+  screening against a real held-out benchmark (beyond the existing exact-hash
+  deny-list) remain unimplemented and still need separate pipeline stages.
 - Run the tokenizer builder against a representative approved corpus and audit
   vocabulary coverage, special-token IDs, normalization, and artifact hashes.
 - Review the pilot architecture and training policy against measured hardware;

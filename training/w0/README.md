@@ -68,8 +68,15 @@ Before a shard is admitted, apply and record:
 - human audits of random and high-risk samples.
 
 The local validator enforces the parts that can be checked deterministically
-from this record format. Near-duplicate detection, PII/license review, factual
-quality, and safety review require separate pipeline stages.
+from this record format: exact and near-duplicate removal (opt-in MinHash/LSH
+over word shingles), a high-precision PII/secret regex+Luhn gate (on by
+default), and an operator-supplied license allow-list (opt-in). None of these
+are a substitute for human review — the regex/Luhn gate only catches
+structurally distinctive secrets and common identifiers, not general PII, and
+the near-duplicate gate is approximate and threshold-sensitive. Factual
+quality, safety review, language/topic classification, per-source caps, and
+contamination screening against a real held-out benchmark corpus (as opposed
+to the exact-hash deny-list below) still require separate pipeline stages.
 
 ## Size planning
 
@@ -90,8 +97,18 @@ The validator keeps duplicate keys in an on-disk SQLite index instead of RAM:
 ```bash
 python training/w0/validate_dataset.py /data/w0/shards \
   --deny-hashes /data/w0/evaluation-content-sha256.txt \
+  --license-allow /data/w0/approved-licenses.txt \
+  --near-duplicate \
   --report /data/w0/validation-report.json
 ```
+
+PII/secret rejection is on by default; pass `--allow-pii` only for a corpus
+that is deliberately exempt (e.g. already-scrubbed fixtures). `--license-allow`
+and `--near-duplicate` are opt-in because they need a reviewed allow-list and
+corpus-appropriate shingle/band tuning (`--shingle-size`, `--minhash-count`,
+`--lsh-bands`, default 5/24/8) respectively. The report adds `pii_records`,
+`license_rejected`, `near_duplicate_records`, and `by_license` alongside the
+existing counts.
 
 `approximate_tokens_chars_div_4` is only a rough sizing number. Final token
 counts must be produced with the frozen W0 tokenizer. A successful structural

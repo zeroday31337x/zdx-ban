@@ -117,7 +117,7 @@ func runtimeSubcommand(args []string, config appconfig.Config) error {
 }
 func trainingCommand(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("training requires inspect <jsonl> or export <jsonl> [-out training]")
+		return fmt.Errorf("training requires inspect <jsonl>, export <jsonl> [-out training], or w1-dataset [-out training] <jsonl...>")
 	}
 	switch args[0] {
 	case "inspect":
@@ -142,6 +142,34 @@ func trainingCommand(args []string) error {
 			return e
 		}
 		return printJSON(m)
+	case "w1-dataset":
+		fs := flag.NewFlagSet("training w1-dataset", flag.ContinueOnError)
+		out := fs.String("out", "training", "output directory")
+		if e := fs.Parse(args[1:]); e != nil {
+			return e
+		}
+		paths := fs.Args()
+		if len(paths) == 0 {
+			return fmt.Errorf("training w1-dataset requires one or more candidate jsonl files")
+		}
+		var all []training.Candidate
+		for _, p := range paths {
+			v, e := readCandidates(p)
+			if e != nil {
+				return e
+			}
+			all = append(all, v...)
+		}
+		path, e := training.WriteW1Dataset(*out, all)
+		if e != nil {
+			return e
+		}
+		if path == "" {
+			fmt.Println("no W1-eligible candidates in the given input; nothing written")
+			return nil
+		}
+		fmt.Println(path)
+		return nil
 	default:
 		return fmt.Errorf("unknown training command %q", args[0])
 	}

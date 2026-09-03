@@ -25,7 +25,7 @@ def texts(files: list[Path]):
                     item = json.loads(line)
                 except json.JSONDecodeError as exc:
                     raise RuntimeError(f"invalid JSON at {path}:{line_number}") from exc
-                item, errors = validate_record(item, 1, 64 * 1024 * 1024)
+                item, errors, _pii_categories = validate_record(item, 1, 64 * 1024 * 1024)
                 if errors or item is None:
                     raise RuntimeError(f"invalid W0 record at {path}:{line_number}: {'; '.join(errors)}")
                 if item["split"] == "train":

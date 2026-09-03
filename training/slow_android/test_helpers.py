@@ -1,3 +1,4 @@
+import contextlib
 import hashlib
 import json
 import sys
@@ -5,8 +6,22 @@ import tempfile
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import trainer  # noqa: E402
+
+@contextlib.contextmanager
+def _isolated_import_path(directory: Path):
+    """Scope sys.path/sys.modules so a same-named sibling ``trainer`` module
+    elsewhere under training/ can't be cached and reused across test files."""
+    directory_str = str(directory)
+    sys.path.insert(0, directory_str)
+    try:
+        yield
+    finally:
+        sys.path.remove(directory_str)
+        sys.modules.pop("trainer", None)
+
+
+with _isolated_import_path(Path(__file__).resolve().parent):
+    import trainer  # noqa: E402
 
 
 class HelpersTest(unittest.TestCase):

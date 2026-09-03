@@ -23,6 +23,17 @@ The release directory must contain:
 - `w1-training.jsonl`, with non-empty `instruction` and `output` strings;
 - `w1-release.json`, with `release_id`, `training_sha256`, and a W0 SHA-256.
 
+`./bin/ban training w1-dataset [-out DIR] <candidates.jsonl...>` produces
+`w1-training.jsonl` from one or more `traces/<run-id>.candidates.jsonl` files
+(each written automatically by `ban run`; see
+`internal/cognitive.CandidatesFromBANTrace` and the root README). It only
+extracts candidates whose `Target` is `W1_CANDIDATE` — the run's own
+deterministic verifier must have actually confirmed the selected reasoning
+outcome; the default no-constraint accept verifier never produces one. This
+tool performs no deduplication beyond exact candidate ID, no quality, PII, or
+safety review, and does not write `w1-release.json` — a human must still
+review the resulting dataset and assemble the rest of the release by hand.
+
 The W0 hash may be named `w0_sha256`, `base_model_sha256`, or supplied as
 `foundation.artifact_hash`. It is the deterministic tree hash printed by:
 
