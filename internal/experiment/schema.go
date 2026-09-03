@@ -7,6 +7,7 @@ import (
 	"zdx-ban/internal/memory"
 	"zdx-ban/internal/model"
 	"zdx-ban/internal/telemetry"
+	"zdx-ban/internal/training"
 )
 
 const SchemaVersion = "0.4"
@@ -34,48 +35,48 @@ type Case struct {
 	Metadata                                      map[string]any  `json:"metadata,omitempty"`
 }
 type RunConfig struct {
-	Model, Provider              string
-	Temperature                  float64
-	Seed                         *int `json:"seed,omitempty"`
-	MaxTokens                    int
-	ProposalMaxTokens            int
-	EvaluationMaxTokens          int
-	ChallengeMaxTokens           int
-	FinalAnswerMaxTokens         int
-	Timeout                      time.Duration `json:"timeout"`
-	InferenceTimeout             time.Duration `json:"inferenceTimeout"`
-	CaseTimeout                  time.Duration `json:"caseTimeout"`
-	RunTimeout                   time.Duration `json:"runTimeout"`
-	Streaming                    bool          `json:"streaming"`
-	Repetitions                  int
-	CaseLimit                    int
-	BAN                          ban.Config
-	RequireObjectiveVerification bool
-	MemoryEnabled                bool
-	MemoryRetrieval              memory.RetrievalConfig
-	MemoryConsolidation          memory.ConsolidationConfig
-	MemoryWritePolicy            string
-	MemoryOnlineLearning         bool
+	Model, Provider, FoundationID string
+	Temperature                   float64
+	Seed                          *int `json:"seed,omitempty"`
+	MaxTokens                     int
+	ProposalMaxTokens             int
+	EvaluationMaxTokens           int
+	ChallengeMaxTokens            int
+	FinalAnswerMaxTokens          int
+	Timeout                       time.Duration `json:"timeout"`
+	InferenceTimeout              time.Duration `json:"inferenceTimeout"`
+	CaseTimeout                   time.Duration `json:"caseTimeout"`
+	RunTimeout                    time.Duration `json:"runTimeout"`
+	Streaming                     bool          `json:"streaming"`
+	Repetitions                   int
+	CaseLimit                     int
+	BAN                           ban.Config
+	RequireObjectiveVerification  bool
+	MemoryEnabled                 bool
+	MemoryRetrieval               memory.RetrievalConfig
+	MemoryConsolidation           memory.ConsolidationConfig
+	MemoryWritePolicy             string
+	MemoryOnlineLearning          bool
 }
 
 // CommandDefaults supplies project-level defaults while CLI flags remain
 // authoritative for a specific, recorded experiment run.
 type CommandDefaults struct {
-	Provider             string
-	Temperature          float64
-	MemoryTemperature    float64
-	MaxTokens            int
-	ProposalMaxTokens    int
-	EvaluationMaxTokens  int
-	ChallengeMaxTokens   int
-	FinalAnswerMaxTokens int
-	Timeout              time.Duration
-	InferenceTimeout     time.Duration
-	CaseTimeout          time.Duration
-	RunTimeout           time.Duration
-	Repetitions          int
-	Seed                 int
-	BAN                  ban.Config
+	Provider, FoundationID string
+	Temperature            float64
+	MemoryTemperature      float64
+	MaxTokens              int
+	ProposalMaxTokens      int
+	EvaluationMaxTokens    int
+	ChallengeMaxTokens     int
+	FinalAnswerMaxTokens   int
+	Timeout                time.Duration
+	InferenceTimeout       time.Duration
+	CaseTimeout            time.Duration
+	RunTimeout             time.Duration
+	Repetitions            int
+	Seed                   int
+	BAN                    ban.Config
 }
 type Manifest struct {
 	Experiment, SchemaVersion, ExperimentID, DatasetVersion, DatasetPath, DatasetSHA256, GitCommit, GitRemote            string
@@ -166,6 +167,11 @@ type PairedResult struct {
 	SelectedRoute                            BranchRoute
 	AttemptStartedAt, CompletedAt            time.Time
 	ConfigurationHash                        string
+	// TrainingCandidates is an observational record of this pair's BAN run,
+	// one candidate per graph node (see internal/cognitive.CandidatesFromBANTrace).
+	// A node is only ever W1-eligible when this pair's own deterministic
+	// verifier recorded an authoritative Supported measurement for it.
+	TrainingCandidates []training.Candidate `json:"trainingCandidates,omitempty"`
 }
 type Distribution struct {
 	Count                          int

@@ -8,6 +8,20 @@ alongside its trace (`internal/cognitive.CandidatesFromBANTrace`, wired from
 VM executor) produced `internal/training.Candidate` records, and the real
 search engine's output never reached the training-candidate model at all.
 
+`internal/experiment.Runner.runPair` — the function both `ban experiment
+run`/`smoke` and `ban experiment memory-run`/`memory-smoke` funnel through —
+now does the same for every pair, success or failure, and
+`persist`/`persistMemory` write the flattened result to
+`<output>/<experiment-id>/experiment.candidates.jsonl`. This is the more
+consequential path in practice: `memory-run`/`memory-smoke` are what actually
+inject a real deterministic verifier (via `BranchVerifier` /
+`ban.ApplyMeasurement`) and produced every `results/*-MEMORY` directory in
+this repo, so it is the path most likely to yield `W1Candidate`-eligible
+records. Confirmed with a real deterministic (Formal, numeric) verifier in
+`TestRunPairRecordsTrainingCandidatesForVerifiedWinner` and the extended
+`TestDeterministicFourConditionRunPersistsRawRows`, both in
+`internal/experiment`.
+
 This closes the "real run -> candidate" gap. The "candidate -> trainable W1
 dataset" gap is now also closed at the conversion-tool level:
 `./bin/ban training w1-dataset [-out DIR] <candidates.jsonl...>`

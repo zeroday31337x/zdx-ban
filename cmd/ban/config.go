@@ -64,6 +64,7 @@ func configureEngine(engine *ban.Engine, config appconfig.Config) {
 func experimentDefaults(config appconfig.Config) experiment.CommandDefaults {
 	return experiment.CommandDefaults{
 		Provider:             config.Model.Provider,
+		FoundationID:         config.Model.FoundationID,
 		Temperature:          config.Experiment.Temperature,
 		MemoryTemperature:    config.Experiment.MemoryTemperature,
 		MaxTokens:            config.Experiment.MaxTokens,

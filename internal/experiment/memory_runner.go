@@ -13,6 +13,7 @@ import (
 	"zdx-ban/internal/memory"
 	"zdx-ban/internal/model"
 	tr "zdx-ban/internal/trace"
+	"zdx-ban/internal/training"
 )
 
 type MemoryCondition string
@@ -445,6 +446,15 @@ func persistMemory(dir string, s *MemoryExperiment) error {
 		return e
 	}
 	if e = WriteMemoryRawReport(filepath.Join(dir, "pass5-report.md"), rows); e != nil {
+		return e
+	}
+	var candidates []training.Candidate
+	for _, c := range s.Cases {
+		candidates = append(candidates, c.ColdPair.TrainingCandidates...)
+		candidates = append(candidates, c.MemoryPair.TrainingCandidates...)
+		candidates = append(candidates, c.MisleadingPair.TrainingCandidates...)
+	}
+	if _, e = training.WriteCandidatesJSONL(dir, "experiment", candidates); e != nil {
 		return e
 	}
 	return WriteMemoryReport(filepath.Join(dir, "memory-report.md"), s)

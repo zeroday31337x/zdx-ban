@@ -14,12 +14,15 @@ import (
 	"sync"
 	"time"
 	"zdx-ban/internal/ban"
+	"zdx-ban/internal/cognitive"
 	"zdx-ban/internal/inference"
 	"zdx-ban/internal/measurement"
 	"zdx-ban/internal/memory"
 	"zdx-ban/internal/model"
+	"zdx-ban/internal/modelstate"
 	"zdx-ban/internal/telemetry"
 	tr "zdx-ban/internal/trace"
+	"zdx-ban/internal/training"
 )
 
 type Runner struct {
@@ -279,6 +282,10 @@ func (r *Runner) runPair(ctx context.Context, c Case, rep int) PairedResult {
 		e.Memory = ban.MemoryInteraction{Enabled: true, InitialSnapshotHash: r.MemoryRetrieval.SnapshotHash, RetrievedMemoryIDs: ids, RetrievalReasons: reasons, WorkingMemoryChars: r.MemoryRetrieval.ApproxChars, GuidanceHash: configHash(guide), GravityWells: append([]ban.GravityWell(nil), e.GravityWells...)}
 	}
 	result, bt, berr := e.Run(ctx, c.Prompt)
+	if bt != nil {
+		modelStateID, _ := modelstate.DeclaredW0(r.Config.FoundationID, r.Config.Model).ID()
+		row.TrainingCandidates = cognitive.CandidatesFromBANTrace(bt, modelStateID)
+	}
 	after = telemetry.Capture()
 	row.BAN = SideResult{StartedAt: start.UTC(), FinishedAt: time.Now().UTC(), Latency: time.Since(start), Provider: banTracker.accounting(), Telemetry: telemetryResult(before, after, time.Since(start), 0)}
 	row.BAN.ModelCalls = row.BAN.Provider.SuccessfulResponses
@@ -402,6 +409,13 @@ func persist(dir string, s *ResultFile) error {
 		return err
 	}
 	ok = true
+	var candidates []training.Candidate
+	for _, row := range s.Cases {
+		candidates = append(candidates, row.TrainingCandidates...)
+	}
+	if _, err = training.WriteCandidatesJSONL(dir, "experiment", candidates); err != nil {
+		return err
+	}
 	return WriteReport(filepath.Join(dir, "report.md"), s)
 }
 func newID() string {

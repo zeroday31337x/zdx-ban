@@ -71,7 +71,7 @@ func Command(args []string, p model.Provider, modelName string, defaults Command
 	if err != nil {
 		return err
 	}
-	cfg := RunConfig{Model: modelName, Provider: defaults.Provider, Temperature: *temp, Seed: seed, MaxTokens: *tokens, ProposalMaxTokens: *proposalTokens, EvaluationMaxTokens: *evaluationTokens, ChallengeMaxTokens: *challengeTokens, FinalAnswerMaxTokens: *finalTokens, Timeout: *timeout, InferenceTimeout: *inferenceTimeout, CaseTimeout: *caseTimeout, RunTimeout: *runTimeout, Streaming: true, Repetitions: *reps, BAN: defaults.BAN, RequireObjectiveVerification: true}
+	cfg := RunConfig{Model: modelName, Provider: defaults.Provider, FoundationID: defaults.FoundationID, Temperature: *temp, Seed: seed, MaxTokens: *tokens, ProposalMaxTokens: *proposalTokens, EvaluationMaxTokens: *evaluationTokens, ChallengeMaxTokens: *challengeTokens, FinalAnswerMaxTokens: *finalTokens, Timeout: *timeout, InferenceTimeout: *inferenceTimeout, CaseTimeout: *caseTimeout, RunTimeout: *runTimeout, Streaming: true, Repetitions: *reps, BAN: defaults.BAN, RequireObjectiveVerification: true}
 	r := Runner{Provider: p, Registry: registry, Dataset: data, Config: cfg, OutputRoot: *output, ExperimentID: *resume, Verbose: *verbose}
 	if *dry {
 		if err = r.DryRun(); err != nil {

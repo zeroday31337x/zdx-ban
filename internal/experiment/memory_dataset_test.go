@@ -1,6 +1,7 @@
 package experiment
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
@@ -13,7 +14,26 @@ import (
 	"zdx-ban/internal/inference"
 	"zdx-ban/internal/measurement"
 	"zdx-ban/internal/memory"
+	"zdx-ban/internal/training"
 )
+
+func readCandidatesJSONL(path string) ([]training.Candidate, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	var out []training.Candidate
+	for scanner.Scan() {
+		var c training.Candidate
+		if err := json.Unmarshal(scanner.Bytes(), &c); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, scanner.Err()
+}
 
 func writeMemoryCase(t *testing.T, c MemoryCase) string {
 	t.Helper()
@@ -191,6 +211,23 @@ func TestDeterministicFourConditionRunPersistsRawRows(t *testing.T) {
 	}
 	if len(rows) != 4 {
 		t.Fatalf("want four isolated observations, got %d", len(rows))
+	}
+	candidatesPath := filepath.Join(root, "four-condition", "experiment.candidates.jsonl")
+	if _, statErr := os.Stat(candidatesPath); statErr != nil {
+		t.Fatalf("expected experiment.candidates.jsonl from the memory runner: %v", statErr)
+	}
+	candidates, err := readCandidatesJSONL(candidatesPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var sawW1 bool
+	for _, c := range candidates {
+		if c.Target == training.W1Candidate {
+			sawW1 = true
+		}
+	}
+	if !sawW1 {
+		t.Fatalf("expected at least one W1-eligible candidate across the four conditions, got %d candidates", len(candidates))
 	}
 	seen := map[MemoryCondition]bool{}
 	for _, row := range rows {

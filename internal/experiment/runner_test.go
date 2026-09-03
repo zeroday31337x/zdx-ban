@@ -5,11 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 	"zdx-ban/internal/ban"
 	"zdx-ban/internal/inference"
+	"zdx-ban/internal/measurement"
 	"zdx-ban/internal/model"
+	"zdx-ban/internal/training"
 )
 
 type pairedMock struct {
@@ -136,6 +140,42 @@ func TestPairedPersistenceRecoveryAndResume(t *testing.T) {
 		t.Fatal("resume reran completed pair")
 	}
 }
+func TestRunPairRecordsTrainingCandidatesForVerifiedWinner(t *testing.T) {
+	p := &pairedMock{}
+	r := mockRunner(t, p)
+	r.Config.FoundationID = "qwen2.5:1.5b"
+	result, err := r.Run(context.Background(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	row := result.Cases[0]
+	if len(row.TrainingCandidates) == 0 {
+		t.Fatal("expected training candidates to be recorded")
+	}
+	var sawW1 bool
+	for _, c := range row.TrainingCandidates {
+		if err := c.Validate(); err != nil {
+			t.Fatalf("recorded candidate invalid: %v (%+v)", err, c)
+		}
+		if c.Target == training.W1Candidate {
+			sawW1 = true
+			if c.MeasurementOutcome != measurement.Supported {
+				t.Fatalf("W1 candidate without a supported measurement: %+v", c)
+			}
+			if c.Provenance.ModelStateID == "" {
+				t.Fatalf("W1 candidate missing model-state provenance: %+v", c)
+			}
+		}
+	}
+	if !sawW1 {
+		t.Fatalf("expected at least one W1-eligible candidate for the verified winner: %+v", row.TrainingCandidates)
+	}
+	path := filepath.Join(r.OutputRoot, r.ExperimentID, "experiment.candidates.jsonl")
+	if _, statErr := os.Stat(path); statErr != nil {
+		t.Fatalf("expected experiment.candidates.jsonl to be written: %v", statErr)
+	}
+}
+
 func TestCancellationLeavesResumableCheckpoint(t *testing.T) {
 	p := &pairedMock{}
 	r := mockRunner(t, p)
