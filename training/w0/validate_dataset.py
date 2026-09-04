@@ -67,6 +67,79 @@ def detect_pii(text: str) -> list[str]:
     return sorted(found)
 
 
+_SCRIPT_RANGES: dict[str, tuple[tuple[int, int], ...]] = {
+    "latin": ((0x0041, 0x024F), (0x1E00, 0x1EFF)),
+    "cyrillic": ((0x0400, 0x04FF),),
+    "cjk": ((0x4E00, 0x9FFF), (0x3400, 0x4DBF)),
+    "kana": ((0x3040, 0x30FF),),
+    "hangul": ((0xAC00, 0xD7A3),),
+    "arabic": ((0x0600, 0x06FF),),
+    "hebrew": ((0x0590, 0x05FF),),
+    "devanagari": ((0x0900, 0x097F),),
+}
+# Coarse, common-language-only mapping: a coverage gap here just skips the
+# check for that language, it never causes a false rejection.
+_LANGUAGE_EXPECTED_SCRIPT: dict[str, str] = {
+    "en": "latin", "fr": "latin", "de": "latin", "es": "latin", "it": "latin",
+    "pt": "latin", "nl": "latin", "sv": "latin", "id": "latin", "vi": "latin",
+    "pl": "latin", "tr": "latin", "ro": "latin", "da": "latin", "fi": "latin",
+    "ru": "cyrillic", "uk": "cyrillic", "bg": "cyrillic", "sr": "cyrillic",
+    "zh": "cjk", "ja": "kana", "ko": "hangul",
+    "ar": "arabic", "he": "hebrew", "hi": "devanagari",
+}
+
+
+def _char_script(ch: str) -> str | None:
+    codepoint = ord(ch)
+    for name, ranges in _SCRIPT_RANGES.items():
+        for low, high in ranges:
+            if low <= codepoint <= high:
+                return name
+    return None
+
+
+def dominant_script(text: str) -> str | None:
+    """Return the most common recognized script among alphabetic characters,
+    or None when too few characters fall into a recognized script to judge."""
+    counts: Counter[str] = Counter(script for ch in text if ch.isalpha() and (script := _char_script(ch)))
+    if not counts:
+        return None
+    return counts.most_common(1)[0][0]
+
+
+def language_script_mismatch(language: str, text: str) -> str | None:
+    """Return a mismatch description, or None when the declared language has
+    no script mapping or the text's dominant script matches it. This is a
+    coarse structural sanity check over common two-letter language codes,
+    not a language identifier -- it only ever flags a clear structural
+    mismatch, never a genuine ambiguous case."""
+    code = language.strip().lower().split("-")[0]
+    expected = _LANGUAGE_EXPECTED_SCRIPT.get(code)
+    if expected is None:
+        return None
+    dominant = dominant_script(text)
+    if dominant is None or dominant == expected:
+        return None
+    return f"declared language '{language}' expects {expected} script but text is predominantly {dominant}"
+
+
+def dominant_token_ratio(text: str) -> float:
+    """Fraction of whitespace tokens equal to the single most frequent token.
+    High values indicate degenerate/repetitive filler text."""
+    tokens = text.split()
+    if not tokens:
+        return 0.0
+    return Counter(tokens).most_common(1)[0][1] / len(tokens)
+
+
+def alpha_character_ratio(text: str) -> float:
+    """Fraction of non-whitespace characters that are alphabetic."""
+    non_space = [ch for ch in text if not ch.isspace()]
+    if not non_space:
+        return 0.0
+    return sum(1 for ch in non_space if ch.isalpha()) / len(non_space)
+
+
 def shingles(text: str, size: int) -> set[str]:
     """Whitespace-token shingles used as the near-duplicate similarity basis."""
     words = text.lower().split()
@@ -152,6 +225,34 @@ def load_deny_hashes(path: Path | None) -> set[str]:
     return hashes
 
 
+def seed_benchmark_buckets(connection: sqlite3.Connection, files: list[Path], shingle_size: int, num_hashes: int, bands: int) -> int:
+    """Pre-load a held-out benchmark corpus's LSH buckets so any near-duplicate
+    match against the target corpus is reported as contamination rather than
+    an ordinary in-corpus near-duplicate. Returns the number of benchmark
+    records seeded."""
+    seeded = 0
+    for path in files:
+        with path.open("rb") as raw:
+            for line in raw:
+                if not line.strip():
+                    continue
+                try:
+                    item = json.loads(line.decode("utf-8"))
+                except (UnicodeDecodeError, json.JSONDecodeError):
+                    continue
+                if not isinstance(item, dict) or not isinstance(item.get("text"), str):
+                    continue
+                text = canonical_text(item["text"])
+                signature = minhash_signature(shingles(text, shingle_size), num_hashes)
+                for bucket in lsh_bucket_keys(signature, bands):
+                    connection.execute(
+                        "INSERT OR IGNORE INTO lsh_buckets(bucket, first_id, source) VALUES (?, ?, 'benchmark')",
+                        (bucket, item.get("id", "")),
+                    )
+                seeded += 1
+    return seeded
+
+
 def load_license_allowlist(path: Path | None) -> set[str] | None:
     """Return the approved license set, or None when no allow-list was given."""
     if path is None:
@@ -169,7 +270,13 @@ def load_license_allowlist(path: Path | None) -> set[str] | None:
 
 
 def validate_record(
-    item: object, min_chars: int, max_bytes: int, pii_scan: bool = True
+    item: object,
+    min_chars: int,
+    max_bytes: int,
+    pii_scan: bool = True,
+    language_script_check: bool = False,
+    max_token_repetition_ratio: float = 0.0,
+    min_alpha_ratio: float = 0.0,
 ) -> tuple[dict | None, list[str], list[str]]:
     errors: list[str] = []
     if not isinstance(item, dict):
@@ -209,6 +316,14 @@ def validate_record(
     pii_categories = detect_pii(normalized) if pii_scan else []
     if pii_categories:
         errors.append(f"potential PII/secret detected: {', '.join(pii_categories)}")
+    if language_script_check:
+        mismatch = language_script_mismatch(item["language"], normalized)
+        if mismatch:
+            errors.append(mismatch)
+    if max_token_repetition_ratio > 0 and dominant_token_ratio(normalized) > max_token_repetition_ratio:
+        errors.append(f"single token exceeds {max_token_repetition_ratio:.2f} of all tokens")
+    if min_alpha_ratio > 0 and alpha_character_ratio(normalized) < min_alpha_ratio:
+        errors.append(f"alphabetic character ratio below {min_alpha_ratio:.2f}")
     return item, errors, pii_categories
 
 
@@ -225,9 +340,17 @@ def validate(
     shingle_size: int = 5,
     num_minhashes: int = 24,
     lsh_bands: int = 8,
+    benchmark_files: list[Path] | None = None,
+    max_records_per_source: int = 0,
+    max_records_per_source_type: int = 0,
+    language_script_check: bool = False,
+    max_token_repetition_ratio: float = 0.0,
+    min_alpha_ratio: float = 0.0,
 ) -> dict:
     if near_duplicate and (num_minhashes < 1 or lsh_bands < 1 or num_minhashes % lsh_bands != 0):
         raise RuntimeError("num_minhashes must be a positive multiple of lsh_bands")
+    if benchmark_files and not near_duplicate:
+        raise RuntimeError("benchmark contamination screening requires near_duplicate to be enabled")
     report: dict = {
         "schema_version": SCHEMA_VERSION,
         "valid": True,
@@ -246,6 +369,9 @@ def validate(
         "pii_records": 0,
         "license_rejected": 0,
         "near_duplicate_records": 0,
+        "benchmark_contaminated_records": 0,
+        "benchmark_records_seeded": 0,
+        "source_cap_rejected": 0,
         "by_split": {},
         "by_source_type": {},
         "by_license": {},
@@ -254,13 +380,21 @@ def validate(
     split_counts: Counter[str] = Counter()
     source_counts: Counter[str] = Counter()
     license_counts: Counter[str] = Counter()
+    accepted_by_source: Counter[str] = Counter()
+    accepted_by_source_type: Counter[str] = Counter()
     connection = sqlite3.connect(index_path)
     connection.execute("PRAGMA journal_mode=WAL")
     connection.execute("PRAGMA synchronous=NORMAL")
     connection.execute("CREATE TABLE ids (value TEXT PRIMARY KEY) WITHOUT ROWID")
     connection.execute("CREATE TABLE contents (value TEXT PRIMARY KEY, split TEXT NOT NULL) WITHOUT ROWID")
     if near_duplicate:
-        connection.execute("CREATE TABLE lsh_buckets (bucket TEXT PRIMARY KEY, first_id TEXT NOT NULL)")
+        connection.execute(
+            "CREATE TABLE lsh_buckets (bucket TEXT PRIMARY KEY, first_id TEXT NOT NULL, source TEXT NOT NULL DEFAULT 'corpus')"
+        )
+        if benchmark_files:
+            report["benchmark_records_seeded"] = seed_benchmark_buckets(
+                connection, benchmark_files, shingle_size, num_minhashes, lsh_bands
+            )
 
     def add_error(path: Path, line_number: int, message: str) -> None:
         report["invalid_records"] += 1
@@ -289,7 +423,15 @@ def validate(
                     except json.JSONDecodeError as exc:
                         add_error(path, line_number, f"invalid JSON: {exc.msg}")
                         continue
-                    item, errors, pii_categories = validate_record(item, min_chars, max_bytes, pii_scan)
+                    item, errors, pii_categories = validate_record(
+                        item,
+                        min_chars,
+                        max_bytes,
+                        pii_scan,
+                        language_script_check,
+                        max_token_repetition_ratio,
+                        min_alpha_ratio,
+                    )
                     if pii_categories:
                         report["pii_records"] += 1
                     if errors or item is None:
@@ -326,19 +468,46 @@ def validate(
                         record_invalid = True
                     if near_duplicate and not record_invalid:
                         signature = minhash_signature(shingles(text, shingle_size), num_minhashes)
-                        is_near_duplicate = False
+                        hit_benchmark = False
+                        hit_corpus = False
                         for bucket in lsh_bucket_keys(signature, lsh_bands):
                             try:
                                 connection.execute(
-                                    "INSERT INTO lsh_buckets(bucket, first_id) VALUES (?, ?)",
+                                    "INSERT INTO lsh_buckets(bucket, first_id, source) VALUES (?, ?, 'corpus')",
                                     (bucket, item["id"]),
                                 )
                             except sqlite3.IntegrityError:
-                                is_near_duplicate = True
-                        if is_near_duplicate:
+                                existing = connection.execute(
+                                    "SELECT source FROM lsh_buckets WHERE bucket = ?", (bucket,)
+                                ).fetchone()
+                                if existing and existing[0] == "benchmark":
+                                    hit_benchmark = True
+                                else:
+                                    hit_corpus = True
+                        if hit_benchmark:
+                            report["benchmark_contaminated_records"] += 1
+                            add_error(path, line_number, "text is a near-duplicate of a held-out benchmark record")
+                            record_invalid = True
+                        elif hit_corpus:
                             report["near_duplicate_records"] += 1
                             add_error(path, line_number, "text is a near-duplicate of a previously accepted record")
                             record_invalid = True
+                    if not record_invalid and max_records_per_source > 0 and accepted_by_source[item["source"]] >= max_records_per_source:
+                        report["source_cap_rejected"] += 1
+                        add_error(path, line_number, f"source '{item['source']}' already has {max_records_per_source} accepted records")
+                        record_invalid = True
+                    if (
+                        not record_invalid
+                        and max_records_per_source_type > 0
+                        and accepted_by_source_type[item["source_type"]] >= max_records_per_source_type
+                    ):
+                        report["source_cap_rejected"] += 1
+                        add_error(
+                            path,
+                            line_number,
+                            f"source_type '{item['source_type']}' already has {max_records_per_source_type} accepted records",
+                        )
+                        record_invalid = True
                     if not record_invalid:
                         report["accepted_records"] += 1
                         report["utf8_bytes"] += len(encoded)
@@ -346,6 +515,8 @@ def validate(
                         split_counts[item["split"]] += 1
                         source_counts[item["source_type"]] += 1
                         license_counts[item["license"]] += 1
+                        accepted_by_source[item["source"]] += 1
+                        accepted_by_source_type[item["source_type"]] += 1
                         report["synthetic_records"] += int(item["synthetic"])
                     if report["records"] % 10000 == 0:
                         connection.commit()
@@ -413,6 +584,36 @@ def main() -> int:
     parser.add_argument("--shingle-size", type=int, default=5, help="word-shingle size for near-duplicate detection")
     parser.add_argument("--minhash-count", type=int, default=24, help="MinHash signature length")
     parser.add_argument("--lsh-bands", type=int, default=8, help="LSH bands; must evenly divide --minhash-count")
+    parser.add_argument(
+        "--benchmark-corpus",
+        type=Path,
+        nargs="+",
+        help="held-out benchmark JSONL shards/directories; requires --near-duplicate. "
+        "A record near-duplicating one of these is reported as contamination, not an ordinary near-duplicate",
+    )
+    parser.add_argument("--max-records-per-source", type=int, default=0, help="cap accepted records per exact 'source' value; 0 disables")
+    parser.add_argument(
+        "--max-records-per-source-type", type=int, default=0, help="cap accepted records per 'source_type' value; 0 disables"
+    )
+    parser.add_argument(
+        "--language-script-check",
+        action="store_true",
+        help="reject records whose text's dominant Unicode script structurally mismatches the declared language "
+        "(coarse, common-language-only; unmapped languages are skipped, never a false rejection)",
+    )
+    parser.add_argument(
+        "--max-token-repetition-ratio",
+        type=float,
+        default=0.0,
+        help="reject records where one whitespace token exceeds this fraction of all tokens; 0 disables",
+    )
+    parser.add_argument(
+        "--min-alpha-ratio",
+        type=float,
+        default=0.0,
+        help="reject records whose alphabetic-character ratio falls below this; 0 disables. "
+        "Not appropriate for code/math-heavy source_types -- tune or leave disabled for those",
+    )
     args = parser.parse_args()
     if args.min_chars < 1 or args.max_document_bytes < 1 or args.max_errors < 1:
         parser.error("size and error limits must be positive")
@@ -423,30 +624,38 @@ def main() -> int:
         or args.minhash_count % args.lsh_bands != 0
     ):
         parser.error("--shingle-size/--minhash-count/--lsh-bands must be positive, with bands dividing minhash-count")
+    if args.benchmark_corpus and not args.near_duplicate:
+        parser.error("--benchmark-corpus requires --near-duplicate")
+    if args.max_records_per_source < 0 or args.max_records_per_source_type < 0:
+        parser.error("--max-records-per-source/--max-records-per-source-type must not be negative")
+    if not (0.0 <= args.max_token_repetition_ratio <= 1.0) or not (0.0 <= args.min_alpha_ratio <= 1.0):
+        parser.error("--max-token-repetition-ratio/--min-alpha-ratio must be within [0, 1]")
     try:
         files = input_files(args.inputs)
         denied = load_deny_hashes(args.deny_hashes)
         license_allow = load_license_allowlist(args.license_allow)
         pii_scan = not args.allow_pii
+        benchmark_files = input_files(args.benchmark_corpus) if args.benchmark_corpus else None
+        common = dict(
+            pii_scan=pii_scan,
+            license_allow=license_allow,
+            near_duplicate=args.near_duplicate,
+            shingle_size=args.shingle_size,
+            num_minhashes=args.minhash_count,
+            lsh_bands=args.lsh_bands,
+            benchmark_files=benchmark_files,
+            max_records_per_source=args.max_records_per_source,
+            max_records_per_source_type=args.max_records_per_source_type,
+            language_script_check=args.language_script_check,
+            max_token_repetition_ratio=args.max_token_repetition_ratio,
+            min_alpha_ratio=args.min_alpha_ratio,
+        )
         if args.index:
             index = args.index.resolve()
             if index.exists():
                 raise RuntimeError(f"duplicate index already exists: {index}")
             index.parent.mkdir(parents=True, exist_ok=True)
-            report = validate(
-                files,
-                args.min_chars,
-                args.max_document_bytes,
-                denied,
-                index,
-                args.max_errors,
-                pii_scan,
-                license_allow,
-                args.near_duplicate,
-                args.shingle_size,
-                args.minhash_count,
-                args.lsh_bands,
-            )
+            report = validate(files, args.min_chars, args.max_document_bytes, denied, index, args.max_errors, **common)
         else:
             with tempfile.TemporaryDirectory(prefix="zdx-w0-validation-") as directory:
                 report = validate(
@@ -456,12 +665,7 @@ def main() -> int:
                     denied,
                     Path(directory) / "duplicates.sqlite3",
                     args.max_errors,
-                    pii_scan,
-                    license_allow,
-                    args.near_duplicate,
-                    args.shingle_size,
-                    args.minhash_count,
-                    args.lsh_bands,
+                    **common,
                 )
         if args.report:
             atomic_json(args.report, report)

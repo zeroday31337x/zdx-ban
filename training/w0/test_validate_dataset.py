@@ -25,11 +25,23 @@ def record(identifier: str, text: str, **changes) -> dict:
 
 
 class DatasetValidatorTest(unittest.TestCase):
-    def run_validation(self, values: list[dict], denied: set[str] | None = None, **options) -> dict:
+    def run_validation(
+        self,
+        values: list[dict],
+        denied: set[str] | None = None,
+        benchmark_values: list[dict] | None = None,
+        **options,
+    ) -> dict:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             shard = root / "part.jsonl"
             shard.write_text("".join(json.dumps(value) + "\n" for value in values), encoding="utf-8")
+            if benchmark_values is not None:
+                benchmark_shard = root / "benchmark.jsonl"
+                benchmark_shard.write_text(
+                    "".join(json.dumps(value) + "\n" for value in benchmark_values), encoding="utf-8"
+                )
+                options["benchmark_files"] = [benchmark_shard]
             return validator.validate(
                 [shard],
                 min_chars=1,
@@ -161,6 +173,88 @@ class DatasetValidatorTest(unittest.TestCase):
                 lsh_bands=3,
             )
 
+    def test_benchmark_contamination_is_rejected_and_distinguished_from_near_duplicate(self):
+        benchmark = [record("benchmark-1", self.NEAR_DUP_A)]
+        target = record("target-1", self.NEAR_DUP_B)
+        report = self.run_validation([target], benchmark_values=benchmark, near_duplicate=True)
+        self.assertFalse(report["valid"])
+        self.assertEqual(report["benchmark_contaminated_records"], 1)
+        self.assertEqual(report["near_duplicate_records"], 0)
+        self.assertEqual(report["accepted_records"], 0)
+        self.assertEqual(report["benchmark_records_seeded"], 1)
+
+    def test_benchmark_corpus_requires_near_duplicate_enabled(self):
+        with self.assertRaises(RuntimeError):
+            self.run_validation(
+                [record("target-1", self.NEAR_DUP_B)],
+                benchmark_values=[record("benchmark-1", self.NEAR_DUP_A)],
+            )
+
+    def test_dissimilar_text_is_not_flagged_as_benchmark_contamination(self):
+        benchmark = [record("benchmark-1", self.NEAR_DUP_A)]
+        target = record("target-1", self.DISSIMILAR)
+        report = self.run_validation([target], benchmark_values=benchmark, near_duplicate=True)
+        self.assertTrue(report["valid"])
+        self.assertEqual(report["benchmark_contaminated_records"], 0)
+
+    def test_max_records_per_source_rejects_beyond_cap(self):
+        values = [record(f"s{i}", f"Distinct passage number {i} about the topic.", source="feed-a") for i in range(3)]
+        report = self.run_validation(values, max_records_per_source=2)
+        self.assertFalse(report["valid"])
+        self.assertEqual(report["accepted_records"], 2)
+        self.assertEqual(report["source_cap_rejected"], 1)
+
+    def test_max_records_per_source_type_rejects_beyond_cap(self):
+        values = [
+            record(f"t{i}", f"Distinct passage number {i} about the topic.", source=f"feed-{i}", source_type="forum")
+            for i in range(3)
+        ]
+        report = self.run_validation(values, max_records_per_source_type=2)
+        self.assertFalse(report["valid"])
+        self.assertEqual(report["accepted_records"], 2)
+        self.assertEqual(report["source_cap_rejected"], 1)
+
+    def test_source_caps_disabled_by_default(self):
+        values = [record(f"u{i}", f"Distinct passage number {i} about the topic.", source="feed-a") for i in range(3)]
+        report = self.run_validation(values)
+        self.assertTrue(report["valid"])
+        self.assertEqual(report["accepted_records"], 3)
+
+    def test_language_script_check_rejects_structural_mismatch(self):
+        cyrillic_text = "Съешь ещё этих мягких французских булок да выпей чаю пожалуйста."
+        report = self.run_validation([record("mismatch", cyrillic_text, language="en")], language_script_check=True)
+        self.assertFalse(report["valid"])
+        self.assertIn("expects latin script", report["errors"][0]["error"])
+
+    def test_language_script_check_accepts_matching_script(self):
+        report = self.run_validation(
+            [record("match", "An ordinary English-language passage of prose.", language="en")],
+            language_script_check=True,
+        )
+        self.assertTrue(report["valid"])
+
+    def test_language_script_check_disabled_by_default(self):
+        cyrillic_text = "Съешь ещё этих мягких французских булок да выпей чаю пожалуйста."
+        report = self.run_validation([record("mismatch", cyrillic_text, language="en")])
+        self.assertTrue(report["valid"])
+
+    def test_max_token_repetition_ratio_rejects_degenerate_text(self):
+        degenerate = " ".join(["spam"] * 20 + ["ham"] * 2)
+        report = self.run_validation([record("degenerate", degenerate)], max_token_repetition_ratio=0.5)
+        self.assertFalse(report["valid"])
+        self.assertIn("single token exceeds", report["errors"][0]["error"])
+
+    def test_min_alpha_ratio_rejects_symbol_heavy_text(self):
+        symbol_heavy = "### 1234567890 ### %%%%%%%% :::::::: ++++++++ ========"
+        report = self.run_validation([record("symbols", symbol_heavy)], min_alpha_ratio=0.5)
+        self.assertFalse(report["valid"])
+        self.assertIn("alphabetic character ratio", report["errors"][0]["error"])
+
+    def test_quality_heuristics_disabled_by_default(self):
+        degenerate = " ".join(["spam"] * 20 + ["ham"] * 2)
+        report = self.run_validation([record("degenerate", degenerate)])
+        self.assertTrue(report["valid"])
+
 
 class DetectPiiTest(unittest.TestCase):
     def test_detects_email(self):
@@ -194,6 +288,54 @@ class ShingleAndMinhashTest(unittest.TestCase):
 
     def test_shingles_empty_text_is_empty_set(self):
         self.assertEqual(validator.shingles("", size=3), set())
+
+
+class LanguageScriptTest(unittest.TestCase):
+    def test_dominant_script_detects_latin(self):
+        self.assertEqual(validator.dominant_script("An ordinary English sentence."), "latin")
+
+    def test_dominant_script_detects_cyrillic(self):
+        self.assertEqual(validator.dominant_script("Съешь ещё этих мягких французских булок."), "cyrillic")
+
+    def test_dominant_script_none_when_no_recognized_script_chars(self):
+        self.assertIsNone(validator.dominant_script("1234 567 !!! ###"))
+
+    def test_language_script_mismatch_flags_cross_script_text(self):
+        mismatch = validator.language_script_mismatch("en", "Съешь ещё этих мягких французских булок.")
+        self.assertIsNotNone(mismatch)
+        self.assertIn("latin", mismatch)
+        self.assertIn("cyrillic", mismatch)
+
+    def test_language_script_mismatch_accepts_matching_text(self):
+        self.assertIsNone(validator.language_script_mismatch("en", "An ordinary English sentence."))
+
+    def test_language_script_mismatch_skips_unmapped_language(self):
+        self.assertIsNone(validator.language_script_mismatch("eo", "Sxauma programo por gxia."))
+
+    def test_language_script_mismatch_handles_region_suffix(self):
+        self.assertIsNone(validator.language_script_mismatch("en-US", "An ordinary English sentence."))
+
+
+class QualityHeuristicsTest(unittest.TestCase):
+    def test_dominant_token_ratio_detects_repetition(self):
+        text = " ".join(["spam"] * 9 + ["ham"])
+        self.assertAlmostEqual(validator.dominant_token_ratio(text), 0.9)
+
+    def test_dominant_token_ratio_empty_text_is_zero(self):
+        self.assertEqual(validator.dominant_token_ratio(""), 0.0)
+
+    def test_dominant_token_ratio_diverse_text_is_low(self):
+        text = "every single word here is completely different from the rest"
+        self.assertLess(validator.dominant_token_ratio(text), 0.2)
+
+    def test_alpha_character_ratio_all_letters(self):
+        self.assertEqual(validator.alpha_character_ratio("hello world"), 1.0)
+
+    def test_alpha_character_ratio_symbol_heavy(self):
+        self.assertLess(validator.alpha_character_ratio("### 123 %%% +++"), 0.2)
+
+    def test_alpha_character_ratio_empty_text_is_zero(self):
+        self.assertEqual(validator.alpha_character_ratio("   "), 0.0)
 
 
 if __name__ == "__main__":

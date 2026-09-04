@@ -80,6 +80,10 @@ type Candidate struct {
 	Target                          Target
 	ValidationState                 PromotionState
 	Provenance                      Provenance
+	// PromotedFrom lists the IDs of the underlying per-run candidates a
+	// derived repetition-promotion record (see W2PromotionCandidates) was
+	// built from. Empty for an ordinary per-run observation.
+	PromotedFrom []string `json:"promotedFrom,omitempty"`
 }
 
 func (c Candidate) Validate() error {

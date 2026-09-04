@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 	"zdx-ban/internal/appconfig"
 	"zdx-ban/internal/cognitive"
 	"zdx-ban/internal/inference"
@@ -117,7 +118,7 @@ func runtimeSubcommand(args []string, config appconfig.Config) error {
 }
 func trainingCommand(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("training requires inspect <jsonl>, export <jsonl> [-out training], or w1-dataset [-out training] <jsonl...>")
+		return fmt.Errorf("training requires inspect <jsonl>, export <jsonl> [-out training], w1-dataset [-out training] <jsonl...>, or w2-promote [-threshold 3] [-out training] <jsonl...>")
 	}
 	switch args[0] {
 	case "inspect":
@@ -169,6 +170,39 @@ func trainingCommand(args []string) error {
 			return nil
 		}
 		fmt.Println(path)
+		return nil
+	case "w2-promote":
+		fs := flag.NewFlagSet("training w2-promote", flag.ContinueOnError)
+		out := fs.String("out", "training", "output directory")
+		threshold := fs.Int("threshold", 3, "minimum distinct independently-verified runs required for W2 eligibility")
+		if e := fs.Parse(args[1:]); e != nil {
+			return e
+		}
+		if *threshold < 1 {
+			return fmt.Errorf("training w2-promote requires -threshold >= 1")
+		}
+		paths := fs.Args()
+		if len(paths) == 0 {
+			return fmt.Errorf("training w2-promote requires one or more candidate jsonl files")
+		}
+		var all []training.Candidate
+		for _, p := range paths {
+			v, e := readCandidates(p)
+			if e != nil {
+				return e
+			}
+			all = append(all, v...)
+		}
+		promoted := training.W2PromotionCandidates(all, *threshold, time.Now().UTC())
+		if len(promoted) == 0 {
+			fmt.Printf("no input reached the W2 repetition threshold (%d independent verified runs); nothing written\n", *threshold)
+			return nil
+		}
+		path, e := training.WriteCandidatesJSONL(*out, "w2-promotion", promoted)
+		if e != nil {
+			return e
+		}
+		fmt.Printf("promoted=%d %s\n", len(promoted), path)
 		return nil
 	default:
 		return fmt.Errorf("unknown training command %q", args[0])

@@ -1,9 +1,16 @@
 # Slow Android W1 trainer
 
-Status: optional W1 training infrastructure is implemented, but no successful
-device-specific training or adapter-validation smoke is claimed. Project status
-and required validation are tracked in [../../DEVELOPMENT_STATUS.md](../../DEVELOPMENT_STATUS.md)
-and [../../TODO.md](../../TODO.md).
+Status: optional W1 training infrastructure is implemented. The mechanism has
+been run end to end for real on an 8 GiB-class Ubuntu VPS — real preflight,
+a real tiny LoRA adapter trained for real optimizer steps against a real
+bound W0 checkpoint, bit-identical deterministic resume, correct
+missing-checkpoint rejection, exit 75 on low memory, and real compatibility
+inference loading the adapter against W0 — but only against an
+explicitly-`synthetic: true` throwaway fixture (4 training pairs), not a
+real corpus or reviewed release. No real device training, accepted adapter,
+or production W1 is claimed. Project status and required validation are
+tracked in [../../DEVELOPMENT_STATUS.md](../../DEVELOPMENT_STATUS.md) and
+[../../TODO.md](../../TODO.md).
 
 This worker favors bounded memory and resumability over throughput. It streams
 one example at a time, trains only a small LoRA adapter, accumulates gradients,

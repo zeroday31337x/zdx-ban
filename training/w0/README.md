@@ -8,10 +8,15 @@ next-token prediction over packed, tokenized `text`.
 Status: an unvalidated CPU-oriented pilot pipeline is implemented. It contains
 a corpus validator, byte-level BPE tokenizer builder, immutable release
 assembler, approximately 50M-parameter Llama-style architecture, and resumable
-full-weight trainer. No real tokenizer, successful full-weight run, accepted
-checkpoint, or production W0 is claimed. The current 8 GiB-class VPS is useful
-for a tiny overfit and slow pilot; it is not suitable for professional 1B-1.5B
-pretraining with Adam.
+full-weight trainer. The mechanism has been run end to end for real on this
+VPS — real preflight, real tokenizer build, real release binding, a real toy
+architecture trained for real optimizer steps, bit-identical deterministic
+resume after a simulated crash, and correct rejection of a missing checkpoint
+(see DEVELOPMENT_STATUS.md) — but only against an explicitly-`synthetic: true`
+throwaway fixture, not a real corpus. No real (license-reviewed, non-synthetic)
+tokenizer, full-weight run, accepted checkpoint, or production W0 is claimed.
+The current 8 GiB-class VPS is useful for a tiny overfit and slow pilot; it is
+not suitable for professional 1B-1.5B pretraining with Adam.
 
 ## Record format
 
@@ -68,15 +73,39 @@ Before a shard is admitted, apply and record:
 - human audits of random and high-risk samples.
 
 The local validator enforces the parts that can be checked deterministically
-from this record format: exact and near-duplicate removal (opt-in MinHash/LSH
-over word shingles), a high-precision PII/secret regex+Luhn gate (on by
-default), and an operator-supplied license allow-list (opt-in). None of these
-are a substitute for human review — the regex/Luhn gate only catches
-structurally distinctive secrets and common identifiers, not general PII, and
-the near-duplicate gate is approximate and threshold-sensitive. Factual
-quality, safety review, language/topic classification, per-source caps, and
-contamination screening against a real held-out benchmark corpus (as opposed
-to the exact-hash deny-list below) still require separate pipeline stages.
+from this record format:
+
+- exact and near-duplicate removal (opt-in `--near-duplicate`, MinHash/LSH
+  over word shingles);
+- contamination screening against a real held-out benchmark corpus, not just
+  the exact-hash deny-list (opt-in `--benchmark-corpus`, requires
+  `--near-duplicate`; a near-duplicate of a benchmark record is reported
+  separately from an ordinary in-corpus near-duplicate);
+- a high-precision PII/secret regex+Luhn gate (on by default,
+  `--allow-pii` to disable);
+- an operator-supplied license allow-list (opt-in `--license-allow`);
+- per-source and per-source-type caps so one generator or domain cannot
+  dominate (opt-in `--max-records-per-source` / `--max-records-per-source-type`);
+- a coarse language/script structural sanity check over common two-letter
+  language codes (opt-in `--language-script-check`; unmapped languages are
+  skipped, so it only ever flags a clear mismatch, never a false rejection
+  from missing coverage);
+- degenerate-text quality heuristics: single-token repetition ratio and
+  alphabetic-character ratio (opt-in `--max-token-repetition-ratio`,
+  `--min-alpha-ratio`; the alpha-ratio check is not appropriate for
+  code/math-heavy `source_type`s and should be tuned or left disabled there).
+
+None of these are a substitute for human review. The regex/Luhn PII gate only
+catches structurally distinctive secrets and common identifiers, not general
+PII. The near-duplicate and benchmark-contamination gates are approximate and
+threshold-sensitive (tune `--shingle-size`/`--minhash-count`/`--lsh-bands`).
+The language/script check is a structural sanity check, not a language
+identifier. The quality heuristics are simple statistics, not a learned
+quality or safety classifier. **Safety review has no gate here at all** — a
+keyword denylist would give false confidence without real protection, so
+none was built; it still needs a real classifier or human review pipeline.
+Real factual-quality checks, topic classification, and human audits of
+random/high-risk samples also still require separate pipeline stages.
 
 ## Size planning
 
@@ -99,16 +128,24 @@ python training/w0/validate_dataset.py /data/w0/shards \
   --deny-hashes /data/w0/evaluation-content-sha256.txt \
   --license-allow /data/w0/approved-licenses.txt \
   --near-duplicate \
+  --benchmark-corpus /data/w0/held-out-benchmarks \
+  --max-records-per-source 500000 \
+  --language-script-check \
   --report /data/w0/validation-report.json
 ```
 
 PII/secret rejection is on by default; pass `--allow-pii` only for a corpus
-that is deliberately exempt (e.g. already-scrubbed fixtures). `--license-allow`
-and `--near-duplicate` are opt-in because they need a reviewed allow-list and
+that is deliberately exempt (e.g. already-scrubbed fixtures). `--license-allow`,
+`--near-duplicate`, `--benchmark-corpus` (requires `--near-duplicate`),
+`--max-records-per-source`/`--max-records-per-source-type`,
+`--language-script-check`, and `--max-token-repetition-ratio`/
+`--min-alpha-ratio` are all opt-in because they need a reviewed allow-list,
 corpus-appropriate shingle/band tuning (`--shingle-size`, `--minhash-count`,
-`--lsh-bands`, default 5/24/8) respectively. The report adds `pii_records`,
-`license_rejected`, `near_duplicate_records`, and `by_license` alongside the
-existing counts.
+`--lsh-bands`, default 5/24/8), a real benchmark set, and thresholds suited
+to the actual source/source_type mix, respectively. The report adds
+`pii_records`, `license_rejected`, `near_duplicate_records`,
+`benchmark_contaminated_records`, `benchmark_records_seeded`,
+`source_cap_rejected`, and `by_license` alongside the existing counts.
 
 `approximate_tokens_chars_div_4` is only a rough sizing number. Final token
 counts must be produced with the frozen W0 tokenizer. A successful structural
