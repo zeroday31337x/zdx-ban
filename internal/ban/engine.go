@@ -285,6 +285,7 @@ func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace,
 	}
 	winner.Status = Selected
 	t.SelectedBranch = winner.ID
+	t.SelectedIndependentEvidenceOutcome = independentMeasuredOutcome(winner)
 	t.RecoveredFromWrongBranch = t.RecoveredFromWrongBranch || winner.ID != t.InitialTopBranch
 	// The candidate has already passed the authoritative verifier. Return it
 	// verbatim; a second model generation could corrupt a correct answer.

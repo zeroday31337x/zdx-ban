@@ -56,10 +56,12 @@ type ExecutionTrace struct {
 	MeasurementEvents                []measurement.Result
 	Edges                            []Edge
 	InitialTopBranch, SelectedBranch string
-	RecoveredFromWrongBranch         bool
-	RecoveryDepth                    int
-	ReasonForSwitch                  string
-	Metrics                          Metrics
-	Memory                           MemoryInteraction
-	Result                           Result
+	// Independent evidence is distinct from a verifier's permissive accept flag.
+	SelectedIndependentEvidenceOutcome measurement.Outcome `json:"selected_independent_evidence_outcome,omitempty"`
+	RecoveredFromWrongBranch           bool
+	RecoveryDepth                      int
+	ReasonForSwitch                    string
+	Metrics                            Metrics
+	Memory                             MemoryInteraction
+	Result                             Result
 }

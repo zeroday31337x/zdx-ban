@@ -43,6 +43,17 @@ See [MEMORY.md](MEMORY.md) for tiered memory and epistemic safeguards, and [EXPE
 
 See [MEASUREMENT.md](MEASUREMENT.md) for measurement-relative correctness, evidence authority and independence, the measurement hierarchy, candidate-vs-final semantics, and V0 local verification cost.
 
+## Measured feedback safeguard
+
+The default `ban run` verifier is permissive when no objective checker is
+configured. BAN may return a candidate, but this **does not** establish that
+the candidate is true. The execution trace records
+`selected_independent_evidence_outcome: NOT_MEASURED` for such a selection.
+Gravity-well success/failure feedback and promotion of uncertain memory
+require an independent authoritative measurement, not only a model-generated
+confidence or a verifier's Boolean acceptance. See
+[MEASUREMENT.md](MEASUREMENT.md) for the exact evidence contract.
+
 ## Experimental validation
 
 See [EXPERIMENTS.md](EXPERIMENTS.md) for the strict objective paired benchmark, dry-run, resume, reporting, telemetry, and interpretation workflow.
