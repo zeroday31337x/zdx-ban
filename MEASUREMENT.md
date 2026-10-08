@@ -33,6 +33,30 @@ Every measurement may emit explicit supporting, contradicting, or neutral eviden
 
 Multiple convergent graph paths do not automatically become independent votes. Evidence carries a correlation group; correlated paths count once. Independent support can strengthen a claim, but Pass 3 deliberately avoids arbitrary averaging or invented confidence.
 
+## Selection scores versus measured correctness
+
+BAN's candidate `confidence`, evaluation-component scores, and weighted
+`aggregate_score` are ranking signals, **not calibrated probabilities of
+correctness**. A branch can be selected by a permissive verifier without
+independent evidence. Selection is not automatically a discovered fact.
+
+The trace field `selected_independent_evidence_outcome` exposes whether the
+selected candidate has independent, authoritative evidence. It is
+`NOT_MEASURED` when there is no such measurement, even if a verifier returned
+`Passed=true`. Only a formal or deterministic-runtime result with a nonempty
+measurement ID and `INDEPENDENT` provenance qualifies for this field and for
+gravity outcome feedback. An independent contradiction overrides a supporting
+measurement. Results from model estimates, partially independent judgments,
+and bare Boolean verifiers may still guide exploration but cannot train
+gravity-well success rates.
+
+Memory promotion follows the same conservative rule: model-derived support
+cannot upgrade `UNCERTAIN` memory to `SUPPORTED`. Current authoritative
+independent contradiction may downgrade or contradict memory, while an
+unmeasured prediction remains a hypothesis. The existing evaluation
+benchmark must be used to measure score calibration before scores are
+advertised as probabilities.
+
 ## Candidate versus delivered answer
 
 Candidate and final measurements are append-only, separate events:

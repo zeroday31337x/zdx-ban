@@ -52,7 +52,7 @@ func TestAuthoritativeContradictionAndHistory(t *testing.T) {
 	if e := s.Append(ctx, r); e != nil {
 		t.Fatal(e)
 	}
-	m := measurement.Result{ID: "m", Outcome: measurement.Contradicted, Authority: measurement.Formal}
+	m := measurement.Result{ID: "m", Outcome: measurement.Contradicted, Authority: measurement.Formal, Independence: measurement.Independent}
 	ev, e := ApplyCurrentMeasurement(ctx, s, "x", m)
 	if e != nil || ev.NewStatus != Contradicted {
 		t.Fatal(e, ev)
@@ -202,4 +202,38 @@ func containsTag(tags []string, want string) bool {
 		}
 	}
 	return false
+}
+
+func TestOnlyIndependentAuthoritativeSupportPromotesMemory(t *testing.T) {
+	ctx := context.Background()
+	for _, tc := range []struct {
+		name         string
+		outcome      measurement.Outcome
+		authority    measurement.Authority
+		independence measurement.Independence
+		expected     Status
+	}{
+		{"model_support", measurement.Supported, measurement.ModelEstimate, measurement.ModelDerived, Uncertain},
+		{"partial_support", measurement.Supported, measurement.Formal, measurement.PartiallyIndependent, Uncertain},
+		{"formal_support", measurement.Supported, measurement.Formal, measurement.Independent, Supported},
+		{"model_contradiction", measurement.Contradicted, measurement.ModelEstimate, measurement.ModelDerived, Uncertain},
+		{"formal_contradiction", measurement.Contradicted, measurement.Formal, measurement.Independent, Contradicted},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			store := NewMemoryStore()
+			record := rec(tc.name, "hypothesis", "testing")
+			record.Status = Uncertain
+			if err := store.Append(ctx, record); err != nil {
+				t.Fatal(err)
+			}
+			event, err := ApplyCurrentMeasurement(ctx, store, record.ID, measurement.Result{ID: "m-" + tc.name, Outcome: tc.outcome, Authority: tc.authority, Independence: tc.independence})
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, ok, err := store.Get(ctx, record.ID)
+			if err != nil || !ok || got.Status != tc.expected || event.NewStatus != tc.expected {
+				t.Fatalf("memory promoted without evidence: event=%+v record=%+v error=%v", event, got, err)
+			}
+		})
+	}
 }

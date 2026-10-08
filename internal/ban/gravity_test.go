@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"zdx-ban/internal/measurement"
 	"zdx-ban/internal/model"
 )
 
@@ -63,10 +64,12 @@ func TestGravityOutcomeUpdatesEMAOnlyForResolvedApplications(t *testing.T) {
 		t.Fatal("inconclusive state updated well")
 	}
 	state.Status = Failed
+	state.Measurements = []measurement.Result{{ID: "reject", Outcome: measurement.Contradicted, Authority: measurement.Formal, Independence: measurement.Independent}}
 	if !UpdateGravityOutcome(wells, state, now) || wells[0].ApplicationCount != 1 || wells[0].OutcomeCount != 1 || wells[0].SuccessRate != 0 || !wells[0].LastUsedAt.Equal(now) {
 		t.Fatalf("failed outcome not recorded: %+v", wells[0])
 	}
 	state.Status = Verified
+	state.Measurements = []measurement.Result{{ID: "support", Outcome: measurement.Supported, Authority: measurement.Formal, Independence: measurement.Independent}}
 	if !UpdateGravityOutcome(wells, state, now.Add(time.Minute)) {
 		t.Fatal("verified outcome not recorded")
 	}
@@ -131,10 +134,69 @@ func TestGravityRecoveryIsBoundedAndUsesRejectedAnswers(t *testing.T) {
 	if result.Selected == nil || result.Selected.Hypothesis != "correct" || trace.Metrics.GravityRecoveryAttempts != 1 || trace.Metrics.GravityRecoveries != 1 {
 		t.Fatalf("bounded gravity recovery failed: result=%+v metrics=%+v", result, trace.Metrics)
 	}
-	if engine.GravityWells[0].ApplicationCount == 0 || engine.GravityWells[0].OutcomeCount == 0 || engine.GravityWells[0].LastUsedAt.IsZero() {
-		t.Fatalf("resolved gravity applications were not recorded: %+v", engine.GravityWells[0])
+	if engine.GravityWells[0].ApplicationCount == 0 || engine.GravityWells[0].OutcomeCount != 0 || engine.GravityWells[0].LastUsedAt.IsZero() {
+		t.Fatalf("pass/fail-only verifier must not train gravity: %+v", engine.GravityWells[0])
+	}
+	if trace.SelectedIndependentEvidenceOutcome != measurement.NotMeasured {
+		t.Fatalf("pass/fail-only verification was misclassified: %s", trace.SelectedIndependentEvidenceOutcome)
 	}
 	if len(trace.Memory.GravityWells) != 1 || trace.Memory.GravityWells[0].ApplicationCount != engine.GravityWells[0].ApplicationCount {
 		t.Fatalf("trace did not capture final gravity state: trace=%+v engine=%+v", trace.Memory.GravityWells, engine.GravityWells)
+	}
+}
+
+// A default verifier can permit a response but must not imply independent
+// correctness or train a memory attractor.
+func TestAcceptVerifierDoesNotTrainGravity(t *testing.T) {
+	engine := NewEngine(gravityRecoveryProvider{}, DefaultConfig())
+	engine.GravityWells = []GravityWell{{ID: "well", Strength: .8, Keywords: []string{"method", "wrong"}}}
+	engine.TraceDir = ""
+	result, trace, err := engine.Run(context.Background(), "find a valid route")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Selected == nil || trace.SelectedIndependentEvidenceOutcome != measurement.NotMeasured {
+		t.Fatalf("an accepted answer was marked as independently verified: %+v", trace)
+	}
+	if engine.GravityWells[0].OutcomeCount != 0 {
+		t.Fatalf("unmeasured answer trained gravity: %+v", engine.GravityWells[0])
+	}
+}
+
+func TestGravityRequiresIndependentAuthoritativeEvidence(t *testing.T) {
+	cases := []struct {
+		name         string
+		measurements []measurement.Result
+		status       Status
+		want         measurement.Outcome
+		update       bool
+	}{
+		{"no_measurement", nil, Verified, measurement.NotMeasured, false},
+		{"model_estimate", []measurement.Result{{ID: "m1", Outcome: measurement.Supported, Authority: measurement.ModelEstimate, Independence: measurement.ModelDerived}}, Verified, measurement.NotMeasured, false},
+		{"unattributed", []measurement.Result{{Outcome: measurement.Supported, Authority: measurement.Formal, Independence: measurement.Independent}}, Verified, measurement.NotMeasured, false},
+		{"not_independent", []measurement.Result{{ID: "m2", Outcome: measurement.Supported, Authority: measurement.Formal, Independence: measurement.PartiallyIndependent}}, Verified, measurement.NotMeasured, false},
+		{"independent_support", []measurement.Result{{ID: "m3", Outcome: measurement.Supported, Authority: measurement.Formal, Independence: measurement.Independent}}, Verified, measurement.Supported, true},
+		{"independent_rejection", []measurement.Result{{ID: "m4", Outcome: measurement.Contradicted, Authority: measurement.DeterministicRuntime, Independence: measurement.Independent}}, Failed, measurement.Contradicted, true},
+		{"status_mismatch", []measurement.Result{{ID: "m5", Outcome: measurement.Contradicted, Authority: measurement.Formal, Independence: measurement.Independent}}, Verified, measurement.Contradicted, false},
+		{"contradiction_wins", []measurement.Result{{ID: "m6", Outcome: measurement.Supported, Authority: measurement.Formal, Independence: measurement.Independent}, {ID: "m7", Outcome: measurement.Contradicted, Authority: measurement.Formal, Independence: measurement.Independent}}, Verified, measurement.Contradicted, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			s := &State{GravityWellID: "well", Status: tc.status, Measurements: tc.measurements}
+			wells := []GravityWell{{ID: "well", Strength: .8}}
+			if got := independentMeasuredOutcome(s); got != tc.want {
+				t.Fatalf("outcome %s want %s", got, tc.want)
+			}
+			if got := UpdateGravityOutcome(wells, s, time.Now()); got != tc.update {
+				t.Fatalf("update %v want %v", got, tc.update)
+			}
+			wantCount := 0
+			if tc.update {
+				wantCount = 1
+			}
+			if wells[0].OutcomeCount != wantCount {
+				t.Fatalf("outcome count %d want %d", wells[0].OutcomeCount, wantCount)
+			}
+		})
 	}
 }

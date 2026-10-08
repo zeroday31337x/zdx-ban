@@ -4,6 +4,7 @@ import (
 	"math"
 	"strings"
 	"time"
+	"zdx-ban/internal/measurement"
 )
 
 const gravitySuccessEMAAlpha = 0.2
@@ -74,10 +75,42 @@ func applyGravityAt(state *State, wells []GravityWell, weight float64, now time.
 	return true
 }
 
-// UpdateGravityOutcome records an authoritative terminal outcome for the well
-// that influenced state. Inconclusive and un-routed states do not train wells.
+// independentMeasuredOutcome returns an independently measured, authoritative
+// outcome. A verifier's bare Passed flag is not a measurement, and competing
+// branches or model estimates cannot independently confirm one another.
+// Contradiction takes priority over support when both are present.
+func independentMeasuredOutcome(state *State) measurement.Outcome {
+	if state == nil {
+		return measurement.NotMeasured
+	}
+	supported := false
+	for _, result := range state.Measurements {
+		if result.ID == "" || !result.Authoritative() || result.Independence != measurement.Independent {
+			continue
+		}
+		switch result.Outcome {
+		case measurement.Contradicted:
+			return measurement.Contradicted
+		case measurement.Supported:
+			supported = true
+		}
+	}
+	if supported {
+		return measurement.Supported
+	}
+	return measurement.NotMeasured
+}
+
+// UpdateGravityOutcome records only independently measured, authoritative
+// outcomes for the well that influenced state. AcceptVerifier and other
+// pass/fail-only verifiers may select branches, but cannot train gravity.
 func UpdateGravityOutcome(wells []GravityWell, state *State, now time.Time) bool {
 	if state == nil || state.GravityWellID == "" || state.Status != Verified && state.Status != Failed {
+		return false
+	}
+	outcome := independentMeasuredOutcome(state)
+	if (state.Status == Verified && outcome != measurement.Supported) ||
+		(state.Status == Failed && outcome != measurement.Contradicted) {
 		return false
 	}
 	if now.IsZero() {

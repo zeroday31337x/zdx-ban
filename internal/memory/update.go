@@ -15,23 +15,33 @@ func ApplyCurrentMeasurement(ctx context.Context, s Store, id string, m measurem
 	ev := UpdateEvent{RecordID: id, PreviousStatus: r.Status, MeasurementID: m.ID, At: time.Now().UTC()}
 	switch m.Outcome {
 	case measurement.Supported:
-		ev.Action = "RETAIN"
-		ev.NewStatus = Supported
-		ev.Reason = "independent current measurement consistent with memory"
-		r.Status = Supported
+		if m.ID != "" && m.Authoritative() && m.Independence == measurement.Independent {
+			ev.Action = "RETAIN"
+			ev.NewStatus = Supported
+			ev.Reason = "independent authoritative current measurement supports memory"
+			r.Status = Supported
+		} else {
+			ev.Action = "PRESERVE"
+			ev.NewStatus = r.Status
+			ev.Reason = "support lacks independent authoritative measurement"
+		}
 	case measurement.Contradicted:
-		if m.Authoritative() {
+		if m.ID != "" && m.Authoritative() && m.Independence == measurement.Independent {
 			ev.Action = "SUPERSEDE"
 			ev.NewStatus = Contradicted
 			ev.Reason = "authoritative current measurement overrides remembered guidance"
 			r.Status = Contradicted
+		} else if m.Authority == measurement.ModelEstimate || m.Independence == measurement.ModelDerived {
+			ev.Action = "PRESERVE"
+			ev.NewStatus = r.Status
+			ev.Reason = "model-derived contradiction is not independent evidence"
 		} else {
 			ev.Action = "DOWNGRADE"
 			ev.NewStatus = Uncertain
 			ev.Reason = "non-authoritative contradiction"
 			r.Status = Uncertain
 		}
-	case measurement.Inconclusive, measurement.NotMeasured:
+	case measurement.Inconclusive, measurement.NotMeasured, measurement.Unsupported:
 		ev.Action = "PRESERVE"
 		ev.NewStatus = r.Status
 		ev.Reason = "insufficient current evidence"
@@ -41,7 +51,9 @@ func ApplyCurrentMeasurement(ctx context.Context, s Store, id string, m measurem
 		ev.Reason = "measurement error is not memory contradiction"
 	}
 	r.UpdatedAt = ev.At
-	r.RelatedMeasurementIDs = append(r.RelatedMeasurementIDs, m.ID)
+	if m.ID != "" {
+		r.RelatedMeasurementIDs = append(r.RelatedMeasurementIDs, m.ID)
+	}
 	if r.Metadata == nil {
 		r.Metadata = map[string]any{}
 	}
