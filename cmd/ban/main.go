@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 	"zdx-ban/internal/appconfig"
 	"zdx-ban/internal/ban"
 	"zdx-ban/internal/benchmark"
@@ -53,6 +54,7 @@ func run() error {
 		return experiment.Command(args, p, config.Model.Name, experimentDefaults(config))
 	}
 	fs := flag.NewFlagSet("ban", flag.ContinueOnError)
+	mobile := fs.Bool("mobile", false, "use a low-memory phone profile (2 branches, no expansion/challenge, bounded tokens, longer deadline)")
 	branches := fs.Int("branches", config.Search.InitialBranches, "initial semantic branches")
 	retain := fs.Int("retain", config.Search.RetainBranches, "leading branches to expand")
 	depth := fs.Int("depth", config.Search.MaxDepth, "maximum graph depth")
@@ -65,17 +67,40 @@ func run() error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+	if *mobile {
+		// Keep explicitly supplied flags authoritative.
+		explicit := map[string]bool{}
+		fs.Visit(func(f *flag.Flag) { explicit[f.Name] = true })
+		if !explicit["branches"] {
+			*branches = 2
+		}
+		if !explicit["retain"] {
+			*retain = 1
+		}
+		if !explicit["depth"] {
+			*depth = 0
+		}
+		if !explicit["nodes"] {
+			*nodes = 2
+		}
+		if !explicit["timeout"] {
+			*timeout = 30 * time.Minute
+		}
+	}
 	if *concurrency < 0 || *modelConcurrency < 1 || *evaluationConcurrency < 1 {
 		return fmt.Errorf("concurrency values must be positive; --concurrency may be zero when unused")
 	}
-	if *branches < 1 || *retain < 1 || *retain > *branches || *depth < 1 || *nodes < *branches {
-		return fmt.Errorf("invalid search bounds: require branches >= retain >= 1, depth >= 1, and nodes >= branches")
+	if *branches < 1 || *retain < 1 || *retain > *branches || *depth < 0 || *nodes < *branches {
+		return fmt.Errorf("invalid search bounds: require branches >= retain >= 1, depth >= 0, and nodes >= branches")
 	}
 	p := newOllama(config)
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
 	remaining := fs.Args()
 	if mode == "baseline" {
+		if *mobile && config.Generation.Baseline.MaxTokens > 128 {
+			config.Generation.Baseline.MaxTokens = 128
+		}
 		if len(remaining) == 0 {
 			return fmt.Errorf("problem is required")
 		}
@@ -98,7 +123,23 @@ func run() error {
 	}
 	e := ban.NewEngine(p, cfg)
 	configureEngine(e, config)
+	if *mobile {
+		cfg.MaxActiveBranches = 2
+		cfg.GravityRecoveryBranches = 0
+		e.Config = cfg
+		e.MaxChallenges = 0
+		if e.Generator.MaxTokens > 384 {
+			e.Generator.MaxTokens = 384
+		}
+		if e.Evaluator.MaxTokens > 192 {
+			e.Evaluator.MaxTokens = 192
+		}
+	}
 	e.Logf = func(f string, a ...any) { fmt.Printf(f+"\n", a...) }
+	if *mobile {
+		e.Logf("[BAN] Mobile profile: %d candidates, %d active, depth %d, proposal limit %d tokens, evaluation limit %d tokens, no skeptic calls, timeout %s",
+			e.Config.InitialBranches, e.Config.MaxActiveBranches, e.Config.MaxDepth, e.Generator.MaxTokens, e.Evaluator.MaxTokens, *timeout)
+	}
 	if mode == "benchmark" {
 		items, err := benchmark.Load(*dataset)
 		if err != nil {
