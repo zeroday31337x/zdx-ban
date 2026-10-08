@@ -8,6 +8,28 @@ The Ollama provider streams bounded responses behind a `context.Context`-aware i
 
 Subsystems live under `internal/model`, `internal/ban`, `internal/memory`, `internal/trace`, `internal/benchmark`, and `internal/telemetry`. Go is the orchestration/control-plane boundary; future native inference or PPS components can sit below provider/verifier/scheduler interfaces without entering BAN-0.
 
+## Low-memory Android / Termux profile
+
+For the 1.5B Qwen model running on CPU-only phones, the default five-branch
+research configuration can exceed the five-minute run deadline. Use the
+opt-in mobile profile (flags must come **before** the prompt):
+
+```sh
+go run ./cmd/ban --mobile "What is 7 plus 5? Return only the number."
+```
+
+This keeps **two independent candidate branches**, evaluates both, and selects
+from the measured ranking, but deliberately skips branch expansion, skeptic
+model calls, and gravity recovery. It limits proposal output to 384 tokens and
+each evaluation to 192 tokens and defaults to a 30-minute overall deadline.
+These are *maximum* output lengths, not guaranteed generation speeds.
+Stage-by-stage progress and 20-second heartbeat messages show when the
+underlying model is busy. Use `--timeout 10m` to override the mobile default.
+
+A mobile run is an intentionally smaller experiment, **not equivalent** to a
+normal BAN result for research benchmarking. It still does not have an objective
+verifier by default; an accepted answer is not independently confirmed.
+
 ## Setup and use
 
 Install/start Ollama, then edit the strict project-level [`ban.config`](ban.config)

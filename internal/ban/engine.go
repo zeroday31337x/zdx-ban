@@ -28,11 +28,12 @@ type Engine struct {
 	Memory        MemoryInteraction
 	GravityWells  []GravityWell
 	GravityWeight float64
+	MaxChallenges int
 	Executor      CapabilityExecutor
 }
 
 func NewEngine(p inference.Engine, c Config) *Engine {
-	return &Engine{Provider: p, Generator: Generator{Provider: p, Temperature: .2, MaxTokens: 1024}, Evaluator: Evaluator{Provider: p, Temperature: .1, MaxTokens: 384, ChallengeMaxTokens: 256}, Verifier: AcceptVerifier{}, Config: c, TraceDir: "traces", Temperature: .2, MaxTokens: 256, GravityWeight: .20, Logf: func(string, ...any) {}}
+	return &Engine{Provider: p, Generator: Generator{Provider: p, Temperature: .2, MaxTokens: 1024}, Evaluator: Evaluator{Provider: p, Temperature: .1, MaxTokens: 384, ChallengeMaxTokens: 256}, Verifier: AcceptVerifier{}, Config: c, TraceDir: "traces", Temperature: .2, MaxTokens: 256, GravityWeight: .20, MaxChallenges: 2, Logf: func(string, ...any) {}}
 }
 func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace, error) {
 	if goal == "" {
@@ -64,7 +65,13 @@ func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace,
 		}
 	}
 	e.Logf("[BAN] Goal received")
-	props, resp, err := e.Generator.Generate(ctx, goal, e.Config.InitialBranches, nil)
+	var props []Proposal
+	var resp inference.Result
+	err := e.runStage(ctx, fmt.Sprintf("generating %d initial branches", e.Config.InitialBranches), func() error {
+		var generationErr error
+		props, resp, generationErr = e.Generator.Generate(ctx, goal, e.Config.InitialBranches, nil)
+		return generationErr
+	})
 	if err != nil {
 		return Result{}, t, err
 	}
@@ -89,7 +96,13 @@ func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace,
 	}
 	if len(initial) < e.Config.RetainBranches {
 		missing := e.Config.RetainBranches - len(initial)
-		more, retryResp, retryErr := e.Generator.Generate(ctx, goal, missing, initial)
+		var more []Proposal
+		var retryResp inference.Result
+		retryErr := e.runStage(ctx, fmt.Sprintf("regenerating %d distinct branches", missing), func() error {
+			var callErr error
+			more, retryResp, callErr = e.Generator.Generate(ctx, goal, missing, initial)
+			return callErr
+		})
 		if retryErr != nil {
 			return Result{}, t, retryErr
 		}
@@ -116,7 +129,9 @@ func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace,
 	if len(initial) < e.Config.RetainBranches {
 		return Result{}, t, errors.New("insufficient distinct branches")
 	}
-	if err = e.evaluate(ctx, goal, initial, &t.Metrics); err != nil {
+	if err = e.runStage(ctx, fmt.Sprintf("evaluating %d initial branches", len(initial)), func() error {
+		return e.evaluate(ctx, goal, initial, &t.Metrics)
+	}); err != nil {
 		return Result{}, t, err
 	}
 	rank(initial)
@@ -145,7 +160,13 @@ func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace,
 		if parent.Depth >= e.Config.MaxDepth {
 			continue
 		}
-		ps, r, er := e.Generator.Generate(ctx, goal, 2, []*State{parent})
+		var ps []Proposal
+		var r inference.Result
+		er := e.runStage(ctx, fmt.Sprintf("expanding branch %s", parent.ID), func() error {
+			var callErr error
+			ps, r, callErr = e.Generator.Generate(ctx, goal, 2, []*State{parent})
+			return callErr
+		})
 		if er != nil {
 			return Result{}, t, er
 		}
@@ -174,7 +195,9 @@ func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace,
 		t.Metrics.ExpandedNodes++
 	}
 	if len(children) > 0 {
-		if err = e.evaluate(ctx, goal, children, &t.Metrics); err != nil {
+		if err = e.runStage(ctx, fmt.Sprintf("evaluating %d expanded branches", len(children)), func() error {
+			return e.evaluate(ctx, goal, children, &t.Metrics)
+		}); err != nil {
 			return Result{}, t, err
 		}
 	}
@@ -195,8 +218,14 @@ func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace,
 			}
 		}
 	}
-	for _, s := range candidates[:min(2, len(candidates))] {
-		ch, r, er := e.Evaluator.Challenge(ctx, goal, s)
+	for _, s := range candidates[:min(e.MaxChallenges, len(candidates))] {
+		var ch Challenge
+		var r inference.Result
+		er := e.runStage(ctx, fmt.Sprintf("challenging branch %s", s.ID), func() error {
+			var callErr error
+			ch, r, callErr = e.Evaluator.Challenge(ctx, goal, s)
+			return callErr
+		})
 		if er != nil {
 			return Result{}, t, er
 		}
@@ -232,7 +261,13 @@ func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace,
 	}
 	if winner == nil && len(e.GravityWells) > 0 && e.Config.GravityRecoveryBranches > 0 {
 		t.Metrics.GravityRecoveryAttempts++
-		recoveryProposals, recoveryResponse, recoveryErr := e.Generator.Generate(ctx, goal, e.Config.GravityRecoveryBranches, candidates)
+		var recoveryProposals []Proposal
+		var recoveryResponse inference.Result
+		recoveryErr := e.runStage(ctx, "generating gravity recovery branches", func() error {
+			var callErr error
+			recoveryProposals, recoveryResponse, callErr = e.Generator.Generate(ctx, goal, e.Config.GravityRecoveryBranches, candidates)
+			return callErr
+		})
 		if recoveryErr != nil {
 			return Result{}, t, recoveryErr
 		}
@@ -257,7 +292,9 @@ func (e *Engine) Run(ctx context.Context, goal string) (Result, *ExecutionTrace,
 			recoveryStates = append(recoveryStates, node)
 		}
 		if len(recoveryStates) > 0 {
-			if evaluateErr := e.evaluate(ctx, goal, recoveryStates, &t.Metrics); evaluateErr != nil {
+			if evaluateErr := e.runStage(ctx, fmt.Sprintf("evaluating %d recovery branches", len(recoveryStates)), func() error {
+				return e.evaluate(ctx, goal, recoveryStates, &t.Metrics)
+			}); evaluateErr != nil {
 				return Result{}, t, evaluateErr
 			}
 			rank(recoveryStates)

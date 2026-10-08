@@ -197,7 +197,7 @@ func (c Config) Validate() error {
 			return err
 		}
 	}
-	if c.Search.InitialBranches < 1 || c.Search.RetainBranches < 1 || c.Search.MaxDepth < 1 ||
+	if c.Search.InitialBranches < 1 || c.Search.RetainBranches < 1 || c.Search.MaxDepth < 0 ||
 		c.Search.MaxNodes < 1 || c.Search.MaxConcurrentModelCalls < 1 ||
 		c.Search.MaxConcurrentEvaluations < 1 || c.Search.MaxActiveBranches < 1 ||
 		c.Search.GravityRecoveryBranches < 0 {
