@@ -8,3 +8,8 @@ training/w0/data/
 training/w0/output/
 training/w0/releases/
 training/w0/*.sqlite3
+
+# local-only: corpus/release data (1.2 GB), pre-switch backups, raw candidates
+data/
+*.backup-pre-*
+results/*/experiment.candidates.jsonl

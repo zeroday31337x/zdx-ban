@@ -1,0 +1,186 @@
+{
+  "trace_schema_version": "0.3",
+  "RunID": "b0c8ee28ecc73d0e",
+  "Problem": "What is 7 plus 5? Return only the number.",
+  "Config": {
+    "InitialBranches": 2,
+    "RetainBranches": 1,
+    "MaxDepth": 0,
+    "MaxNodes": 2,
+    "MaxConcurrentModelCalls": 1,
+    "MaxConcurrentEvaluations": 1,
+    "MaxActiveBranches": 2,
+    "GravityRecoveryBranches": 0
+  },
+  "Model": {
+    "Provider": "ollama",
+    "Model": "qwen2.5:1.5b",
+    "Version": "",
+    "identity_confidence": "DECLARED",
+    "identity_source": "ollama deployment name"
+  },
+  "StartedAt": "2026-10-25T16:32:57.709881347Z",
+  "FinishedAt": "2026-10-25T16:33:34.346411412Z",
+  "RuntimeStart": {
+    "architecture": "arm64",
+    "os": "linux",
+    "go_version": "go1.26.0",
+    "cpus": 2,
+    "goroutines": 1,
+    "heap_alloc": 171024,
+    "total_alloc": 171024,
+    "num_gc": 0,
+    "system_memory": 7821576,
+    "at": "2026-10-25T16:32:57.71008971Z"
+  },
+  "RuntimeFinish": {
+    "architecture": "arm64",
+    "os": "linux",
+    "go_version": "go1.26.0",
+    "cpus": 2,
+    "goroutines": 3,
+    "heap_alloc": 619992,
+    "total_alloc": 619992,
+    "num_gc": 0,
+    "system_memory": 8345864,
+    "at": "2026-10-25T16:33:34.346603854Z"
+  },
+  "Nodes": [
+    {
+      "id": "b01",
+      "ParentIDs": null,
+      "ChildIDs": null,
+      "depth": 0,
+      "title": "7 plus 5 equals 12",
+      "hypothesis": "12",
+      "reasoning_summary": "Direct calculation of the sum of 7 and 5 without explanation or reasoning involved. The answer is 12, as 7 + 5 = 12. The goal is to return the literal candidate response submitted to the goal verifier, which is the number 12. No additional context or reasoning is needed or provided. The goal is to return only the JSON,",
+      "Assumptions": [
+        "7 plus 5 equals 12"
+      ],
+      "Evidence": [
+        "7 plus 5 equals 12"
+      ],
+      "Contradictions": [],
+      "Confidence": 1,
+      "Uncertainty": 0,
+      "EvidenceScore": 1,
+      "ConsistencyScore": 1,
+      "ContradictionScore": 0,
+      "FeasibilityScore": 1,
+      "RiskScore": 0,
+      "UtilityScore": 1,
+      "DiversityScore": 1,
+      "AggregateScore": 0.9,
+      "InformationGravity": 0,
+      "GravityRepulsion": 0,
+      "GravityWellID": "",
+      "status": "SELECTED",
+      "CreatedAt": "2026-10-25T16:33:23.812222271Z",
+      "UpdatedAt": "2026-10-25T16:33:23.812222271Z",
+      "TokenCost": 0,
+      "Latency": 0,
+      "VerificationResults": [
+        {
+          "verifier": "accept",
+          "passed": true,
+          "details": "no deterministic constraint supplied",
+          "at": "2026-10-25T16:33:34.346408732Z"
+        }
+      ],
+      "Measurements": null,
+      "challenge": {
+        "skeptic": "",
+        "counterfactual": ""
+      },
+      "kind": "REASONING_CANDIDATE"
+    }
+  ],
+  "MeasurementEvents": null,
+  "Edges": null,
+  "InitialTopBranch": "b01",
+  "SelectedBranch": "b01",
+  "selected_independent_evidence_outcome": "NOT_MEASURED",
+  "RecoveredFromWrongBranch": false,
+  "RecoveryDepth": 0,
+  "ReasonForSwitch": "",
+  "Metrics": {
+    "TotalNodes": 1,
+    "ExpandedNodes": 0,
+    "PrunedNodes": 0,
+    "ModelCalls": 2,
+    "Tokens": 803,
+    "PeakActiveBranches": 1,
+    "CandidateProposals": 2,
+    "DuplicateProposals": 1,
+    "AnswerConvergences": 0,
+    "DiversityRegenerations": 0,
+    "ProviderEvaluations": 2,
+    "GravityRoutedBranches": 0,
+    "GravityWellHits": 0,
+    "GravityRecoveryAttempts": 0,
+    "GravityRecoveries": 0,
+    "Latency": 36636530065,
+    "DidRecover": false
+  },
+  "Memory": {
+    "Enabled": false,
+    "InitialSnapshotHash": "",
+    "RetrievedMemoryIDs": null,
+    "RetrievalReasons": null,
+    "WorkingMemoryChars": 0,
+    "GuidanceHash": "",
+    "Events": null,
+    "GravityWells": null
+  },
+  "Result": {
+    "answer": "12",
+    "selected": {
+      "id": "b01",
+      "ParentIDs": null,
+      "ChildIDs": null,
+      "depth": 0,
+      "title": "7 plus 5 equals 12",
+      "hypothesis": "12",
+      "reasoning_summary": "Direct calculation of the sum of 7 and 5 without explanation or reasoning involved. The answer is 12, as 7 + 5 = 12. The goal is to return the literal candidate response submitted to the goal verifier, which is the number 12. No additional context or reasoning is needed or provided. The goal is to return only the JSON,",
+      "Assumptions": [
+        "7 plus 5 equals 12"
+      ],
+      "Evidence": [
+        "7 plus 5 equals 12"
+      ],
+      "Contradictions": [],
+      "Confidence": 1,
+      "Uncertainty": 0,
+      "EvidenceScore": 1,
+      "ConsistencyScore": 1,
+      "ContradictionScore": 0,
+      "FeasibilityScore": 1,
+      "RiskScore": 0,
+      "UtilityScore": 1,
+      "DiversityScore": 1,
+      "AggregateScore": 0.9,
+      "InformationGravity": 0,
+      "GravityRepulsion": 0,
+      "GravityWellID": "",
+      "status": "SELECTED",
+      "CreatedAt": "2026-10-25T16:33:23.812222271Z",
+      "UpdatedAt": "2026-10-25T16:33:23.812222271Z",
+      "TokenCost": 0,
+      "Latency": 0,
+      "VerificationResults": [
+        {
+          "verifier": "accept",
+          "passed": true,
+          "details": "no deterministic constraint supplied",
+          "at": "2026-10-25T16:33:34.346408732Z"
+        }
+      ],
+      "Measurements": null,
+      "challenge": {
+        "skeptic": "",
+        "counterfactual": ""
+      },
+      "kind": "REASONING_CANDIDATE"
+    }
+  }
+}

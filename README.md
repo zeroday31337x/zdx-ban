@@ -1,4 +1,6 @@
-# zdx-ban — BAN-0 v0.1
+# zdx-ban — BAN-0 v0.2
+
+W0 base: official Qwen/Qwen3-0.6B (post-trained, Apache 2.0), frozen as W0. Bottleneck fixes go in as separate reversible W1/W2 deltas, never in W0 itself.
 
 BAN-0 is a native Go research runtime testing whether the same frozen transformer becomes more robust when it preserves and evaluates multiple semantic reasoning paths instead of committing immediately to one autoregressive path. It is an external orchestration layer: it does not train or modify model weights, attention, KV caches, or inference internals, and it does not implement PPS.
 
