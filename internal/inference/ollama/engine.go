@@ -11,8 +11,11 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"time"
 	"zdx-ban/internal/inference"
 )
@@ -33,8 +36,14 @@ func New(url, model string, timeout time.Duration) *Engine {
 type request struct {
 	Model, Prompt, System string
 	Stream                bool
-	Format                any            `json:"format,omitempty"`
-	Options               map[string]any `json:"options,omitempty"`
+	// Think disables the model's thinking trace. ZDX-BAN never consumes
+	// the trace (this engine reads only the response field), and think
+	// tokens count against num_predict, so a long trace starves the
+	// structured JSON and truncates it mid-object. Always false here so
+	// the whole token budget goes to the output.
+	Think   bool           `json:"think"`
+	Format  any            `json:"format,omitempty"`
+	Options map[string]any `json:"options,omitempty"`
 }
 type chunk struct {
 	Response        string `json:"response"`
@@ -72,7 +81,7 @@ func (o *Engine) generate(ctx context.Context, r inference.Request, structured b
 	if len(r.Constraints.Stop) > 0 {
 		opts["stop"] = r.Constraints.Stop
 	}
-	q := request{Model: o.Model, Prompt: r.Prompt, System: r.System, Stream: true, Options: opts}
+	q := request{Model: o.Model, Prompt: r.Prompt, System: r.System, Stream: true, Think: false, Options: opts}
 	if structured {
 		schema := r.StructuredSchema
 		if schema == nil {
@@ -103,11 +112,13 @@ func (o *Engine) generate(ctx context.Context, r inference.Request, structured b
 		if e == nil {
 			if structured {
 				cleaned := cleanJSON(out.Output)
-				if e = inference.DecodeStrict([]byte(cleaned), dst); e != nil {
-					return out, inference.NewFailure(inference.ModelOutputMalformed, e)
+				if derr := inference.DecodeStrict([]byte(cleaned), dst); derr != nil {
+					dumpRawOutput(out, derr)
+					return out, inference.NewFailure(inference.ModelOutputMalformed, derr)
 				}
 				out.Structured = json.RawMessage(cleaned)
 			}
+			dumpRawOutput(out, nil)
 			return out, nil
 		}
 		last = e
@@ -116,6 +127,35 @@ func (o *Engine) generate(ctx context.Context, r inference.Request, structured b
 		}
 	}
 	return lastResult, last
+}
+
+// rawDumpSeq numbers raw-output dumps in call order within one process.
+var rawDumpSeq atomic.Uint64
+
+// dumpRawOutput writes the verbatim model output of one call to
+// $ZDX_BAN_DEBUG_RAW_DIR when that variable is set (off by default).
+// The .txt file holds the raw output bytes; the .meta sidecar holds only
+// token counts and the decode error (metadata, never response content).
+// Nothing is written to stdout or logs. Best effort: a failed dump must
+// never break generation.
+func dumpRawOutput(out inference.Result, decodeErr error) {
+	dir := os.Getenv("ZDX_BAN_DEBUG_RAW_DIR")
+	if dir == "" {
+		return
+	}
+	seq := rawDumpSeq.Add(1)
+	name := fmt.Sprintf("raw-%04d.txt", seq)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return
+	}
+	_ = os.WriteFile(filepath.Join(dir, name), []byte(out.Output), 0o600)
+	errText := ""
+	if decodeErr != nil {
+		errText = decodeErr.Error()
+	}
+	meta := fmt.Sprintf("{\"file\":%q,\"prompt_tokens\":%d,\"completion_tokens\":%d,\"bytes\":%d,\"decode_error\":%q}\n",
+		name, out.PromptTokens, out.CompletionTokens, len(out.Output), errText)
+	_ = os.WriteFile(filepath.Join(dir, fmt.Sprintf("raw-%04d.meta", seq)), []byte(meta), 0o600)
 }
 
 func schemaFor(dst any) (map[string]any, error) {
