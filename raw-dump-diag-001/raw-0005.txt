@@ -1,0 +1,14 @@
+{
+
+"confidence": 1.0,
+"consistency_score": 1.0,
+"contradiction_score": 0.0,
+"contradictions": [],
+"diversity_score": 0.0,
+"evidence": [
+"Correctly applied the operations: (10 × 5) − 5 = 45."
+],
+"evidence_score": 1.0,
+"feasibility_score": 1.0,
+"hard_constraint_reason": "No hard constraints in the calculation.",
+"hard_constraint_v

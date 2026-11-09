@@ -1,0 +1,18 @@
+{
+  "confidence": 0.999999,
+  "consistency_score": 0.999999,
+  "contradiction_score": 0.0,
+  "contradictions": [],
+  "diversity_score": 0.999999,
+  "evidence": [
+    "Compute (10 × 5) − 5 — 45",
+    "Return only the requested JSON object."
+  ],
+  "evidence_score": 1.0,
+  "feasibility_score": 1.0,
+  "hard_constraint_reason": "Hard constraint violation: 'Return only the requested JSON object.'",
+  "hard_constraint_violation": true,
+  "risk_score": 0.0,
+  "uncertainty": 0.0,
+  "utility_score": 1.0
+}

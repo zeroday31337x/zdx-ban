@@ -1,0 +1,20 @@
+{
+  "branches": [
+    {
+      "answer": "40",
+      "assumptions": [
+        "Assume 10 is a multiplication factor and 5 is a number to subtract",
+        "Use the standard mathematical operation of multiplication and subtraction"
+      ],
+      "reasoning_summary": "The problem is a straightforward arithmetic operation: (10 × 5) − 5. The result is 40, which is the literal answer to the goal verifier's request. This approach directly computes the value using standard mathematical principles and avoids unnecessary complexity. The reasoning summary highlights the direct computation, ","title": "10 × 5 − 5"
+    },
+    {
+      "answer": "40",
+      "assumptions": [
+        "Assume 10 is a multiplication factor and 5 is a number to subtract",
+        "Use the standard mathematical operation of multiplication and subtraction"
+      ],
+      "reasoning_summary": "The problem is a straightforward arithmetic operation: (10 × 5) − 5. The result is 40, which is the literal answer to the goal verifier's request. This approach directly computes the value using standard mathematical principles and avoids unnecessary complexity. The reasoning summary highlights the direct computation, ","title": "10 × 5 − 5"
+    }
+  ]
+}

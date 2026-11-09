@@ -1,0 +1,34 @@
+{
+  "branches": [
+    {
+      "answer": "5",
+      "assumptions": ["Compute left to right", "Preserve structure"],
+      "reasoning_summary": "The problem is solved by subtracting 5 from 10×5, resulting in 5. The approach respects the arithmetic structure and checks the final numeric form.",
+      "title": "Compute left to right"
+    },
+    {
+      "answer": "5",
+      "assumptions": ["Preserve structure", "Check numeric form"],
+      "reasoning_summary": "The problem is solved by subtracting 5 from 10×5, resulting in 5. The approach respects the arithmetic structure and checks the final numeric form.",
+      "title": "Check numeric form"
+    },
+    {
+      "answer": "5",
+      "assumptions": ["Compute grouped operations", "Check numeric form"],
+      "reasoning_summary": "The problem is solved by computing 10×5 first and then subtracting 5, resulting in 5. The approach respects the arithmetic structure and checks the final numeric form.",
+      "title": "Compute grouped operations"
+    },
+    {
+      "answer": "5",
+      "assumptions": ["Preserve structure", "Check numeric form"],
+      "reasoning_summary": "The problem is solved by subtracting 5 from 10×5, resulting in 5. The approach respects the arithmetic structure and checks the final numeric form.",
+      "title": "Preserve structure"
+    },
+    {
+      "answer": "5",
+      "assumptions": ["Compute left to right", "Check numeric form"],
+      "reasoning_summary": "The problem is solved by subtracting 5 from 10×5, resulting in 5. The approach respects the arithmetic structure and checks the final numeric form.",
+      "title": "Check numeric form"
+    }
+  ]
+}

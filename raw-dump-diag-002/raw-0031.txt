@@ -1,0 +1,4 @@
+{
+  "counterfactual": "Grouped operations: 5",
+  "skeptic": "You're only computing 5, but the correct answer is (10 × 5) − 5 = 45 - 5 = 40."
+}

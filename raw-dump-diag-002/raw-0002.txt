@@ -1,0 +1,54 @@
+{
+  "branches": [
+    {
+      "answer": "40",
+      "assumptions": [
+        "Assuming multiplication is performed first",
+        "Multiplying 10 by 5 yields 50",
+        "Subtracting 5 from 50 results in 40"
+      ],
+      "reasoning_summary": "The problem is solved by first performing the multiplication (10 × 5) and then subtracting 5 from the result. The assumptions are that multiplication is performed before subtraction and that the result is 50, leading to the final answer of 40.",
+      "title": "10 × 5 − 5"
+    },
+    {
+      "answer": "40",
+      "assumptions": [
+        "Assuming the order of operations is followed",
+        "Multiplying 10 by 5 gives 50",
+        "Subtracting 5 from 50 results in 40"
+      ],
+      "reasoning_summary": "The problem is solved by first performing the multiplication (10 × 5) and then subtracting 5 from the result. The assumptions are that multiplication is performed first and that the result is 50, leading to the final answer of 40.",
+      "title": "10 × 5 − 5"
+    },
+    {
+      "answer": "40",
+      "assumptions": [
+        "Assuming the order of operations is followed",
+        "Multiplying 10 by 5 gives 50",
+        "Subtracting 5 from 50 results in 40"
+      ],
+      "reasoning_summary": "The problem is solved by first performing the multiplication (10 × 5) and then subtracting 5 from the result. The assumptions are that multiplication is performed first and that the result is 50, leading to the final answer of 40.",
+      "title": "10 × 5 − 5"
+    },
+    {
+      "answer": "40",
+      "assumptions": [
+        "Assuming the order of operations is followed",
+        "Multiplying 10 by 5 gives 50",
+        "Subtracting 5 from 50 results in 40"
+      ],
+      "reasoning_summary": "The problem is solved by first performing the multiplication (10 × 5) and then subtracting 5 from the result. The assumptions are that multiplication is performed first and that the result is 50, leading to the final answer of 40.",
+      "title": "10 × 5 − 5"
+    },
+    {
+      "answer": "40",
+      "assumptions": [
+        "Assuming the order of operations is followed",
+        "Multiplying 10 by 5 gives 50",
+        "Subtracting 5 from 50 results in 40"
+      ],
+      "reasoning_summary": "The problem is solved by first performing the multiplication (10 × 5) and then subtracting 5 from the result. The assumptions are that multiplication is performed first and that the result is 50, leading to the final answer of 40.",
+      "title": "10 × 5 − 5"
+    }
+  ]
+}

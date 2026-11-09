@@ -1,0 +1,8 @@
+{
+
+"confidence": 1.0,
+"consistency_score": 1.0,
+"contradiction_score": 0.0,
+"contradictions": [],
+"diversity_score": 0.0,
+"evidence": ["10 × 5 is

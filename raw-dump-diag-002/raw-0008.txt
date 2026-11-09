@@ -1,0 +1,15 @@
+{
+  "confidence": 0.95,
+  "consistency_score": 0.98,
+  "contradiction_score": 0.0,
+  "contradictions": [],
+  "diversity_score": 0.96,
+  "evidence": ["Agent-01 — 40"],
+  "evidence_score": 0.95,
+  "feasibility_score": 0.98,
+  "hard_constraint_reason": "Agent-01 — 40",
+  "hard_constraint_violation": false,
+  "risk_score": 0.0,
+  "uncertainty": 0.0,
+  "utility_score": 0.98
+}

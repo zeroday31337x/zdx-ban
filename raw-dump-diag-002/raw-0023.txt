@@ -1,0 +1,15 @@
+{
+  "confidence": 0.95,
+  "consistency_score": 0.98,
+  "contradiction_score": 0.05,
+  "contradictions": ["5"],
+  "diversity_score": 0.99,
+  "evidence": ["Compute grouped operations — 5"],
+  "evidence_score": 0.98,
+  "feasibility_score": 0.97,
+  "hard_constraint_reason": "Grouped operations",
+  "hard_constraint_violation": false,
+  "risk_score": 0.01,
+  "uncertainty": 0.05,
+  "utility_score": 0.99
+}

@@ -1,0 +1,18 @@
+{
+  "confidence": 0.95,
+  "consistency_score": 0.98,
+  "contradiction_score": 0.0,
+  "contradictions": [],
+  "diversity_score": 0.99,
+  "evidence": [
+    "left to right - 5",
+    "Compute left to right - 5"
+  ],
+  "evidence_score": 0.95,
+  "feasibility_score": 0.98,
+  "hard_constraint_reason": "left to right",
+  "hard_constraint_violation": false,
+  "risk_score": 0.0,
+  "uncertainty": 0.0,
+  "utility_score": 0.99
+}

@@ -1,0 +1,22 @@
+{
+  "branches": [
+    {
+      "answer": "5",
+      "assumptions": [
+        "Respect explicit operation structure",
+        "Compute grouped operations before outer operations"
+      ],
+      "reasoning_summary": "Prior measured strategy: Respect explicit operation structure, compute grouped multiplication before subtraction, then check the final numeric form. (retrieval score 0.767, information gravity 0.000)",
+      "title": "Compute grouped operations"
+    },
+    {
+      "answer": "5",
+      "assumptions": [
+        "Apply subtraction before multiplication because operations should be read strictly left to right",
+        "Preserve explicit operation structure"
+      ],
+      "reasoning_summary": "Foundation arithmetic method: Preserve explicit operation structure, compute grouped operations before outer operations, then submit a concise candidate for independent verification. (retrieval score 0.713, information gravity 0.000)",
+      "title": "Compute grouped operations"
+    }
+  ]
+}

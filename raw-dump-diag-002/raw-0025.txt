@@ -1,0 +1,15 @@
+{
+  "confidence": 0.95,
+  "consistency_score": 0.98,
+  "contradiction_score": 0.05,
+  "contradictions": ["Check numeric form — 5"],
+  "diversity_score": 0.99,
+  "evidence": ["Check numeric form — 5"],
+  "evidence_score": 0.95,
+  "feasibility_score": 0.98,
+  "hard_constraint_reason": "Check numeric form — 5",
+  "hard_constraint_violation": false,
+  "risk_score": 0.05,
+  "uncertainty": 0.05,
+  "utility_score": 0.98
+}

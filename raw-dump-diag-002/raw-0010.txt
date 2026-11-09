@@ -1,0 +1,4 @@
+{
+  "counterfactual": "10 × 5 − 5",
+  "skeptic": "10 × 5 − 5"
+}

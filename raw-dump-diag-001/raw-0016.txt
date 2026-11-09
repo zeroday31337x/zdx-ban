@@ -1,0 +1,1 @@
+{ "confidence": 0.5, "consistency_score": 0.5, "contradiction_score": 0.5, "contradictions": ["Stale Subtraction Strategy — 45"], "diversity_score": 0.5, "evidence": ["(10 × 

@@ -1,0 +1,22 @@
+{
+  "branches": [
+    {
+      "answer": "40",
+      "assumptions": [
+        "Assume 10 × 5 = 50",
+        "Use multiplication as a direct operation"
+      ],
+      "reasoning_summary": "The problem is a simple arithmetic operation. Multiplying 10 by 5 gives 50, then subtracting 5 results in 40. This is a direct computation without any assumptions or framing challenges.",
+      "title": "Agent-01"
+    },
+    {
+      "answer": "40",
+      "assumptions": [
+        "Assume 5 is a number to subtract",
+        "Use subtraction as a direct operation"
+      ],
+      "reasoning_summary": "The problem is a simple arithmetic operation. Subtracting 5 from 50 gives 40. This is a direct computation without any assumptions or framing challenges.",
+      "title": "Agent-02"
+    }
+  ]
+}

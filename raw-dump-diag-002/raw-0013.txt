@@ -1,0 +1,15 @@
+{
+  "confidence": 1.0,
+  "consistency_score": 1.0,
+  "contradiction_score": 0.0,
+  "contradictions": [],
+  "diversity_score": 1.0,
+  "evidence": ["Compute (10 × 5) − 5 — 5"],
+  "evidence_score": 1.0,
+  "feasibility_score": 1.0,
+  "hard_constraint_reason": "None",
+  "hard_constraint_violation": false,
+  "risk_score": 0.0,
+  "uncertainty": 0.0,
+  "utility_score": 1.0
+}

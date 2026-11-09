@@ -1,0 +1,22 @@
+{
+  "branches": [
+    {
+      "answer": "5",
+      "assumptions": [
+        "Compute grouped multiplication before subtraction",
+        "Respect explicit operation structure"
+      ],
+      "reasoning_summary": "Use the foundation arithmetic method to compute (10 × 5) first, then subtract 5. This approach respects the structure and ensures correctness through verification. The answer is concise and directly matches the goal. The reasoning is based on the foundation method and the gravity well anchor. There are no duplicate or冗",
+      "title": "Compute (10 × 5) − 5: 5"
+    },
+    {
+      "answer": "5",
+      "assumptions": [
+        "Compute grouped multiplication before subtraction",
+        "Respect explicit operation structure"
+      ],
+      "reasoning_summary": "Use the foundation arithmetic method to compute (10 × 5) first, then subtract 5. This approach respects the structure and ensures correctness through verification. The answer is concise and directly matches the goal. There are no duplicate or冗",
+      "title": "Compute (10 × 5) − 5: 5"
+    }
+  ]
+}

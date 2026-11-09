@@ -1,0 +1,4 @@
+{
+  "counterfactual": "Compute (10 × 5) − 5: 5 — 5",
+  "skeptic": "Compute (10 × 5) − 5: 5 — 5"
+}

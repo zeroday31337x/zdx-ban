@@ -1,0 +1,4 @@
+{
+  "counterfactual": "The correct result is 45, not 40.",
+  "skeptic": "The calculation is correct, as 10 × 5 = 50, then subtracting 5 gives 45."
+}

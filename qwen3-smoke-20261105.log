@@ -1,0 +1,4 @@
+execution envelope: cases=20 repetitions=1 conditions=4 provider-calls-upper=1100 inference=15m0s case=1h0m0s run=5h0m0s bounded-upper=5h0m0s
+[01/20] memory-001 cold=malformed_output memory=malformed_output misleading=interrupted retrieved=2 gravity=0.000 evidence=0 routed=0
+memory experiment=BAN-EXPERIMENT-001-20261105-183752-2d94340bc46a-MEMORY cases=1 initial-memory=583f5d7a04b809d838386ed2c48f6388d43f2784e6fe2419aded9dd600399960 final-memory=
+ban: context canceled

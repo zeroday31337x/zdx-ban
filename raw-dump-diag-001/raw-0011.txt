@@ -1,0 +1,1 @@
+{ "confidence": 0.0, "consistency_score": 0.0, "contradiction_score": 1.0, "contradictions": ["10×5−5 — 50"], "diversity_score": 0.0, "evidence": ["10×5−5 — 50"], "evidence_score": 0.0, "feasibility_score": 0

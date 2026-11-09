@@ -1,0 +1,1 @@
+{ "confidence": 1.0, "consistency_score": 1.0, "contradiction_score": 0.0, "contradictions": [], "diversity_score": 1.0, "evidence": ["Grouped Operations Strategy — 45"], "evidence_score

@@ -1,0 +1,49 @@
+{
+  "branches": [
+    {
+      "answer": "5",
+      "assumptions": [
+        "Prior measured strategy: Respect explicit operation structure, compute grouped multiplication before subtraction, then check the final numeric form.",
+        "Foundation arithmetic method: Preserve explicit operation structure, compute grouped operations before outer operations, then submit a concise candidate for独立验证"
+      ],
+      "reasoning_summary": "The problem is a simple arithmetic operation: (10 × 5) − 5. The result is 50 − 5 = 45. The answer is 45, which is the direct result of the operation. The reasoning is based on the structure of the arithmetic operation and the need to compute the result directly without unnecessary steps. The assumptions are that the [1",
+      "title": "Compute (10 × 5) − 5"
+    },
+    {
+      "answer": "45",
+      "assumptions": [
+        "Prior measured strategy: Respect explicit operation structure, compute grouped multiplication before subtraction, then check the final numeric form.",
+        "Foundation arithmetic method: Preserve explicit operation structure, compute grouped operations before outer operations, then submit a concise candidate for独立验证"
+      ],
+      "reasoning_summary": "The problem is a simple arithmetic operation: (10 × 5) − 5. The result is 45. The reasoning is based on the structure of the arithmetic operation and the need to compute the result directly without unnecessary steps. The assumptions are that the [1",
+      "title": "Compute (10 × 5) − 5"
+    },
+    {
+      "answer": "45",
+      "assumptions": [
+        "Prior measured strategy: Respect explicit operation structure, compute grouped multiplication before subtraction, then check the final numeric form.",
+        "Foundation arithmetic method: Preserve explicit operation structure, compute grouped operations before outer operations, then submit a concise candidate for独立验证"
+      ],
+      "reasoning_summary": "The problem is a simple arithmetic operation: (10 × 5) − 5. The result is 45. The reasoning is based on the structure of the arithmetic operation and the need to compute the result directly without unnecessary steps. The assumptions are that the [1",
+      "title": "Compute (10 × 5) − 5"
+    },
+    {
+      "answer": "45",
+      "assumptions": [
+        "Prior measured strategy: Respect explicit operation structure, compute grouped multiplication before subtraction, then check the final numeric form.",
+        "Foundation arithmetic method: Preserve explicit operation structure, compute grouped operations before outer operations, then submit a concise candidate for独立验证"
+      ],
+      "reasoning_summary": "The problem is a simple arithmetic operation: (10 × 5) − 5. The result is 45. The reasoning is based on the structure of the arithmetic operation and the need to compute the result directly without unnecessary steps. The assumptions are that the [1",
+      "title": "Compute (10 × 5) − 5"
+    },
+    {
+      "answer": "45",
+      "assumptions": [
+        "Prior measured strategy: Respect explicit operation structure, compute grouped multiplication before subtraction, then check the final numeric form.",
+        "Foundation arithmetic method: Preserve explicit operation structure, compute grouped operations before outer operations, then submit a concise candidate for独立验证"
+      ],
+      "reasoning_summary": "The problem is a simple arithmetic operation: (10 × 5) − 5. The result is 45. The reasoning is based on the structure of the arithmetic operation and the need to compute the result directly without unnecessary steps. The assumptions are that the [1",
+      "title": "Compute (10 × 5) − 5"
+    }
+  ]
+}

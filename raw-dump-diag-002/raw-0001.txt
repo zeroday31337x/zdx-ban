@@ -1,0 +1,2 @@
+(10 × 5) − 5 = 50 − 5 = 45.  
+Return only the number: **45**.
