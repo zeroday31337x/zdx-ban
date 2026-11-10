@@ -1,0 +1,28 @@
+{
+  "title": "Illustrative equipment decision (hypothetical inputs)",
+  "choices": [
+    {
+      "id": "a",
+      "label": "Option A",
+      "branches": [
+        {"label": "success", "probability": 0.6, "score": 10},
+        {"label": "failure", "probability": 0.4, "score": -5}
+      ]
+    },
+    {
+      "id": "b",
+      "label": "Option B",
+      "branches": [
+        {
+          "label": "initial stage",
+          "probability": 1,
+          "score": 3,
+          "next": [
+            {"label": "improvement", "probability": 0.5, "score": 2},
+            {"label": "setback", "probability": 0.5, "score": -1}
+          ]
+        }
+      ]
+    }
+  ]
+}

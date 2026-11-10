@@ -22,7 +22,7 @@ func TestProjectConfigLoadsAndMapsBANSearch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if config.Model.Name != "qwen2.5:1.5b" || config.Model.ConnectTimeout.Duration != 10*time.Second {
+	if config.Model.Name != "qwen3:0.6b" || config.Model.ConnectTimeout.Duration != 10*time.Second {
 		t.Fatalf("unexpected model config: %+v", config.Model)
 	}
 	search := config.BANConfig()
