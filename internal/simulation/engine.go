@@ -18,35 +18,35 @@ const (
 )
 
 type Scenario struct {
-	Title       string   `json:"title"`
-	Choices     []Choice `json:"choices"`
+	Title   string   `json:"title"`
+	Choices []Choice `json:"choices"`
 	// StressDelta moves up to this amount of probability per decision point
 	// from the most favorable modeled outcome to the least favorable one.
 	// Zero disables the stress calculation; the limit is 0.25.
-	StressDelta float64  `json:"stress_delta,omitempty"`
+	StressDelta float64 `json:"stress_delta,omitempty"`
 }
 
 type Choice struct {
-	ID       string   `json:"id"`
-	Label    string   `json:"label"`
+	ID       string       `json:"id"`
+	Label    string       `json:"label"`
 	Branches []Branch `json:"branches"`
 }
 
 type Branch struct {
-	Label       string   `json:"label"`
+	Label       string       `json:"label"`
 	Probability float64  `json:"probability"`
 	Score       float64  `json:"score"`
 	Next        []Branch `json:"next,omitempty"`
 }
 
 type ChoiceResult struct {
-	ID              string  `json:"id"`
-	Label           string  `json:"label"`
-	ExpectedScore   float64 `json:"expected_score"`
-	LossProbability float64 `json:"loss_probability"`
-	BestScore       float64 `json:"best_score"`
-	WorstScore      float64 `json:"worst_score"`
-	TerminalPaths   int     `json:"terminal_paths"`
+	ID              string       `json:"id"`
+	Label           string       `json:"label"`
+	ExpectedScore   float64      `json:"expected_score"`
+	LossProbability float64      `json:"loss_probability"`
+	BestScore       float64      `json:"best_score"`
+	WorstScore      float64      `json:"worst_score"`
+	TerminalPaths   int          `json:"terminal_paths"`
 	Risk            RiskAnalysis `json:"risk_analysis"`
 }
 

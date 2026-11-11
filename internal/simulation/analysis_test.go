@@ -22,7 +22,9 @@ func TestRiskTrajectoriesAndStressRanking(t *testing.T) {
 		},
 	}
 	got, err := Evaluate(s)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if got.Ranking[0].ID != "a" || len(got.StressRanking) != 2 ||
 		got.StressRanking[0] != "b" || got.StressRanking[1] != "a" {
 		t.Fatalf("unexpected baseline/stress rankings: %+v", got)
@@ -47,45 +49,51 @@ func TestRiskTrajectoriesAndStressRanking(t *testing.T) {
 func TestRiskStageCarryForwardAndTailBoundary(t *testing.T) {
 	s := Scenario{
 		Title: "mixed path lengths",
-		Choices: []Choice{{ID:"x",Label:"X",Branches: []Branch{
-			{Label:"short",Probability:0.2,Score:-2},
-			{Label:"long",Probability:0.8,Score:1,Next: []Branch{
-				{Label:"finish",Probability:1,Score:4},
+		Choices: []Choice{{ID: "x", Label: "X", Branches: []Branch{
+			{Label: "short", Probability: 0.2, Score: -2},
+			{Label: "long", Probability: 0.8, Score: 1, Next: []Branch{
+				{Label: "finish", Probability: 1, Score: 4},
 			}},
 		}}},
 	}
-	got,err:=Evaluate(s)
-	if err!=nil { t.Fatal(err) }
-	v:=got.Ranking[0].Risk
-	if len(v.ExpectedScoreByStage)!=2 ||
-		math.Abs(v.ExpectedScoreByStage[0]-0.4)>1e-10 ||
-		math.Abs(v.ExpectedScoreByStage[1]-3.6)>1e-10 ||
-		math.Abs(v.WorstTenPercentMean-(-2))>1e-10 {
-		t.Fatalf("bad carried-forward path: %+v",v)
+	got, err := Evaluate(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v := got.Ranking[0].Risk
+	if len(v.ExpectedScoreByStage) != 2 ||
+		math.Abs(v.ExpectedScoreByStage[0]-0.4) > 1e-10 ||
+		math.Abs(v.ExpectedScoreByStage[1]-3.6) > 1e-10 ||
+		math.Abs(v.WorstTenPercentMean-(-2)) > 1e-10 {
+		t.Fatalf("bad carried-forward path: %+v", v)
 	}
 }
 
 func TestStressValidationAndNoStressReport(t *testing.T) {
-	s:=Scenario{Title:"T",Choices:[]Choice{{ID:"x",Label:"X",Branches:[]Branch{{Label:"only",Probability:1,Score:1}}}}}
-	for _,bad:=range []float64{-0.01,0.251,math.NaN(),math.Inf(1)}{
-		s.StressDelta=bad
-		if _,err:=Evaluate(s);err==nil {t.Fatalf("accepted stress_delta=%v",bad)}
+	s := Scenario{Title: "T", Choices: []Choice{{ID: "x", Label: "X", Branches: []Branch{{Label: "only", Probability: 1, Score: 1}}}}}
+	for _, bad := range []float64{-0.01, 0.251, math.NaN(), math.Inf(1)} {
+		s.StressDelta = bad
+		if _, err := Evaluate(s); err == nil {
+			t.Fatalf("accepted stress_delta=%v", bad)
+		}
 	}
-	s.StressDelta=0
-	got,err:=Evaluate(s)
-	if err!=nil || got.StressRanking!=nil || got.Ranking[0].Risk.StressDelta!=0 {
-		t.Fatalf("unexpected no-stress output: %+v err=%v",got,err)
+	s.StressDelta = 0
+	got, err := Evaluate(s)
+	if err != nil || got.StressRanking != nil || got.Ranking[0].Risk.StressDelta != 0 {
+		t.Fatalf("unexpected no-stress output: %+v err=%v", got, err)
 	}
 }
 
 func TestConditionalStressRespectsAvailableProbability(t *testing.T) {
-	s:=Scenario{Title:"small donor",StressDelta:0.2,Choices:[]Choice{{ID:"x",Label:"X",Branches:[]Branch{
-		{Label:"good",Probability:0.05,Score:10},
-		{Label:"bad",Probability:0.95,Score:0},
+	s := Scenario{Title: "small donor", StressDelta: 0.2, Choices: []Choice{{ID: "x", Label: "X", Branches: []Branch{
+		{Label: "good", Probability: 0.05, Score: 10},
+		{Label: "bad", Probability: 0.95, Score: 0},
 	}}}}
-	got,err:=Evaluate(s)
-	if err!=nil {t.Fatal(err)}
-	if math.Abs(got.Ranking[0].Risk.PessimisticShiftExpectedScore)>1e-10 {
-		t.Fatalf("cannot remove more than donor probability: %+v",got)
+	got, err := Evaluate(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if math.Abs(got.Ranking[0].Risk.PessimisticShiftExpectedScore) > 1e-10 {
+		t.Fatalf("cannot remove more than donor probability: %+v", got)
 	}
 }

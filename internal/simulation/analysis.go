@@ -83,7 +83,7 @@ func analyzeRisk(branches []Branch, stressDelta float64) RiskAnalysis {
 			index := stage
 			// A terminated scenario retains its terminal value thereafter.
 			if index >= len(path.CumulativeScores) {
-				index = len(path.CumulativeScores)-1
+				index = len(path.CumulativeScores) - 1
 			}
 			risk.ExpectedScoreByStage[stage] += path.Probability * path.CumulativeScores[index]
 		}
