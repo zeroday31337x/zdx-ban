@@ -20,6 +20,10 @@ const (
 type Scenario struct {
 	Title   string   `json:"title"`
 	Choices []Choice `json:"choices"`
+	// StressDelta moves up to this amount of probability per decision point
+	// from the most favorable modeled outcome to the least favorable one.
+	// Zero disables the stress calculation; the limit is 0.25.
+	StressDelta float64 `json:"stress_delta,omitempty"`
 }
 
 type Choice struct {
@@ -36,13 +40,14 @@ type Branch struct {
 }
 
 type ChoiceResult struct {
-	ID              string  `json:"id"`
-	Label           string  `json:"label"`
-	ExpectedScore   float64 `json:"expected_score"`
-	LossProbability float64 `json:"loss_probability"`
-	BestScore       float64 `json:"best_score"`
-	WorstScore      float64 `json:"worst_score"`
-	TerminalPaths   int     `json:"terminal_paths"`
+	ID              string       `json:"id"`
+	Label           string       `json:"label"`
+	ExpectedScore   float64      `json:"expected_score"`
+	LossProbability float64      `json:"loss_probability"`
+	BestScore       float64      `json:"best_score"`
+	WorstScore      float64      `json:"worst_score"`
+	TerminalPaths   int          `json:"terminal_paths"`
+	Risk            RiskAnalysis `json:"risk_analysis"`
 }
 
 type Report struct {
@@ -50,6 +55,7 @@ type Report struct {
 	Status            string         `json:"status"`
 	ProbabilitySource string         `json:"probability_source"`
 	Ranking           []ChoiceResult `json:"ranking"`
+	StressRanking     []string       `json:"stress_ranking,omitempty"`
 }
 
 // Evaluate enumerates terminal outcomes and ranks choices by expected score.
@@ -57,6 +63,10 @@ type Report struct {
 func Evaluate(s Scenario) (Report, error) {
 	if strings.TrimSpace(s.Title) == "" || len(s.Title) > 256 {
 		return Report{}, fmt.Errorf("title must be 1-256 characters")
+	}
+	if math.IsNaN(s.StressDelta) || math.IsInf(s.StressDelta, 0) ||
+		s.StressDelta < 0 || s.StressDelta > 0.25 {
+		return Report{}, fmt.Errorf("stress_delta must be between 0 and 0.25")
 	}
 	if len(s.Choices) == 0 || len(s.Choices) > maxChoices {
 		return Report{}, fmt.Errorf("choices must contain 1-%d entries", maxChoices)
@@ -76,6 +86,7 @@ func Evaluate(s Scenario) (Report, error) {
 		if err := walk(choice.Branches, 1, 1, 0, &result); err != nil {
 			return Report{}, fmt.Errorf("choice %q: %w", choice.ID, err)
 		}
+		result.Risk = analyzeRisk(choice.Branches, s.StressDelta)
 		report.Ranking = append(report.Ranking, result)
 	}
 	sort.Slice(report.Ranking, func(i, j int) bool {
@@ -85,6 +96,19 @@ func Evaluate(s Scenario) (Report, error) {
 		}
 		return a.ExpectedScore > b.ExpectedScore
 	})
+	if s.StressDelta > 0 {
+		order := append([]ChoiceResult(nil), report.Ranking...)
+		sort.Slice(order, func(i, j int) bool {
+			a, b := order[i], order[j]
+			if a.Risk.PessimisticShiftExpectedScore == b.Risk.PessimisticShiftExpectedScore {
+				return a.ID < b.ID
+			}
+			return a.Risk.PessimisticShiftExpectedScore > b.Risk.PessimisticShiftExpectedScore
+		})
+		for _, item := range order {
+			report.StressRanking = append(report.StressRanking, item.ID)
+		}
+	}
 	return report, nil
 }
 

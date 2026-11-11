@@ -17,8 +17,8 @@ jobs:
           cache: true
       - name: Check formatting of new source files
         run: |
-          bad="$(gofmt -l cmd/ban/scenario.go cmd/ban/scenario_test.go internal/simulation/engine.go internal/simulation/engine_test.go)"
-          if [ -n "$bad" ]; then printf '%s\n' "$bad"; exit 1; fi
+          bad="$(gofmt -l cmd/ban/scenario*.go internal/simulation/*.go)"
+          if [ -n "$bad" ]; then printf '%s\n' "$bad"; gofmt -d cmd/ban/scenario*.go internal/simulation/*.go; exit 1; fi
       - name: Unit tests
         run: go test ./...
       - name: Vet
