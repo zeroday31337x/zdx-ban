@@ -27,13 +27,13 @@ type Scenario struct {
 }
 
 type Choice struct {
-	ID       string       `json:"id"`
-	Label    string       `json:"label"`
+	ID       string   `json:"id"`
+	Label    string   `json:"label"`
 	Branches []Branch `json:"branches"`
 }
 
 type Branch struct {
-	Label       string       `json:"label"`
+	Label       string   `json:"label"`
 	Probability float64  `json:"probability"`
 	Score       float64  `json:"score"`
 	Next        []Branch `json:"next,omitempty"`
