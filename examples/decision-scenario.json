@@ -1,5 +1,6 @@
 {
   "title": "Illustrative equipment decision (hypothetical inputs)",
+  "stress_delta": 0.1,
   "choices": [
     {
       "id": "a",
