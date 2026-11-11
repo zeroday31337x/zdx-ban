@@ -200,3 +200,103 @@ func TestGravityRequiresIndependentAuthoritativeEvidence(t *testing.T) {
 		})
 	}
 }
+
+func verifiedTraceState(title, summary string, assumptions []string) *State {
+	return &State{
+		Title:            title,
+		ReasoningSummary: summary,
+		Assumptions:      assumptions,
+		Status:           Verified,
+		Measurements: []measurement.Result{
+			{ID: "m-seed", Outcome: measurement.Supported, Authority: measurement.Formal, Independence: measurement.Independent},
+		},
+	}
+}
+
+func TestSeedWellsFromVerifiedStates(t *testing.T) {
+	good := verifiedTraceState("Grouped multiplication", "multiply grouped terms before subtraction", []string{"grouped terms"})
+	duplicate := verifiedTraceState("Grouped multiplication", "multiply grouped terms before subtraction", []string{"grouped terms"})
+	other := verifiedTraceState("Verified division", "divide verified quotient carefully", []string{"verified quotient"})
+	unverified := &State{
+		Title:            "Grouped multiplication",
+		ReasoningSummary: "multiply grouped terms before subtraction",
+		Status:           Evaluated,
+		Measurements: []measurement.Result{
+			{ID: "m-seed", Outcome: measurement.Supported, Authority: measurement.Formal, Independence: measurement.Independent},
+		},
+	}
+	modelEstimate := verifiedTraceState("Grouped multiplication", "multiply grouped terms before subtraction", []string{"grouped terms"})
+	modelEstimate.Measurements = []measurement.Result{
+		{ID: "m-seed", Outcome: measurement.Supported, Authority: measurement.ModelEstimate, Independence: measurement.ModelDerived},
+	}
+	wells := SeedWellsFromVerifiedStates([]*State{good, duplicate, other, unverified, modelEstimate}, .8)
+	if len(wells) != 2 {
+		t.Fatalf("seeded %d wells, want 2 (identical keyword sets merge, unverified and model-estimate traces seed nothing)", len(wells))
+	}
+	for _, well := range wells {
+		if well.Category != "distilled" || well.Strength != .8 {
+			t.Fatalf("bad seeded well: %+v", well)
+		}
+	}
+	var grouped, divided *GravityWell
+	for i := range wells {
+		if len(wells[i].Keywords) > 0 && wells[i].Keywords[0] == "before" {
+			grouped = &wells[i]
+		}
+		if len(wells[i].Keywords) > 0 && wells[i].Keywords[0] == "carefully" {
+			divided = &wells[i]
+		}
+	}
+	if grouped == nil || grouped.SupportingEvidence != 2 {
+		t.Fatalf("grouped well should merge 2 traces: %+v", grouped)
+	}
+	if divided == nil || divided.SupportingEvidence != 1 {
+		t.Fatalf("division well should have 1 trace: %+v", divided)
+	}
+}
+
+func TestWellBridgingBoostsMatchedBranch(t *testing.T) {
+	wellA := GravityWell{ID: "well-a", Strength: .8, Keywords: []string{"alpha", "method"}}
+	wellB := GravityWell{ID: "well-b", Strength: .8, Keywords: []string{"beta", "method"}}
+	makeBranch := func() *State {
+		s := NewState("branch", Proposal{Title: "alpha method", ReasoningSummary: "apply alpha method"}, 0)
+		ApplyEvaluation(s, Evaluation{Confidence: .5, EvidenceScore: .5, ConsistencyScore: .5, FeasibilityScore: .5, UtilityScore: .5})
+		return s
+	}
+	plain := makeBranch()
+	if !ApplyGravity(plain, []GravityWell{wellA, wellB}, .2) {
+		t.Fatal("plain gravity did not apply")
+	}
+	bridged := []GravityWell{wellA, wellB}
+	RecordWellCooccurrence(bridged, []string{"well-a", "well-b"}, .5)
+	if bridged[0].Bridges["well-b"] != .5 || bridged[1].Bridges["well-a"] != .5 {
+		t.Fatalf("co-occurrence bridge was not symmetric: %+v %+v", bridged[0], bridged[1])
+	}
+	withBridge := makeBranch()
+	if !ApplyGravity(withBridge, bridged, .2) {
+		t.Fatal("bridged gravity did not apply")
+	}
+	if withBridge.GravityWellID != "well-a" {
+		t.Fatalf("bridged branch matched wrong well: %s", withBridge.GravityWellID)
+	}
+	if withBridge.InformationGravity <= plain.InformationGravity {
+		t.Fatalf("bridge did not boost attraction: plain=%f bridged=%f", plain.InformationGravity, withBridge.InformationGravity)
+	}
+	// Bridge weight is capped at 1 even after many co-occurrences.
+	RecordWellCooccurrence(bridged, []string{"well-a", "well-b"}, .9)
+	if bridged[0].Bridges["well-b"] != 1 {
+		t.Fatalf("bridge weight escaped cap: %f", bridged[0].Bridges["well-b"])
+	}
+}
+
+func TestPruneWellsDropsDeadWells(t *testing.T) {
+	now := time.Unix(30_000, 0).UTC()
+	good := GravityWell{ID: "good", Strength: .8, OutcomeCount: 5, SuccessRate: .9}
+	decayed := GravityWell{ID: "decayed", Strength: .8, DecayHalfLife: time.Hour, LastUsedAt: now.Add(-10 * time.Hour)}
+	failing := GravityWell{ID: "failing", Strength: .8, OutcomeCount: 10, SuccessRate: .1}
+	youngFailing := GravityWell{ID: "young-failing", Strength: .8, OutcomeCount: 2, SuccessRate: .1}
+	kept := PruneWells([]GravityWell{good, decayed, failing, youngFailing}, now, .1, .5, 5)
+	if len(kept) != 2 || kept[0].ID != "good" || kept[1].ID != "young-failing" {
+		t.Fatalf("pruning kept wrong wells: %+v", kept)
+	}
+}

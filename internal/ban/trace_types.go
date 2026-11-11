@@ -31,6 +31,10 @@ type GravityWell struct {
 	SupportingEvidence  int
 	FoundationAnchor    bool
 	Keywords            []string
+	// Bridges links this well to other wells it co-occurred with in
+	// verified branches. The map value is the bridge weight (0..1).
+	// Matching this well also pulls in bridged wells' strength.
+	Bridges map[string]float64
 }
 
 // CapabilityExecutor computes a candidate from a strategy using a bounded,

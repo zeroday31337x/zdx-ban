@@ -1,7 +1,10 @@
 package ban
 
 import (
+	"fmt"
+	"hash/fnv"
 	"math"
+	"sort"
 	"strings"
 	"time"
 	"zdx-ban/internal/measurement"
@@ -40,6 +43,13 @@ func applyGravityAt(state *State, wells []GravityWell, weight float64, now time.
 		return false
 	}
 	branchTokens := tokenSet(state.Title + " " + state.ReasoningSummary + " " + strings.Join(state.Assumptions, " "))
+	// byID lets bridged wells contribute their strength to a matched well.
+	byID := make(map[string]int, len(wells))
+	for i := range wells {
+		if wells[i].ID != "" {
+			byID[wells[i].ID] = i
+		}
+	}
 	bestNet := 0.0
 	bestAttraction := 0.0
 	bestRepulsion := 0.0
@@ -53,6 +63,15 @@ func applyGravityAt(state *State, wells []GravityWell, weight float64, now time.
 		}
 		similarity := tokenOverlap(branchTokens, wellTokens)
 		attraction := similarity * well.EffectiveStrength(now)
+		// Bridging: a matched well also pulls in the strength of wells
+		// it co-occurred with in verified branches, weighted by the
+		// bridge weight. This is how wells combine across domains.
+		for targetID, bridgeWeight := range well.Bridges {
+			if targetIdx, ok := byID[targetID]; ok && targetIdx != i {
+				attraction += clamp(bridgeWeight) * wells[targetIdx].EffectiveStrength(now) * similarity
+			}
+		}
+		attraction = clamp(attraction)
 		repulsion := similarity * clamp(well.Repulsion)
 		net := attraction - repulsion
 		if bestID == "" || net > bestNet {
@@ -168,4 +187,125 @@ func tokenOverlap(a, b map[string]bool) float64 {
 		denominator = len(b)
 	}
 	return float64(hits) / float64(denominator)
+}
+
+// SeedWellsFromVerifiedStates creates gravity wells from a teacher's
+// verified traces (distillation). The teacher's successful patterns become
+// wells up front, so the student is pulled toward good solutions from the
+// start instead of waiting for wells to emerge naturally. Only states that
+// are Verified with an independently measured, authoritative Supported
+// outcome seed a well; a pass/fail-only verifier cannot seed wells, the
+// same rule that governs UpdateGravityOutcome. States with identical
+// keyword sets merge into one well whose SupportingEvidence counts them.
+// The returned wells are sorted by ID for determinism. Seeding affects
+// routing only; it never verifies a branch.
+func SeedWellsFromVerifiedStates(states []*State, baseStrength float64) []GravityWell {
+	strength := clamp(baseStrength)
+	grouped := map[string][]string{}
+	support := map[string]int{}
+	for _, state := range states {
+		if state == nil || state.Status != Verified {
+			continue
+		}
+		if independentMeasuredOutcome(state) != measurement.Supported {
+			continue
+		}
+		tokens := tokenSet(state.Title + " " + state.ReasoningSummary + " " + strings.Join(state.Assumptions, " "))
+		if len(tokens) == 0 {
+			continue
+		}
+		keywords := make([]string, 0, len(tokens))
+		for token := range tokens {
+			keywords = append(keywords, token)
+		}
+		sort.Strings(keywords)
+		key := strings.Join(keywords, " ")
+		if _, ok := grouped[key]; !ok {
+			grouped[key] = keywords
+		}
+		support[key]++
+	}
+	wells := make([]GravityWell, 0, len(grouped))
+	for key, keywords := range grouped {
+		wells = append(wells, GravityWell{
+			ID:                 seededWellID(key),
+			Category:           "distilled",
+			Strength:           strength,
+			Keywords:           keywords,
+			SupportingEvidence: support[key],
+		})
+	}
+	sort.Slice(wells, func(i, j int) bool { return wells[i].ID < wells[j].ID })
+	return wells
+}
+
+func seededWellID(key string) string {
+	h := fnv.New64a()
+	_, _ = h.Write([]byte(key))
+	return fmt.Sprintf("seeded-%x", h.Sum64())
+}
+
+// RecordWellCooccurrence strengthens the bridge between every pair of
+// wells in ids, recording that they co-occurred in a verified branch.
+// Bridged wells pull in each other's strength when one of them matches,
+// so wells combine across domains. The bridge weight is symmetric and
+// capped at 1. Call this only for wells that co-occurred in a branch
+// whose outcome was independently measured and authoritative.
+func RecordWellCooccurrence(wells []GravityWell, ids []string, increment float64) {
+	if len(ids) < 2 || increment <= 0 {
+		return
+	}
+	byID := make(map[string]int, len(wells))
+	for i := range wells {
+		if wells[i].ID != "" {
+			byID[wells[i].ID] = i
+		}
+	}
+	// Deduplicate ids so a repeated id does not bridge to itself.
+	seen := make(map[string]bool, len(ids))
+	unique := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if id == "" || seen[id] {
+			continue
+		}
+		seen[id] = true
+		unique = append(unique, id)
+	}
+	for a := 0; a < len(unique); a++ {
+		for b := a + 1; b < len(unique); b++ {
+			ia, okA := byID[unique[a]]
+			ib, okB := byID[unique[b]]
+			if !okA || !okB || ia == ib {
+				continue
+			}
+			if wells[ia].Bridges == nil {
+				wells[ia].Bridges = make(map[string]float64)
+			}
+			if wells[ib].Bridges == nil {
+				wells[ib].Bridges = make(map[string]float64)
+			}
+			wells[ia].Bridges[unique[b]] = clamp(wells[ia].Bridges[unique[b]] + increment)
+			wells[ib].Bridges[unique[a]] = clamp(wells[ib].Bridges[unique[a]] + increment)
+		}
+	}
+}
+
+// PruneWells drops dead wells so the well set stays clean. A well is
+// pruned when its effective strength has decayed below minStrength, or
+// when it has at least minOutcomes recorded outcomes and its success rate
+// is below minSuccessRate. Wells with fewer than minOutcomes outcomes are
+// never pruned by the success-rate rule, so newly seeded wells survive.
+// The input slice is not modified; a new slice is returned.
+func PruneWells(wells []GravityWell, now time.Time, minStrength float64, minSuccessRate float64, minOutcomes int) []GravityWell {
+	kept := make([]GravityWell, 0, len(wells))
+	for _, well := range wells {
+		if well.EffectiveStrength(now) < minStrength {
+			continue
+		}
+		if minOutcomes > 0 && well.OutcomeCount >= minOutcomes && well.SuccessRate < minSuccessRate {
+			continue
+		}
+		kept = append(kept, well)
+	}
+	return kept
 }
