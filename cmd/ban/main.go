@@ -29,7 +29,7 @@ func run() error {
 		return err
 	}
 	mode := "run"
-	if len(args) > 0 && (args[0] == "run" || args[0] == "baseline" || args[0] == "benchmark" || args[0] == "experiment" || args[0] == "memory" || args[0] == "model" || args[0] == "config" || args[0] == "thought" || args[0] == "vm" || args[0] == "runtime" || args[0] == "training") {
+	if len(args) > 0 && (args[0] == "run" || args[0] == "baseline" || args[0] == "benchmark" || args[0] == "experiment" || args[0] == "memory" || args[0] == "model" || args[0] == "config" || args[0] == "thought" || args[0] == "vm" || args[0] == "runtime" || args[0] == "training" || args[0] == "scenario") {
 		mode = args[0]
 		args = args[1:]
 	}
@@ -46,7 +46,7 @@ func run() error {
 		}
 		return printJSON(config)
 	}
-	if mode == "model" || mode == "thought" || mode == "vm" || mode == "runtime" || mode == "training" {
+	if mode == "model" || mode == "thought" || mode == "vm" || mode == "runtime" || mode == "training" || mode == "scenario" {
 		return runtimeCommand(mode, args, config)
 	}
 	if mode == "experiment" {

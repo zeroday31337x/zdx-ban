@@ -1,0 +1,29 @@
+name: Go CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Check formatting of new source files
+        run: |
+          bad="$(gofmt -l cmd/ban/scenario.go cmd/ban/scenario_test.go internal/simulation/engine.go internal/simulation/engine_test.go)"
+          if [ -n "$bad" ]; then printf '%s\n' "$bad"; exit 1; fi
+      - name: Unit tests
+        run: go test ./...
+      - name: Vet
+        run: go vet ./...
+      - name: Race tests on critical packages
+        run: go test -race ./cmd/ban ./internal/ban ./internal/inference/... ./internal/experiment ./internal/simulation
+      - name: Build
+        run: go build ./...

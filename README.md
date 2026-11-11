@@ -114,3 +114,7 @@ cron-safe launcher in
 Baseline and BAN use the same configured model and relevant generation settings. The bundled dataset is a harness seed, not evidence that BAN improves accuracy. Current verification defaults to an explicit no-constraint accept verifier unless a deterministic domain verifier is injected. Semantic deduplication is normalized-text-only; telemetry uses portable Go runtime data; token counts depend on Ollama; no learned verifier, GUI, database, native foundation-model training, KV-cache manipulation, or PPS exists yet. The W0 corpus tools validate data and, as of this pass, have trained real (if toy) weights on a synthetic fixture; the W0 and W1 mechanisms have both been run for real end to end on this device (see DEVELOPMENT_STATUS.md) — but only against explicitly-synthetic fixtures, never a real corpus, so no validated production checkpoint or adapter is claimed.
 
 The next experiment should introduce a fixed, objectively verifiable task set and compare paired seeded baseline/BAN runs, emphasizing forced recovery cases, final-selection accuracy, latency, tokens, and memory.
+
+## Deterministic multi-stage decision scenarios
+
+`ban scenario examples/decision-scenario.json` evaluates bounded, locally supplied decision trees, ranks choices by assumed expected score, and reports downside risk. The output is marked **ASSUMPTION_BASED**: no probabilities are inferred, no actions execute, and no remote provider or private inference pool is called. See [SCENARIO.md](SCENARIO.md).

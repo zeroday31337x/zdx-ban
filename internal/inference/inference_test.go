@@ -31,6 +31,9 @@ func TestOllamaStructuredRequestUsesExactJSONSchema(t *testing.T) {
 	if _, err := o.GenerateStructured(context.Background(), inference.Request{Prompt: "x"}, &got); err != nil {
 		t.Fatal(err)
 	}
+	if request["think"] != false {
+		t.Fatalf("thinking must be disabled for bounded structured output: %#v", request["think"])
+	}
 	format, ok := request["format"].(map[string]any)
 	if !ok || format["type"] != "object" || format["additionalProperties"] != false {
 		t.Fatalf("format is not an exact object schema: %#v", request["format"])

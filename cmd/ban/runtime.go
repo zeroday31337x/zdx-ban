@@ -49,6 +49,8 @@ func runtimeCommand(mode string, args []string, config appconfig.Config) error {
 		return runtimeSubcommand(args, config)
 	case "training":
 		return trainingCommand(args)
+	case "scenario":
+		return scenarioCommand(args)
 	default:
 		return fmt.Errorf("unknown runtime command")
 	}
